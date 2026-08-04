@@ -1,0 +1,36 @@
+project_name: "somap"
+default_status: "To Do"
+statuses: ["To Do", "In Progress", "Done"]
+labels:
+  # Fixed taxonomy — pull from this list when creating tasks.
+  # Adding a label requires amending this list first (see constitution, Governance).
+  # area:* — what part of the system the work touches (exactly one)
+  - "area:legal"
+  - "area:geo"
+  - "area:etl"
+  - "area:api"
+  - "area:web"
+  - "area:infra"
+  - "area:docs"
+  # kind:* — what sort of work it is (exactly one)
+  - "kind:spike"
+  - "kind:feature"
+  - "kind:schema"
+  - "kind:gate"
+  - "kind:debt"
+  # x:* — cross-cutting concerns that trigger extra review (zero or more)
+  - "x:privacy"
+  - "x:safety"
+  - "x:partnership"
+date_format: yyyy-mm-dd
+max_column_width: 20
+auto_open_browser: true
+default_port: 6420
+remote_operations: true
+auto_commit: false
+filesystem_only: false
+zero_padded_ids: 4
+bypass_git_hooks: false
+check_active_branches: true
+active_branch_days: 30
+task_prefix: "TASK"

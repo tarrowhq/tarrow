@@ -1,0 +1,14 @@
+{
+  "planted": "pdlc:bootstrap",
+  "version": "0.54.0",
+  "name": "somap",
+  "peers": [
+    "backlog",
+    "spec-kit"
+  ],
+  "peersOmitted": [],
+  "hooks": [
+    "root-guard"
+  ],
+  "plantedAt": "2026-08-04T14:07:14.593Z"
+}
