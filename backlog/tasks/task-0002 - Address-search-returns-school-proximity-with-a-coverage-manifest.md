@@ -1,9 +1,10 @@
 ---
 id: TASK-0002
 title: Address search returns school proximity with a coverage manifest
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-08-04 15:58'
+updated_date: '2026-08-04 21:08'
 labels:
   - 'area:web'
   - 'kind:feature'
@@ -25,6 +26,8 @@ Deliberately narrow on coverage and complete on honesty. Only school premises ar
 Privacy architecture is inside this slice rather than after it. This is the first build that could leak anything, and shipping a version that logs addresses and fixing it later is exactly the retrofit Principle III forbids.
 
 The hardest part is not the map, it is the language. The strongest thing this interface may say is that the address is outside every buffer we checked, stated together with what we did not check.
+
+Spec: specs/001-address-search-school-proximity
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
