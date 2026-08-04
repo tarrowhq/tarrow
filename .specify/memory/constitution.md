@@ -137,6 +137,39 @@ under-restriction hazard of Principle I, distributed across a map.
 
 First jurisdiction: **Summit County, Ohio.**
 
+### VII. Anyone Can Run It Themselves
+
+Principle III says privacy must be verifiable rather than asserted. The strongest available
+form of that is not a policy a user reads, an audit they must trust, or a promise we could
+quietly stop keeping. It is somap running on a machine we do not control.
+
+**somap must remain deployable, in full, by someone who has never spoken to us**, from
+publicly available inputs. Not as an export, a stripped community edition, or a courtesy — the
+whole system, producing the same answers.
+
+Rules that follow:
+
+- **Every data input must be freely redistributable.** Parcel geometry, facility sources, rule
+  files. A source we may query but not republish cannot enter the system, however good it is.
+- **No managed service in the query path**, and no dependency licensed per seat, per query, or
+  per instance. This forecloses commercial geocoding permanently — which Principle III already
+  required, and which this principle now also requires for a second, independent reason.
+- **Packaging is a deliverable, not documentation.** An instance someone else can actually
+  stand up is the artifact that proves this principle; a README describing how one might is
+  not.
+- **A self-hosted instance must be able to say it is stale.** It carries the build date of its
+  data and the verification dates of its rules, and surfaces them per Principles II and V. An
+  instance running six-month-old data is a Principle I hazard unless it announces itself as
+  one. We cannot update someone else's deployment; we can make it incapable of hiding its age.
+
+This is also the concrete thing to offer the advocacy organizations of the Partners section.
+"Trust our privacy policy" asks a population that has been failed by systems claiming to help
+it for exactly the kind of faith it has no reason to extend. "Run your own instance, and we
+never see anything at all" asks for none.
+
+The cost is real and accepted: it constrains dependency choices we cannot yet foresee, and it
+makes packaging permanent work. That is the trade this principle exists to make.
+
 ## Delivery
 
 ### Pull Requests
@@ -203,4 +236,14 @@ planted or generic instruction block, this document wins and the conflict is rec
 - Specs, plans, and pull requests are expected to comply. Where compliance is genuinely
   impossible, the deviation is documented in the spec with its reasoning — not omitted.
 
-**Version**: 1.0.0 | **Ratified**: 2026-08-04 | **Last Amended**: 2026-08-04
+**Version**: 1.1.0 | **Ratified**: 2026-08-04 | **Last Amended**: 2026-08-04
+
+### Amendment log
+
+- **1.1.0** — Added Principle VII (*Anyone Can Run It Themselves*). MINOR: adds a principle and
+  materially expands scope. Raised during TASK-0001, where choosing a geocoding stack that
+  sends no user address to a third party (Principle III) turned out to require exactly the
+  same property as being self-hostable — every input freely redistributable, nothing licensed
+  per query. Ratifying it as a principle rather than leaving it an incidental property of the
+  current design, so that it binds future dependency choices and can be offered to partners as
+  a commitment rather than an observation. No existing principle is weakened or reversed.
