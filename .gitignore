@@ -1,2 +1,5 @@
 .handoff/
 .worktrees/
+
+# Spike working data — large, re-fetchable, never committed
+spikes/*/data/

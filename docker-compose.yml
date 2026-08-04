@@ -1,0 +1,65 @@
+# somap runs in containers. Nothing is installed on a host.
+#
+# This is the whole environment: the database, and the toolchain that talks to
+# it. A contributor with Docker and this repo has everything; a contributor
+# without Docker has nothing to install, because there is nothing to install.
+#
+# See Constitution Principle VII.
+
+services:
+  db:
+    # Built, not pulled. postgis/postgis is amd64-only, which would exclude
+    # every self-hoster on ARM; and the component computing safety-critical
+    # distances should not come from an account we cannot audit. See
+    # docker/db/Dockerfile for the full reasoning.
+    build:
+      context: ./docker/db
+    environment:
+      POSTGRES_USER: somap
+      POSTGRES_PASSWORD: somap
+      POSTGRES_DB: somap
+      # Deterministic collation. Address matching is string comparison, and
+      # locale-dependent ordering would make results differ by host.
+      LANG: C
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
+    # Docker defaults /dev/shm to 64MB. PostgreSQL's parallel workers exchange
+    # tuples through shared memory, so any large parallel join dies with
+    # "could not resize shared memory segment ... No space left on device".
+    # Found the hard way running the TASK-0001 match-rate classification.
+    shm_size: 1gb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      # Exposed on loopback only, for inspection with a GUI client. Nothing
+      # in the pipeline depends on this being published.
+      - "127.0.0.1:55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U somap -d somap"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  tools:
+    build:
+      context: ./docker/tools
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      PGUSER: somap
+      PGPASSWORD: somap
+      PGDATABASE: somap
+    volumes:
+      # Bind-mounted rather than a named volume so downloaded source data and
+      # generated results are inspectable from the host without docker cp.
+      # Working data lives under spikes/*/data/, which is gitignored.
+      - ./spikes:/work/spikes
+    working_dir: /work
+    depends_on:
+      db:
+        condition: service_healthy
+    # Stay up so `docker compose exec tools ...` is available for iterative work.
+    command: ["sleep", "infinity"]
+
+volumes:
+  pgdata:
