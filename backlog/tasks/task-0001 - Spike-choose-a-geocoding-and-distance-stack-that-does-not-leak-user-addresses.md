@@ -1,10 +1,10 @@
 ---
 id: TASK-0001
 title: 'Spike: choose a geocoding and distance stack that does not leak user addresses'
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-08-04 15:58'
-updated_date: '2026-08-04 20:12'
+updated_date: '2026-08-04 20:15'
 labels:
   - 'area:geo'
   - 'kind:spike'
@@ -236,3 +236,52 @@ DOWNSTREAM CONSEQUENCES (see DECISION.md section 6)
 - Parcel siteaddress is not unique county-wide; derive municipality by spatial
   join (needed for TASK-0007 regardless).
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Decided the geocoding and distance stack, on measured evidence rather than
+assumption. Landed in PR #4.
+
+DECISION: a typed address resolves against the county Address Points layer,
+then its parcel is found geometrically. Parcels remain the measurement
+geometry; measurement is nearest boundary to nearest boundary. Measured
+96.79% correct / 0.20% wrong, versus 69.16% / 3.34% for matching against
+parcel.siteaddress -- the architecture originally planned in this task.
+
+The two datasets answer different questions: a parcel is a unit of ownership
+and taxation, an address point a unit of addressable location. They coincide
+only for a detached single-family home -- 26.8% of parcels have no address
+point and 5.5% have several. That, not string handling, is the 17x difference
+in wrong answers.
+
+No commercial geocoder, disqualified twice over: it would leak the searched
+address (III) and its index cannot be redistributed, making somap
+un-self-hostable (VII). libpostal not adopted -- rule-based normalization
+reached 96.8% alone.
+
+MEASUREMENT MAGNITUDE, now empirical: buffer is 304.8m; a 10+ acre school
+campus parcel has a MEDIAN extent of 578m. A campus is nearly twice the
+buffer, so point-based measurement against a school is not a rougher version
+of the right answer -- it is wrong by more than the distance being measured.
+
+MISSING GEOMETRY GETS OPPOSITE RULES PER SIDE -- residence declines (measuring
+from a point overstates distance and under-restricts), premises inflates
+generously (a missing premises silently shrinks a buffer), schools get neither
+and become a declared coverage gap. Fuzzy matching rejected on safety grounds:
+half the rejected approach's failures were house-number disagreements, where
+fuzzy matching turns a safe no-match into a confident wrong house.
+
+Also delivered the containerized environment the project now runs on
+(constitution 1.2.0), and spawned TASK-0012 after finding 1,128 mineral-rights
+parcels -- overlapping subsurface polygons covering 54,573 acres -- that would
+corrupt boundary-to-boundary distance if ingested unfiltered.
+
+Four defects were found in the measurement method itself and are documented
+with the corrections, including ADDR_ID in the source not being unique. The
+headline 96.79% is an UPPER BOUND: probe addresses derive from the layer being
+searched, so semantic divergence is unmeasured.
+
+Artifacts: spikes/task-0001-geocoding/DECISION.md (decision of record),
+RESULTS.md (evidence), README.md (how to reproduce).
+<!-- SECTION:FINAL_SUMMARY:END -->
