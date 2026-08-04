@@ -157,6 +157,29 @@ Rules that follow:
 - **Packaging is a deliverable, not documentation.** An instance someone else can actually
   stand up is the artifact that proves this principle; a README describing how one might is
   not.
+- **The container *is* the environment — for everyone, including us.** somap is defined by its
+  container composition, and that composition is the only supported way to run it. Nothing is
+  installed on a host: not a database, not a language runtime, not a geospatial library. A
+  contributor needs a container runtime and this repository, and needs nothing else, because
+  there *is* nothing else.
+
+  This is the enforcement mechanism for everything above it, not a tooling preference. A
+  self-hostability claim that maintainers never exercise decays without anyone noticing —
+  someone adds a dependency that happens to be on their laptop, the packaged path quietly
+  stops working, and it is discovered by a stranger months later who cannot stand it up. Making
+  the packaged artifact the *only* artifact means the deployment path is tested continuously,
+  by everyone, as a side effect of ordinary work. "Works on my machine" ceases to be a possible
+  sentence, because there is no my-machine to work on.
+
+  It also makes the accuracy and safety numbers reproducible. A measurement produced in an
+  environment nobody else can reconstruct is an anecdote; Principle V does not accept those
+  from rule content and should not accept them from us.
+
+  Two consequences worth stating, because they are easy to concede under deadline: images are
+  **pinned**, never floating, so two contributors cannot silently run different versions of the
+  thing computing distances; and images must be **multi-architecture**, because an amd64-only
+  dependency excludes every self-hoster on ARM and quietly narrows "anyone" to "anyone with the
+  right laptop."
 - **A self-hosted instance must be able to say it is stale.** It carries the build date of its
   data and the verification dates of its rules, and surfaces them per Principles II and V. An
   instance running six-month-old data is a Principle I hazard unless it announces itself as
@@ -236,10 +259,17 @@ planted or generic instruction block, this document wins and the conflict is rec
 - Specs, plans, and pull requests are expected to comply. Where compliance is genuinely
   impossible, the deviation is documented in the spec with its reasoning — not omitted.
 
-**Version**: 1.1.0 | **Ratified**: 2026-08-04 | **Last Amended**: 2026-08-04
+**Version**: 1.2.0 | **Ratified**: 2026-08-04 | **Last Amended**: 2026-08-04
 
 ### Amendment log
 
+- **1.2.0** — Expanded Principle VII with *the container is the environment*. MINOR: materially
+  expands an existing principle's scope. Raised during TASK-0001, where standing up PostGIS to
+  measure address match rates meant installing a database on a developer machine — which would
+  have made the accuracy numbers unreproducible and started the exact decay this rule now
+  forbids. Also records two consequences discovered in the same session: image pinning, and a
+  multi-architecture requirement found the hard way when the obvious PostGIS image turned out
+  to be amd64-only and would have excluded every ARM self-hoster.
 - **1.1.0** — Added Principle VII (*Anyone Can Run It Themselves*). MINOR: adds a principle and
   materially expands scope. Raised during TASK-0001, where choosing a geocoding stack that
   sends no user address to a third party (Principle III) turned out to require exactly the
