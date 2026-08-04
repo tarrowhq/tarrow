@@ -1,6 +1,7 @@
 # TASK-0001 spike — geocoding and distance stack
 
-Evidence for AC#1. Results and recommendation: **[RESULTS.md](RESULTS.md)**.
+**Decision: [DECISION.md](DECISION.md)** — the authoritative outcome of this spike.
+**Evidence: [RESULTS.md](RESULTS.md)** — the measurement it rests on.
 
 This is a measurement harness, not production code. Nothing here is an architectural
 commitment about the language or shape of the real ingest pipeline.
