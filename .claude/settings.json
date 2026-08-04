@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/root-guard-hook.mjs\" pre-bash"
+            "command": "PATH=\"${VOLTA_HOME:-$HOME/.volta}/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; command -v node >/dev/null || { echo 'root-guard: node not found on PATH — guard cannot run' >&2; exit 2; }; node \"$CLAUDE_PROJECT_DIR/.claude/hooks/root-guard-hook.mjs\" pre-bash"
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/root-guard-hook.mjs\" pre-write"
+            "command": "PATH=\"${VOLTA_HOME:-$HOME/.volta}/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; command -v node >/dev/null || { echo 'root-guard: node not found on PATH — guard cannot run' >&2; exit 2; }; node \"$CLAUDE_PROJECT_DIR/.claude/hooks/root-guard-hook.mjs\" pre-write"
           }
         ]
       }
