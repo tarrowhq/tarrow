@@ -214,6 +214,51 @@ export const SCHOOLS_BOARD_PARCELS = {
     "opposite error is not.",
 } as const;
 
+/**
+ * A fourth school source, added after the third one proved the second one
+ * misses schools.
+ *
+ * St. Vincent-St. Mary High School, one of Akron's largest and best-known
+ * chartered nonpublic schools, does not appear in the federal Private School
+ * Universe Survey at all -- not in the 2023-24 wave, not under any spelling.
+ * The county tax roll has its campus (15 N Maple St, use code 670, 131
+ * acres). That is a survey nonresponse producing a missing school, which
+ * Principle I classifies as the unrecoverable error, and it is not
+ * hypothetical: it was found by spot-checking this very ingest.
+ *
+ * So: exempt parcels whose OWNER READS LIKE A SCHOOL are ingested as
+ * premises. County-authoritative ownership, surveyed geometry, no geocoding
+ * step, and it recovers schools the federal survey never had -- Western
+ * Reserve Academy, Cuyahoga Valley Christian Academy, Lawrence School,
+ * Summit Academy's buildings, and others.
+ *
+ * It is a name heuristic and it is stated as one. It does NOT recover
+ * St. Vincent-St. Mary itself, whose parcel is held by "SVSM FOUNDATION
+ * PROPERTIES LLC" -- a name no pattern should be tuned to match, because
+ * tuning a pattern to the one example you happened to check is how a gap
+ * gets hidden instead of closed. That school stays in the gap ledger by
+ * name, and closing it properly needs Ohio's own chartered nonpublic
+ * directory as an authored source.
+ */
+export const SCHOOLS_NAMED_EXEMPT_PARCELS = {
+  id: "summit_named_school_parcels",
+  description:
+    "Summit County tax parcels that are tax-exempt and whose owner of record " +
+    "reads like a school -- the county's own record of nonpublic and community " +
+    "school property, independent of any survey response.",
+  sourceUrl: `${SUMMIT_GIS}/parcels_web_GEODATA_Tax_Parcels/FeatureServer/0`,
+  jurisdiction: "Summit County, OH",
+  notes:
+    "Owner-name heuristic over exempt parcels. Deliberately not tuned to any " +
+    "individual school. School type is recorded as unclassified: the tax roll " +
+    "does not say whether the owner runs a nonpublic school or a community school.",
+} as const;
+
+/** Owner-of-record words that make a parcel a school premises candidate.
+ *  Whole words only, so PRESCHOOL and SCHOOLCRAFT do not match. */
+export const SCHOOL_OWNER_PATTERN =
+  "(^|[^A-Z])(SCHOOL|SCHOOLS|ACADEMY|ACADEMIES|MONTESSORI|PREPARATORY)([^A-Z]|$)";
+
 /** The parcel tax use code meaning "exempt -- board of education". */
 export const BOARD_OF_EDUCATION_USECD = "650";
 
@@ -252,6 +297,28 @@ export interface DeclaredGap {
  * discover on its own because they are absences in the sources themselves.
  */
 export const DECLARED_GAPS: readonly DeclaredGap[] = [
+  {
+    layerId: SCHOOLS_PRIVATE_NCES.id,
+    subjectType: "school_premises",
+    subjectRef: "known_missing:st_vincent_st_mary_high_school",
+    description:
+      "St. Vincent-St. Mary High School, 15 N Maple St, Akron, is absent from " +
+      "the federal survey this release draws nonpublic schools from, and its " +
+      "county parcel is held under a name no source identifies as a school. It " +
+      "is therefore NOT checked: an address near it will not be flagged for it. " +
+      "This is a confirmed miss, found by spot-checking, and it is evidence that " +
+      "other nonpublic schools are missing too.",
+  },
+  {
+    layerId: SCHOOLS_NAMED_EXEMPT_PARCELS.id,
+    subjectType: "source_coverage",
+    subjectRef: "owner_name_heuristic",
+    description:
+      "Some school premises are found by reading the tax roll's owner-of-record " +
+      "for school words. A school whose property is held by a foundation, a " +
+      "diocese, or a holding company named after neither the school nor its " +
+      "purpose is not found this way.",
+  },
   {
     layerId: SCHOOLS_PRIVATE_NCES.id,
     subjectType: "source_coverage",

@@ -59,27 +59,27 @@ an under-restriction defect, which Principle I classifies as unacceptable)
 **Goal**: The data the answer is made of, with every known gap recorded as data rather
 than discovered by a user.
 
-- [ ] Port the ArcGIS paging fetcher to TypeScript (`app/etl/fetch.ts`), preserving the
+- [x] Port the ArcGIS paging fetcher to TypeScript (`app/etl/fetch.ts`), preserving the
       spike's retry behaviour and its handling of ArcGIS signalling failure in a 200 body
-- [ ] Ingest Summit County **Address Points** with geometry and provenance — required by
+- [x] Ingest Summit County **Address Points** with geometry and provenance — required by
       DECISION §6, not optional for this slice
-- [ ] Ingest Summit County **tax parcels** with geometry and provenance
-- [ ] Assert `ADDR_ID` uniqueness at load and **fail loudly** rather than silently
+- [x] Ingest Summit County **tax parcels** with geometry and provenance
+- [x] Assert `ADDR_ID` uniqueness at load and **fail loudly** rather than silently
       collapsing rows (30,426 duplicates and 26,660 empty values exist in the source)
-- [ ] Exclude mineral-rights parcels (`usecd` 200-series) from measurement geometry
-- [ ] Derive each parcel's municipality by spatial join to municipal boundaries —
+- [x] Exclude mineral-rights parcels (`usecd` 200-series) from measurement geometry
+- [x] Derive each parcel's municipality by spatial join to municipal boundaries —
       `siteaddress` is not unique county-wide
-- [ ] Enumerate and ingest **school premises** covering public, nonpublic, and chartered
+- [x] Enumerate and ingest **school premises** covering public, nonpublic, and chartered
       nonpublic schools, with geometry and provenance. Record in this file's Notes which
       sources were used and what each one covers
-- [ ] Attach real parcel geometry to every school premises. A school resolvable only to a
+- [x] Attach real parcel geometry to every school premises. A school resolvable only to a
       point is written to the **coverage-gap ledger** and is never given an assumed radius
-- [ ] Record every known source gap as data in the coverage-gap ledger, in the shape the
+- [x] Record every known source gap as data in the coverage-gap ledger, in the shape the
       manifest will render
-- [ ] Stamp per-layer fetch dates into the layer registry so freshness is queryable
-- [ ] Verify: full reload from empty runs end to end in the composition, row counts are
+- [x] Stamp per-layer fetch dates into the layer registry so freshness is queryable
+- [x] Verify: full reload from empty runs end to end in the composition, row counts are
       reported, and the uniqueness assertion actually fails on injected duplicate input
-- [ ] Verify: no school premises row has null geometry unless a matching coverage-gap row
+- [x] Verify: no school premises row has null geometry unless a matching coverage-gap row
       explains it
 
 ---
@@ -291,3 +291,153 @@ requirements-following forbid this phase from editing `spikes/` (out of scope, f
 is the point). Recommend a follow-up task to fix `README.md`'s step list (or fold 03/04
 into 07 to make it truly self-contained, matching its own "self-contained" claim) so a
 future from-scratch reproduction doesn't hit this.
+
+### Phase 2 (TASK-0002.02), 2026-08-04 — implemented by a `claude-opus-5` session
+
+**Everything ran through `docker compose`.** New job service `etl` (profile `etl`):
+`docker compose run --rm etl` fetches every source then loads; `--skip-fetch` reloads from
+the NDJSON already on the `etldata` volume. The volume is mounted read-only into `db` as
+well, because the bulk load is a **server-side `COPY`** — PostgreSQL reads the NDJSON
+itself, so no streaming client library enters the image that also serves the request path
+(R1/R4 left the dependency list where it is, and this keeps it there).
+
+#### School source enumeration — what was used, what each covers, what it misses
+
+ORC 2950.034 bars residence within 1,000 ft of *school premises*, which ORC 2925.01(S)
+defines as the **parcel** a school sits on, plus **(S)(b)** any other parcel owned or leased
+by the school on which school functions occur. ORC 2925.01(R) defines *school* as one
+operated by a board of education, a community school (Ch. 3314), a STEM school (Ch. 3326),
+or a nonpublic school for which the state board prescribes minimum standards (Ohio's
+chartered nonpublic). Four sources are loaded, chosen so their weaknesses do not coincide.
+Definitions and provenance live in `app/etl/sources.ts`; the layer registry is queryable.
+
+| Layer id | Source | Rows | Covers | Known to miss |
+|---|---|---:|---|---|
+| `nces_public_schools_2425` | NCES EDGE geocoded public school locations 2024-25, `CNTY='39153'` | 148 | district-operated, community (charter), and STEM schools — all "public" in the federal CCD universe | schools opened/moved since the 2024-25 snapshot; locates by **geocoded mailing address**, so a point can land in a road or on a neighbour |
+| `nces_private_schools_2324` | NCES EDGE geocoded private school locations 2023-24 (PSS), `STFIP='39' AND CNTY='153'` | 36 | nonpublic schools, including Ohio chartered nonpublic | **survey nonresponse — confirmed, see below**; does not distinguish chartered from non-chartered |
+| `summit_board_of_education_parcels` | Summit County tax parcels, `usecd='650'` ("exempt — board of education") | 375 | public school district property with **surveyed geometry and county-authoritative ownership**, and the only reach into ORC 2925.01(S)(b) | nonpublic equivalents; any parcel a school **leases** rather than owns |
+| `summit_named_school_parcels` | Summit County tax parcels, exempt (`6xx`, excluding 650), owner of record matching `SCHOOL\|ACADEMY\|MONTESSORI\|PREPARATORY` | 60 | nonpublic and community school property the county records regardless of any survey response | property held under a name that is neither the school's nor school-like |
+
+**619 school premises rows total. Every one carries real parcel geometry.**
+
+**The fourth source exists because the second one demonstrably misses schools.**
+Spot-checking the first load found that **St. Vincent–St. Mary High School (15 N Maple St,
+Akron)** — one of Akron's largest chartered nonpublic schools — is **absent from the federal
+PSS file entirely**, in every wave checked. Its campus is in the county tax roll (use code
+670, 131 acres) but held by `SVSM FOUNDATION PROPERTIES LLC`, which no name heuristic
+should be tuned to match. The owner-name source was added as the structural answer (it
+recovered Western Reserve Academy's outlying campus parcels, Cuyahoga Valley Christian
+Academy, Lawrence School, Spring Garden Waldorf, Summit Academy buildings, and others), and
+**St. Vincent–St. Mary is recorded in `coverage_gaps` by name** as a confirmed miss.
+
+**Operator decision, not a phase-local one** (the runbook names this checkpoint
+explicitly). One confirmed missing school is proof that the nonpublic enumeration is
+incomplete, and the honest close is Ohio DEW's **chartered nonpublic school directory** as a
+file-authored source — it is published only as spreadsheets, so it is real work, not a
+fetch. The alternative considered and **rejected** here: blanket-ingesting all 580
+`usecd='670'` (charitable/educational) parcels would have caught it, but it also flags every
+hospital, YMCA, and charity in the county — over-restriction on a scale DECISION §3 warns
+stops being an answer. **Recommend carding the ODEW directory before this slice is offered
+to real users.**
+
+#### Coverage-gap ledger
+
+29 rows in `coverage_gaps`, written as data in the shape the manifest renders — 8 authored
+in `sources.ts`, the rest measured at load. Notable contents:
+
+- **0 schools without parcel geometry.** All 184 point-sourced schools matched a parcel
+  (183 point-in-parcel, 1 within 5 m); the other 435 are parcels to begin with. The
+  never-assume-a-radius path is nonetheless implemented, asserted, and exercised — see
+  verification below.
+- **15 schools matched to a parcel that is not tax-exempt**, one ledger row each. A school
+  is essentially always exempt, so this flags a probable geocoding error whose attached
+  boundary may be a neighbour's and may **understate** the premises.
+- St. Vincent–St. Mary, by name (above).
+- ORC 2925.01(S)(b) unreachable for nonpublic schools and for leased parcels.
+- ORC 2950.034's other protected classes (preschools, child day-care, children's crisis
+  care, residential infant care) **not loaded at all** — TASK-0005.
+- Municipal ordinances not loaded — TASK-0007. `RICHFIELD` and `TWINSBURG` each name both a
+  municipality and a township, so a jurisdiction name is not an identifier.
+- `ADDR_ID` non-uniqueness, measured: 4,527 of 258,862 rows share a duplicated value, 26,660
+  carry none. 11 published address points have no coordinate; 6 parcels have no polygon.
+
+#### Row counts (full reload from an empty volume)
+
+`municipalities 31` · `parcels 261,154` (6 of 261,160 without usable geometry; **1,128
+mineral-rights excluded from measurement**; 0 without a municipality) · `address_points
+258,862` (11 without geometry) · `school_premises 619` · `coverage_gaps 29`.
+
+#### Deviation: how "assert ADDR_ID uniqueness" was implemented
+
+`ADDR_ID` **cannot** be asserted unique — it is not, and never will be (DECISION §7). A
+literal assertion would abort every run. What the box protects against is rows being
+**collapsed** on it, so the guard is built in two halves, both hard:
+
+1. `assertNoRowsLost` — fetched must equal loaded plus explicitly-counted drops, per layer.
+   Nothing may vanish between the source and the database.
+2. `assertKeyUnique` — throws on any duplicate or empty value, and the **only** exemption is
+   a per-layer `declaredNonUniqueKeys` list in `sources.ts`, one greppable line per column.
+   `addr_id` is named there with its reason; the audit still runs and its counts go to the
+   ledger. Deleting that line turns the audit back into a hard failure, which is how the
+   assertion is kept live rather than decorative — and is exactly how it was proved (below).
+
+Measured aside: `parcel_id` turned out to have **no** duplicates in the source (261,153
+distinct over 261,154 rows); it is declared non-unique only because exactly one published
+parcel carries no identifier at all — kept, because its polygon is measurement geometry.
+
+#### Verification actually run (commands and results)
+
+- `docker compose run --rm etl` — full fetch of all five services: 258,873 + 261,160 + 31 +
+  148 + 36 features, each matching the server's reported count. The fetcher **throws** on a
+  short fetch rather than warning, unlike the spike.
+- `docker volume rm task-0002_pgdata` → `docker compose run --rm migrate` (all 11 migrations
+  applied from empty) → `docker compose run --rm etl --skip-fetch` → **completes, row counts
+  above**. Re-run produces identical counts (determinism was a real bug: overlapping parcels
+  of equal area tied in the match ordering; fixed with explicit tiebreakers).
+- **Duplicate input fails loudly.** Appended a duplicate school record to
+  `/data/nces_public_schools_2425.ndjson`, re-ran: `duplicate key value violates unique
+  constraint "school_premises_source_idx" … Key (layer_id, source_ref)=(…, 390002701572)`,
+  transaction rolled back, exit 1. Nothing collapsed, nothing loaded.
+- **The uniqueness assertion is live.** Removed `"addr_id"` from `declaredNonUniqueKeys`,
+  rebuilt, re-ran: `IngestAssertionError: address_points.addr_id is not a usable key: 4527
+  rows carry a duplicated value and 26660 carry none, over 258862 rows (228436 distinct)`.
+  Restored.
+- **A geometry-less school becomes a declared gap, never a radius.** Injected a school at a
+  coordinate with no parcel: it loaded with `geom IS NULL`, `match_basis='none'`, and a
+  `coverage_gaps` row naming it. Deleting that ledger row made
+  `assertEveryNullGeomIsDeclared` fire: *"1 school premises rows have no geometry and no
+  coverage_gaps row explaining it … An undeclared gap is exactly what Principle II
+  forbids."* Fixture restored.
+- **Principle IV still holds on the new tables.** `psql -U somap_app -c "INSERT INTO
+  municipalities …"` → `ERROR: permission denied for table municipalities`; `SELECT` works.
+  `ALTER DEFAULT PRIVILEGES` from 010 covers tables created by later migrations.
+- `docker compose up -d` → `db` healthy, `app` healthy, `GET / → 200`.
+- Spot checks: Firestone/Buchtel/Ellet CLCs, Archbishop Hoban, Walsh Jesuit, Old Trail,
+  Our Lady of the Elms, St Vincent de Paul all present with plausible campus geometry
+  (min matched parcel 2.2 acres, median 98).
+
+#### What Phase 3 needs from this
+
+- **`school_premises.geom` is `MultiPolygon(6549)` and is never NULL today, but the NULL
+  path is real.** A NULL means *declared coverage gap*, never *measure from a point*. There
+  is no radius column on the table and `assertNoAssumedSchoolRadius` fails the ingest if one
+  appears. The manifest must render those rows as **not checked**.
+- **`match_basis` is the per-geometry measurement basis DECISION §3 asks the manifest to
+  render**: `board_of_education_parcel` | `named_exempt_parcel` | `point_in_parcel` |
+  `point_near_parcel` | `none`. `match_corroboration = 'uncorroborated'` marks the 15 rows
+  whose boundary may understate the premises — surface it.
+- **`school_type` has a fourth value, `unclassified`**, on the 60 owner-name rows. The tax
+  roll does not say whether the owner runs a nonpublic or a community school; claiming
+  either would be a receipt somap has not earned.
+- **A school can appear as several premises rows** (one per parcel — Western Reserve Academy
+  has seven). That is ORC 2925.01(S) working as written, not duplication to collapse. A
+  result listing flagged premises should expect repeated names.
+- **`parcels.municipality` is a display name, not an identifier** — join on
+  `parcels.municipality_id` (added in `008`). Two Summit County names are shared between a
+  city and a township.
+- **Mineral-rights parcels are flagged, not filtered at query time**: use
+  `WHERE NOT is_mineral_rights`, which has its own partial GiST index
+  (`parcels_measurable_geom_idx`).
+- **`address_points.normalized` is still NULL** — Phase 3 fills it, and its index exists.
+- Migrations `006`–`009` and `011` are Phase 2's; `001`–`005` and `010` were not touched.
+  `008`, `009`, and `011` are corrections found by *running* the load, and each says so.

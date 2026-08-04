@@ -21,8 +21,10 @@ import {
   EXEMPT_USECD_PATTERN,
   MINERAL_RIGHTS_USECD_PATTERN,
   SCHOOLS_BOARD_PARCELS,
+  SCHOOLS_NAMED_EXEMPT_PARCELS,
   SCHOOLS_PRIVATE_NCES,
   SCHOOLS_PUBLIC_NCES,
+  SCHOOL_OWNER_PATTERN,
   type DeclaredGap,
   type LayerSource,
 } from "./sources.ts";
@@ -250,6 +252,7 @@ export async function deriveParcelMunicipality(client: PoolClient): Promise<numb
 export interface SchoolLoadReport {
   readonly fromPoints: number;
   readonly fromBoardParcels: number;
+  readonly fromNamedParcels: number;
   readonly matchedInParcel: number;
   readonly matchedNearParcel: number;
   readonly unmatched: number;
@@ -332,7 +335,17 @@ export async function loadSchoolPremises(
               FROM parcels p
              WHERE NOT p.is_mineral_rights
                AND ST_DWithin(p.geom, s.pt, 5)
-             ORDER BY ST_Contains(p.geom, s.pt) DESC, ST_Area(p.geom) DESC
+             -- Deterministic: containment first, then the larger parcel (the
+             -- over-restricting choice), then the tax-exempt one, then the
+             -- county's own identifier. Without the last two terms two equal
+             -- overlapping parcels tie and the winner varies between reloads,
+             -- which would make the same address produce different premises on
+             -- different days -- unreproducible, and Principle VII does not
+             -- accept a measurement nobody else can reconstruct.
+             ORDER BY ST_Contains(p.geom, s.pt) DESC,
+                      ST_Area(p.geom) DESC,
+                      (coalesce(p.usecd, '') ~ '${EXEMPT_USECD_PATTERN}') DESC,
+                      p.parcel_id NULLS LAST
              LIMIT 1
        ) m ON true`,
   );
@@ -355,6 +368,28 @@ export async function loadSchoolPremises(
         AND NOT p.is_mineral_rights
         AND NOT EXISTS (SELECT 1 FROM school_premises sp WHERE sp.parcel_id = p.id)`,
     [SCHOOLS_BOARD_PARCELS.id, BOARD_OF_EDUCATION_USECD],
+  );
+
+  // Exempt parcels whose owner of record reads like a school. The county's
+  // own answer to "who owns this", independent of whether the school ever
+  // answered a federal survey -- see SCHOOLS_NAMED_EXEMPT_PARCELS for the
+  // confirmed miss that made this source necessary.
+  const { rowCount: fromNamedParcels } = await client.query(
+    `INSERT INTO school_premises (
+        name, school_type, parcel_id, geom, layer_id, source_ref,
+        street, city, match_basis, match_corroboration)
+     SELECT btrim(p.owner_name)
+              || ' (' || coalesce(nullif(btrim(p.site_address), ''), 'no site address') || ')',
+            'unclassified', p.id, p.geom, $1, p.parcel_id || '#' || p.id::text,
+            nullif(btrim(p.site_address), ''), p.municipality,
+            'named_exempt_parcel', 'tax_exempt_parcel'
+       FROM parcels p
+      WHERE p.usecd ~ '${EXEMPT_USECD_PATTERN}'
+        AND p.usecd <> $2
+        AND NOT p.is_mineral_rights
+        AND p.owner_name ~* '${SCHOOL_OWNER_PATTERN}'
+        AND NOT EXISTS (SELECT 1 FROM school_premises sp WHERE sp.parcel_id = p.id)`,
+    [SCHOOLS_NAMED_EXEMPT_PARCELS.id, BOARD_OF_EDUCATION_USECD],
   );
 
   await client.query("DROP TABLE IF EXISTS school_source_stage");
@@ -384,6 +419,7 @@ export async function loadSchoolPremises(
   return {
     fromPoints: fromPoints ?? 0,
     fromBoardParcels: fromBoardParcels ?? 0,
+    fromNamedParcels: fromNamedParcels ?? 0,
     matchedInParcel: Number(rows[0].in_parcel),
     matchedNearParcel: Number(rows[0].near_parcel),
     unmatched: Number(rows[0].unmatched),

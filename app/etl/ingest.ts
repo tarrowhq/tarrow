@@ -43,6 +43,7 @@ import {
   MUNICIPALITIES,
   PARCELS,
   SCHOOLS_BOARD_PARCELS,
+  SCHOOLS_NAMED_EXEMPT_PARCELS,
   SCHOOLS_PRIVATE_NCES,
   SCHOOLS_PUBLIC_NCES,
   type DeclaredGap,
@@ -113,6 +114,7 @@ async function main(): Promise<void> {
       await insertLayers(c, [
         ...FETCHED_LAYERS,
         SCHOOLS_BOARD_PARCELS,
+        SCHOOLS_NAMED_EXEMPT_PARCELS,
       ]);
     });
 
@@ -262,9 +264,10 @@ async function main(): Promise<void> {
       await dropStage(c, privateStage);
       gaps.push(...(await collectSchoolGaps(c)));
       summary.push(
-        `school_premises: ${report.fromPoints + report.fromBoardParcels} ` +
+        `school_premises: ${report.fromPoints + report.fromBoardParcels + report.fromNamedParcels} ` +
           `(${report.fromPoints} from point sources, ${report.fromBoardParcels} from ` +
-          `board-of-education parcels; ${report.matchedInParcel} point-in-parcel, ` +
+          `board-of-education parcels, ${report.fromNamedParcels} from school-named exempt ` +
+          `parcels; ${report.matchedInParcel} point-in-parcel, ` +
           `${report.matchedNearParcel} point-near-parcel, ${report.unmatched} with NO ` +
           `geometry, ${report.uncorroborated} matched to a non-exempt parcel)`,
       );
@@ -296,16 +299,20 @@ async function main(): Promise<void> {
         Number(rows[0].n),
       );
     }
-    const { rows: boardRows } = await client.query<{ n: string }>(
-      "SELECT count(*) AS n FROM school_premises WHERE layer_id = $1",
-      [SCHOOLS_BOARD_PARCELS.id],
-    );
-    await stampLayer(
-      client,
-      SCHOOLS_BOARD_PARCELS.id,
-      fetchedAt.get(PARCELS.id) ?? startedAt,
-      Number(boardRows[0].n),
-    );
+    // Both parcel-derived school layers are as fresh as the parcel fetch they
+    // are filtered out of.
+    for (const derived of [SCHOOLS_BOARD_PARCELS, SCHOOLS_NAMED_EXEMPT_PARCELS]) {
+      const { rows: derivedRows } = await client.query<{ n: string }>(
+        "SELECT count(*) AS n FROM school_premises WHERE layer_id = $1",
+        [derived.id],
+      );
+      await stampLayer(
+        client,
+        derived.id,
+        fetchedAt.get(PARCELS.id) ?? startedAt,
+        Number(derivedRows[0].n),
+      );
+    }
 
     // ---------------------------------------------------- closing assertions
     console.log("== assertions");
