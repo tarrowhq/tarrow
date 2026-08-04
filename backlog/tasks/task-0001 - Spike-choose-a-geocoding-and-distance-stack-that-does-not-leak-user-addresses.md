@@ -4,7 +4,7 @@ title: 'Spike: choose a geocoding and distance stack that does not leak user add
 status: In Progress
 assignee: []
 created_date: '2026-08-04 15:58'
-updated_date: '2026-08-04 17:59'
+updated_date: '2026-08-04 19:14'
 labels:
   - 'area:geo'
   - 'kind:spike'
@@ -29,7 +29,7 @@ Ships a decision document. The application is untouched, so this satisfies the d
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Candidate geocoders evaluated against Summit County addresses with a documented accuracy sample
+- [x] #1 Candidate geocoders evaluated against Summit County addresses with a documented accuracy sample
 - [ ] #2 Chosen stack sends no user-entered address to any third party, and this is demonstrable
 - [ ] #3 Failure behavior specified: an address that cannot be confidently geocoded returns an explicit could-not-locate, never a low-confidence coordinate
 - [ ] #4 Distance measurement method documented, including what geometry is used when parcel boundaries are unavailable
@@ -125,3 +125,60 @@ OUT OF SCOPE, HANDED OFF
   disclose. Flag on TASK-0003; NOT resolved here.
 - Retroactivity limits on 2950.034 are rule content -> TASK-0003.
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+AC#1 COMPLETE (2026-08-04). Measured on real Summit County data, in containers.
+Evidence: spikes/task-0001-geocoding/RESULTS.md on branch task-0001-geocoding-stack.
+
+HEADLINE: the architecture recorded in this task's plan does NOT hold up.
+
+  Approach A -- user text -> parcel.siteaddress -> parcel  (as planned)
+      correct 69.16% | WRONG 3.34% | ambiguous 5.33% | no-match 22.18%
+
+  Approach B -- user text -> Address Points -> that point's parcel (spatial)
+      correct 96.79% | WRONG 0.20% | ambiguous 1.75% | no-match  1.26%
+
+Sample: deterministic 20%, 50,635 addresses x 3 typing variants = 151,904
+probes, 95% CI ~ +/-0.2pp. Ground truth is SPATIAL (a candidate is correct if
+the queried address point lies within 5m of it), so it never consults spelling.
+
+WHY A FAILS: the two county datasets genuinely disagree about addresses.
+50.1% of failures are house-number disagreements (4921 vs 4932 FRIAR RD),
+41.5% street name/type (FENN RD vs FENN ST), 8.4% unsplit development parcels
+carrying a street-only address while containing dozens of addressed homes.
+
+DO NOT "FIX" A WITH FUZZY MATCHING. Half its failures are house-number
+disagreements; fuzzy matching converts a safe NO_MATCH into an unsafe
+UNIQUE_WRONG on exactly those. Edit distance cannot tell a typo from a
+different building. This is the Principle I trap in this problem.
+
+RECOMMENDATION (needs operator decision): adopt Approach B. Parcels remain the
+measurement geometry and boundary-to-boundary is unchanged -- only the LOOKUP
+key moves away from parcel.siteaddress. Decline-only then costs ~1.3% of
+searches instead of ~22%, which is what makes decline-only defensible rather
+than punitive.
+
+INCIDENTAL FINDINGS
+- ADDR_ID in the county Address Points layer is NOT unique: 30,426 duplicate
+  rows, 26,660 with an EMPTY id, single ids repeated up to 155 times.
+  Generalizes: validate source data on ingest. Uniqueness of a key we join on
+  is an assertion to TEST at load, never to assume.
+- Address Points has coverage gaps (Cuyahoga Falls: 3,224 points for a city of
+  ~50,000). The sample is biased toward well-covered municipalities.
+- Parcel siteaddress is NOT unique county-wide (no city field). Deriving each
+  parcel's municipality by spatial join to boundaries fixes it, and is needed
+  for TASK-0007 regardless.
+- One normalized address maps to up to 505 parcels (condos); 2200 HIGH ST
+  appears 218 times in address points. Ambiguity is real and needs defined
+  product behavior.
+- libpostal NOT justified: rule-based normalization reached 96.8% on its own.
+
+ENVIRONMENT: fully containerized, nothing on a host. DB image is BUILT from
+official postgres + PGDG PostGIS because postgis/postgis publishes amd64 only
+and would exclude every ARM self-hoster. Proposed as constitution 1.2.0, PR #3.
+
+REMAINING: AC#4 (geometry rule for facilities with no parcel) and AC#5
+(decision document), both pending the operator's call on Approach B.
+<!-- SECTION:NOTES:END -->
