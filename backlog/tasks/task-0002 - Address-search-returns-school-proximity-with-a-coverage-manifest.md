@@ -4,7 +4,7 @@ title: Address search returns school proximity with a coverage manifest
 status: In Progress
 assignee: []
 created_date: '2026-08-04 15:58'
-updated_date: '2026-08-04 21:08'
+updated_date: '2026-08-04 21:12'
 labels:
   - 'area:web'
   - 'kind:feature'
@@ -40,4 +40,9 @@ Spec: specs/001-address-search-school-proximity
 - [ ] #6 No third-party origin loads in the client, enforced by a build check
 - [ ] #7 Guidance to confirm with the registering sheriff office appears on every result
 - [ ] #8 Deployed and working end to end
+- [ ] #9 Spec phase: PostGIS baseline and deploy pipeline
+- [ ] #10 Spec phase: Summit County school premises ingest
+- [ ] #11 Spec phase: Proximity query and coverage manifest
+- [ ] #12 Spec phase: No-log privacy architecture, CSP, and verification
+- [ ] #13 Spec phase: Web surface and end to end
 <!-- AC:END -->
