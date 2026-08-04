@@ -4,7 +4,7 @@ title: Address search returns school proximity with a coverage manifest
 status: In Progress
 assignee: []
 created_date: '2026-08-04 15:58'
-updated_date: '2026-08-04 21:48'
+updated_date: '2026-08-04 21:52'
 labels:
   - 'area:web'
   - 'kind:feature'
@@ -63,4 +63,6 @@ Verified in-container: docker compose up --build -d reaches db+app healthy and m
 Also found: an orphaned TASK-0001 db container (from an already-removed worktree) still occupying host port 55432. Did not remove it -- outside this phase's scope/authority. Verification used a temporary, never-committed compose override to route around it; docker-compose.yml's committed port mapping is unchanged.
 
 Full detail in specs/001-address-search-school-proximity/tasks.md Notes section.
+
+P1 complete and independently verified by the orchestrator (2026-08-04). Model that actually served: claude-sonnet-5, as pinned -- the call-level model parameter was honoured this time, contrary to the 2026-07-31 observation CLAUDE.md records. Orchestrator re-verification, because P1's own run used a throwaway compose override to dodge a port collision and therefore had not exercised the committed docker-compose.yml: clean bring-up from an empty volume, all six migrations applied in order, app healthy serving HTTP 200, both linux/amd64 and linux/arm64 build for docker/app and docker/db, docker/tools byte-identical to origin/main. Principle IV proven from the grant table rather than from an error message -- somap_app holds SELECT and nothing else on all nine visible tables. Janitor: two containers from the merged TASK-0001 worktree were still up holding port 55432; stopped (not removed, pgdata untouched).
 <!-- SECTION:NOTES:END -->

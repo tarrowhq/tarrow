@@ -306,4 +306,31 @@ replaces or absorbs it.
 
 | date | task | PR | merge | tokens/cost (best-effort) | notes |
 |------|------|----|-------|---------------------------|-------|
-| 2026-08-04 | Lane 0 (runbook + tier pins) | — | — | — | authored; PR pending |
+| 2026-08-04 | Lane 0 (runbook + tier pins) | #5 | `1907068` | — | merged; operator signed off on lanes |
+| 2026-08-04 | TASK-0002 | — | — | P1 214k subagent tokens / 117 tool uses / 35 min | in flight. **phases: 1 done, 2 dispatched.** Claim `629fb4c`, spec cycle `ab7dd9b`, P1 `ec12cea`. P1 served by `claude-sonnet-5` as pinned. |
+
+### Notes from execution
+
+- **2026-08-04, dispatch mechanism.** `subagent_type: mechanical-implementer` did not
+  resolve: this harness registers `.claude/agents/` at session start, and the definitions
+  landed on main mid-session. Dispatched to the generic agent type with `model` on the
+  call and the tier definition's instructions carried inline. **The call-level `model`
+  parameter was honoured** — P1 reported running as Sonnet 5 — which is worth recording
+  because CLAUDE.md documents it being silently ignored on 2026-07-31. Any session started
+  after PR #5 gets the frontmatter pin normally and needs neither workaround.
+- **2026-08-04, janitor.** Two containers from the merged TASK-0001 worktree
+  (`task-0001-db-1`, `task-0001-tools-1`) were still up after that worktree was removed,
+  holding host port 55432 and colliding with this task's `db` publish. P1 worked around it
+  with a throwaway compose override, which meant the committed `docker-compose.yml` had
+  **not** actually been verified. The orchestrator stopped both containers (stop, not
+  remove — the `pgdata` volume is untouched) and re-ran the verification against the
+  committed file: clean bring-up from an empty volume, all six migrations applied, app
+  healthy and serving 200.
+- **2026-08-04, pre-existing defect found, not fixed.**
+  `spikes/task-0001-geocoding/README.md`'s documented command sequence is incomplete —
+  `07_measure_final.sql` depends on columns built by `03_measure.sql`/`04_measure_v2.sql`,
+  which the README never tells the reader to run, despite 07 describing itself as
+  self-contained. The measurement engine reproduces `RESULTS.md`'s numbers (96.79 / 0.21 /
+  1.75 / 1.24 against a published 96.79 / 0.20 / 1.75 / 1.26); the *instructions* do not
+  stand alone. Untouched here because ruling R2 freezes `spikes/`. **Card it after this
+  sweep** — it weakens Principle VII's reproducibility claim for anyone but us.
