@@ -4,7 +4,7 @@ title: Address search returns school proximity with a coverage manifest
 status: In Progress
 assignee: []
 created_date: '2026-08-04 15:58'
-updated_date: '2026-08-04 21:52'
+updated_date: '2026-08-04 22:46'
 labels:
   - 'area:web'
   - 'kind:feature'
@@ -41,7 +41,7 @@ Spec: specs/001-address-search-school-proximity
 - [ ] #7 Guidance to confirm with the registering sheriff office appears on every result
 - [ ] #8 Deployed and working end to end
 - [x] #9 Spec phase: PostGIS baseline and deploy pipeline
-- [ ] #10 Spec phase: Summit County school premises ingest
+- [x] #10 Spec phase: Summit County school premises ingest
 - [ ] #11 Spec phase: Proximity query and coverage manifest
 - [ ] #12 Spec phase: No-log privacy architecture, CSP, and verification
 - [ ] #13 Spec phase: Web surface and end to end
@@ -65,4 +65,10 @@ Also found: an orphaned TASK-0001 db container (from an already-removed worktree
 Full detail in specs/001-address-search-school-proximity/tasks.md Notes section.
 
 P1 complete and independently verified by the orchestrator (2026-08-04). Model that actually served: claude-sonnet-5, as pinned -- the call-level model parameter was honoured this time, contrary to the 2026-07-31 observation CLAUDE.md records. Orchestrator re-verification, because P1's own run used a throwaway compose override to dodge a port collision and therefore had not exercised the committed docker-compose.yml: clean bring-up from an empty volume, all six migrations applied in order, app healthy serving HTTP 200, both linux/amd64 and linux/arm64 build for docker/app and docker/db, docker/tools byte-identical to origin/main. Principle IV proven from the grant table rather than from an error message -- somap_app holds SELECT and nothing else on all nine visible tables. Janitor: two containers from the merged TASK-0001 worktree were still up holding port 55432; stopped (not removed, pgdata untouched).
+
+P2 (Summit County school premises ingest, subtask .02) dispatched 2026-08-04 at the default tier: model claude-opus-5, fallback claude-opus-4-8. Rubric justification: x:safety. A missing school is an under-restriction defect, which Principle I classifies as unacceptable rather than recoverable, and the phase requires judgment about which sources enumerate public, nonpublic, and chartered nonpublic schools and about what becomes a declared coverage gap rather than an estimate. Model that actually served: recorded on completion.
+
+P2 (TASK-0002.02) complete 2026-08-04. Model that actually served: claude-opus-5 (exact id claude-opus-5[1m], the 1M-context variant) -- the pinned default tier. All twelve Phase 2 boxes ticked; full detail in specs/001-address-search-school-proximity/tasks.md Notes. Ingest lands 261,154 parcels (1,128 mineral-rights flagged out of measurement), 258,862 address points, 31 jurisdictions, 619 school premises, 29 coverage-gap rows, all through docker compose run --rm etl. Every school premises row carries real parcel geometry; the no-geometry path exists, is asserted, and was exercised with an injected fixture rather than left untested. OPERATOR DECISION PENDING, per the runbook's P2 checkpoint: St. Vincent-St. Mary High School (15 N Maple St, Akron), a large chartered nonpublic school, is absent from the federal Private School Universe Survey entirely and from every other source somap can fetch; it is recorded in the coverage-gap ledger BY NAME and is NOT checked. One confirmed miss is proof the nonpublic enumeration is incomplete. The honest close is Ohio DEW's chartered nonpublic school directory as a file-authored source (published only as spreadsheets -- real work, recommend carding it). Rejected here: blanket-ingesting all 580 usecd=670 charitable/educational parcels would catch it but also flags every hospital, YMCA and charity in the county.
+
+P2 complete and independently verified by the orchestrator (2026-08-04). Model that actually served: claude-opus-5[1m] -- note this equals the orchestrator's own session model, so unlike P1 it cannot distinguish a honoured model parameter from silent inheritance. Intended tier was claude-opus-5 either way, so nothing was mis-tiered. Verification: 619 school premises across four sources, ZERO with null geometry; 1,128 mineral-rights parcels flagged out of 261,154; 258,862 address points; 29 coverage-gap rows written in prose a user can read rather than developer shorthand; docker/tools and spikes/ byte-identical to origin/main. P2 raised the runbook's named P2 checkpoint: St. Vincent-St. Mary High School is confirmed absent, because the nonpublic source is a voluntary biennial federal survey rather than an authoritative register. P2 correctly declined to widen its owner-name heuristic to catch the one miss it already knew about.
 <!-- SECTION:NOTES:END -->

@@ -307,7 +307,7 @@ replaces or absorbs it.
 | date | task | PR | merge | tokens/cost (best-effort) | notes |
 |------|------|----|-------|---------------------------|-------|
 | 2026-08-04 | Lane 0 (runbook + tier pins) | #5 | `1907068` | — | merged; operator signed off on lanes |
-| 2026-08-04 | TASK-0002 | — | — | P1 214k subagent tokens / 117 tool uses / 35 min | in flight. **phases: 1 done, 2 dispatched.** Claim `629fb4c`, spec cycle `ab7dd9b`, P1 `ec12cea`. P1 served by `claude-sonnet-5` as pinned. |
+| 2026-08-04 | TASK-0002 | — | — | P1 214k / 117 calls / 35 min · P2 252k / 92 calls / 52 min | in flight. **phases: 1-2 done, 3 pending operator checkpoint.** Claim `629fb4c`, spec `ab7dd9b`, P1 `ec12cea`, P2 `35ee23b`+`4a221c1`. P1 served `claude-sonnet-5`; P2 served `claude-opus-5[1m]`. |
 
 ### Notes from execution
 
@@ -326,6 +326,24 @@ replaces or absorbs it.
   remove — the `pgdata` volume is untouched) and re-ran the verification against the
   committed file: clean bring-up from an empty volume, all six migrations applied, app
   healthy and serving 200.
+- **2026-08-04, the model-pin evidence is weaker than it looks for P2.** P1 served
+  `claude-sonnet-5`, which differs from this orchestrator's session model, so the
+  call-level `model` parameter demonstrably worked there. P2 served
+  `claude-opus-5[1m]` — which *is* the orchestrator's session model, so it is impossible
+  to tell whether the parameter was honoured or silently ignored and inherited. The
+  intended tier was `claude-opus-5` either way, so nothing was mis-tiered; but only the
+  P1 observation is real evidence about the mechanism. CLAUDE.md's frontmatter-pin
+  doctrine stands.
+- **2026-08-04, P2 hit the operator checkpoint this runbook names.** See
+  "Operator checkpoints", third bullet. A confirmed missing school
+  (St. Vincent–St. Mary High School, Akron) proves the nonpublic enumeration is
+  incomplete, because the federal Private School Universe Survey it draws from is a
+  *voluntary biennial survey* rather than an authoritative register. P2 added a fourth
+  source from the county tax roll, which recovered several nonpublic campuses but not
+  STVM, whose property is held as `SVSM FOUNDATION PROPERTIES LLC`. P2 declined to widen
+  the owner-name pattern to catch it — correctly: tuning a heuristic until it catches the
+  one miss you already know about produces a source that looks complete and is not.
+  The gap is declared by name in the ledger. **Resolution recorded below the log.**
 - **2026-08-04, pre-existing defect found, not fixed.**
   `spikes/task-0001-geocoding/README.md`'s documented command sequence is incomplete —
   `07_measure_final.sql` depends on columns built by `03_measure.sql`/`04_measure_v2.sql`,
