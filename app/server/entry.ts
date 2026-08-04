@@ -1,0 +1,29 @@
+// The RR7 node server. This process owns the HTTP port directly. No
+// Fastify, no Express, no adapter in the request path (plan.md R1) --
+// `createRequestListener` is React Router's own primitive for bridging a
+// Fetch-standard request handler onto Node's built-in `http` server, and
+// nothing else sits between the socket and the router.
+//
+// Request logging is off by construction: nothing here writes access logs.
+// This comment is the greppable statement plan.md and the runbook ask for;
+// CSP headers and the rest of Principle III's enforcement surface (error
+// handling, no query context in output) land in Phase 4 (TASK-0002.04).
+
+import { createServer } from "node:http";
+import { createRequestListener } from "@react-router/node";
+
+const PORT = Number(process.env.PORT ?? 3000);
+
+const listener = createRequestListener({
+  // Imported lazily so a build failure surfaces as a clear startup error
+  // rather than a bundling concern for this file.
+  build: () => import("../build/server/index.js"),
+});
+
+const server = createServer(listener);
+
+server.listen(PORT, () => {
+  // Startup line only. Never per-request, and never carries a path, query
+  // string, or remote address.
+  console.log(`somap app listening on :${PORT}`);
+});

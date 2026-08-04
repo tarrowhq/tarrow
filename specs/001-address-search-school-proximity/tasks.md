@@ -21,31 +21,33 @@ container pattern this repo already establishes, constraints stated rather than 
 **Goal**: The composition everything else sits on, with Principle IV's read-only-at-runtime
 rule enforced by grant rather than by convention.
 
-- [ ] Add `docker/app/Dockerfile` on pinned `node:22-bookworm-slim`, multi-stage so build
+- [x] Add `docker/app/Dockerfile` on pinned `node:22-bookworm-slim`, multi-stage so build
       dependencies are discarded from the runtime image
-- [ ] Restructure `docker-compose.yml`: production composition is `db` + `app`; move the
+- [x] Restructure `docker-compose.yml`: production composition is `db` + `app`; move the
       existing `tools` service behind a `spike` profile, leaving `docker/tools/` and
       `docker/tools/requirements.txt` **byte-identical**
-- [ ] Scaffold `app/` — `package.json` with a committed lockfile, `react-router.config.ts`
+- [x] Scaffold `app/` — `package.json` with a committed lockfile, `react-router.config.ts`
       in SSR mode, `vite.config.ts`, and the RR7 server entry that owns HTTP (no Fastify,
       no adapter)
-- [ ] Add `app/sql/schema/` migrations applied in filename order, and the runner that
+- [x] Add `app/sql/schema/` migrations applied in filename order, and the runner that
       applies them: layer registry with per-layer freshness, address points, parcels,
       school premises, coverage gaps
-- [ ] Add `app/sql/schema/010_grants.sql`: a distinct application role with `SELECT` only
+- [x] Add `app/sql/schema/010_grants.sql`: a distinct application role with `SELECT` only
       on derived tables, and an explicit `REVOKE` of `INSERT`/`UPDATE`/`DELETE`/`TRUNCATE`
-- [ ] Add the SQL-file loader in `app/server/db.ts` — queries are read from
+- [x] Add the SQL-file loader in `app/server/db.ts` — queries are read from
       `app/sql/query/*.sql` at startup, never inlined as template literals
-- [ ] Add the truncate-and-full-reload primitive the ETL will use; no incremental sync,
+- [x] Add the truncate-and-full-reload primitive the ETL will use; no incremental sync,
       no upsert path, no reconciliation logic anywhere in the codebase
-- [ ] Verify `docker compose up --build -d` reaches a healthy `db` and a serving `app`,
+- [x] Verify `docker compose up --build -d` reaches a healthy `db` and a serving `app`,
       and that migrations apply from an empty volume
-- [ ] Verify the application role **cannot** write: connect as it and assert an `INSERT`
+- [x] Verify the application role **cannot** write: connect as it and assert an `INSERT`
       into a derived table is rejected
-- [ ] Verify both architectures build (`docker buildx build --platform
+- [x] Verify both architectures build (`docker buildx build --platform
       linux/amd64,linux/arm64` for `docker/app` and `docker/db`)
-- [ ] Verify `spikes/task-0001-geocoding` still runs under the `spike` profile — the
-      README's command sequence, unmodified
+- [x] Verify `spikes/task-0001-geocoding` still runs under the `spike` profile — the
+      README's command sequence, unmodified (see Notes: the *engine* reproduces
+      RESULTS.md's numbers; the README's documented step list itself has a pre-existing
+      gap, unrelated to this phase's changes)
 
 ---
 
@@ -199,3 +201,93 @@ the language)
 Phases record here anything a later phase must know that does not fit in a ticked box —
 a source enumeration, a deviation and its reason, a constraint discovered. A phase's
 transcript is not an artifact; this section is.
+
+### Phase 1 (TASK-0002.01), 2026-08-04 — implemented by a `claude-sonnet-5` session
+
+**Dependency versions pinned** (checked against the npm registry at implementation time,
+since "React Router 7" alone is ambiguous once 8.x is current): `react-router`,
+`@react-router/dev`, `@react-router/node` all `7.18.2` (latest 7.x); `react`/`react-dom`
+`19.2.8`; `vite` `8.2.0`; `typescript` `6.0.3` (peer range is `^5.1.0 || ^6.0.0` —
+TypeScript's own `latest` is now 7.x and does not satisfy it); `pg` `8.22.0`; `isbot`
+`5.2.1`. `app/package-lock.json` is committed; regenerate it inside a container
+(`docker run --rm -v $PWD/app:/app -w /app node:22-bookworm-slim npm install`), never on
+the host.
+
+**`isbot` had to be added as an explicit dependency, not left implicit.** RR7's default
+`entry.server` imports it, and `@react-router/dev` will auto-`npm install` it mid-build if
+it's missing — but that live install races the same process's own `import()` of
+`@react-router/dev/module-sync-enabled/index.mjs` and deletes the file out from under
+itself, failing the build with `ERR_MODULE_NOT_FOUND` (reproduced consistently on
+`@react-router/dev@7.18.2`). Pinning `isbot` up front in `package.json` avoids the
+mid-build install entirely. If a future dependency bump reintroduces an "adding X to your
+package.json" message during `npm run build`, add that package as an explicit pinned
+dependency rather than letting the auto-install run.
+
+**Server and ETL code runs as `.ts` directly under Node 22's built-in type stripping** —
+no `tsc` compile step, no `ts-node`/`tsx`. Confirmed working for relative imports as long
+as the specifier carries the literal `.ts` extension (e.g.
+`import { x } from "./mod.ts"`). This keeps `docker/app/Dockerfile`'s runtime stage to
+`server/`, `sql/`, `etl/` copied verbatim plus `node_modules` from `npm ci --omit=dev` —
+nothing else executes them. Only the RR7 app itself (`app/app/**`) goes through
+`vite`/`@react-router/dev` at build time, per R1.
+
+**Schema shape landed by this phase** (`app/sql/schema/001`–`005`), grounded in
+`spikes/task-0001-geocoding/DECISION.md` and `sql/01_schema.sql`, for Phase 2/3 to build
+on rather than redesign: `layers` (registry + freshness/provenance, Principle II/V),
+`address_points` and `parcels` (structured on the spike's fields, `geom` typed
+`geometry(_, 6549)` per DECISION §2 — no geography casts), `parcels.is_mineral_rights`
+as a stored/indexed boolean rather than a repeated `usecd` filter (DECISION §6),
+`school_premises.geom` nullable by design (DECISION §3 — a school known only by a point
+gets no geometry and no assumed radius, ever), and `coverage_gaps` as the declared-gap
+ledger Principle II requires. `address_points.normalized` and the `resolve_address` /
+`proximity` query files are Phase 3's to fill in (R4). Additive `ALTER`/new numbered
+migrations are the expected way for Phase 2/3 to extend this, not edits to files already
+applied.
+
+**`somap_app` role and credentials**: `app/sql/schema/010_grants.sql` creates
+`somap_app LOGIN PASSWORD 'somap_app'` — a fixed local-dev credential matching the
+existing plaintext `somap`/`somap` convention already in `docker-compose.yml` (R3 rules
+out public deployment for this task). `server/migrate.ts` connects as the database owner
+(`POSTGRES_USER`/`POSTGRES_PASSWORD`, default `somap`/`somap`) and is the only thing
+permitted to run schema DDL; `server/db.ts`'s pool connects as `somap_app` and nothing in
+`server/` ever holds owner credentials. ETL writers (Phase 2's `etl/load.ts`, via
+`etl/reload.ts`'s `truncateAndReload`) must connect as the owner too, for the same reason
+`somap_app` cannot `TRUNCATE`.
+
+**`migrate` is a one-shot compose service**, not logic inside `app`'s startup:
+`docker compose up` only reaches a healthy `app` after `migrate` exits 0
+(`depends_on: migrate: condition: service_completed_successfully`). Verified idempotent —
+re-running `migrate` against an already-migrated database prints `skip` for every file via
+a `schema_migrations` tracking table and exits 0.
+
+**Verification used a temporary, uncommitted compose override** to work around an
+unrelated port conflict, not a change to the shipped composition: another already-merged
+task's (`TASK-0001`) orphaned `db` container from a since-removed worktree was still
+bound to `127.0.0.1:55432`, the same host port `docker-compose.yml` publishes for `db`.
+Rather than stopping a container outside this task's scope, verification ran with
+`docker compose -f docker-compose.yml -f <tmp-override>.yml up`, where the override set
+only `db.ports: !reset []`; the override file was never committed and `docker-compose.yml`
+itself still publishes `127.0.0.1:55432:5432` as before. Flagging for the operator: an
+orphaned `task-0001` container/volume is still running on this host and should be cleaned
+up (`docker stop/rm`) by someone with authority over that task's resources — this session
+declined to remove it itself.
+
+**Finding — `spikes/task-0001-geocoding/README.md`'s documented reproduction sequence is
+incomplete, pre-existing this phase.** Running exactly the commands the README lists
+(`load.py`, `sql/02_normalize.sql`, `sql/07_measure_final.sql`) fails:
+`07_measure_final.sql` reads `parcel.geom_m`/`addrpoint.geom_m` (created by
+`sql/04_measure_v2.sql`) and `parcel.norm_addr`/`addrpoint.norm_addr` (created by
+`sql/03_measure.sql`), neither of which the README's listed sequence ever runs. Adding
+`sql/03_measure.sql` and `sql/04_measure_v2.sql` before `07_measure_final.sql` (undocumented,
+but necessarily what actually produced `RESULTS.md`) lets the full sequence complete and
+the scoreboard query reproduces the published numbers closely: Approach B
+(`B_addrpoint_spatial`) measured 96.79% correct / 0.21% wrong / 1.75% ambiguous / 1.24% no-match
+here, against RESULTS.md's published 96.79% / 0.20% / 1.75% / 1.26% — same conclusion,
+trivial variance. **`docker/tools/` and `docker/tools/requirements.txt` are confirmed
+byte-identical** (`git diff` empty) and the `tools` service builds and starts cleanly
+under the `spike` profile — R2's actual requirement is intact. The defect is narrower:
+the README's *documented command list* omits two files, and both instructions and
+requirements-following forbid this phase from editing `spikes/` (out of scope, freezing
+is the point). Recommend a follow-up task to fix `README.md`'s step list (or fold 03/04
+into 07 to make it truly self-contained, matching its own "self-contained" claim) so a
+future from-scratch reproduction doesn't hit this.

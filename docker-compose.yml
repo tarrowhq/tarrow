@@ -1,7 +1,18 @@
 # somap runs in containers. Nothing is installed on a host.
 #
-# This is the whole environment: the database, and the toolchain that talks to
-# it. A contributor with Docker and this repo has everything; a contributor
+# This is the whole environment. The production composition is `db` + `app`:
+# PostGIS, and the React Router 7 server that owns the HTTP port (plan.md
+# R1) plus the TypeScript ETL that shares its image (R2). `migrate` is a
+# one-shot service so `docker compose up` reaching a healthy `app` implies
+# migrations already applied, never a race between the two.
+#
+# `tools` -- the TASK-0001 spike's Python container -- stays behind the
+# `spike` profile, byte-identical to before this file restructured around
+# it, for one reason: spikes/task-0001-geocoding/README.md must keep
+# reproducing the numbers in RESULTS.md (plan.md R2). It is not part of the
+# production composition and does not start on a plain `docker compose up`.
+#
+# A contributor with Docker and this repo has everything; a contributor
 # without Docker has nothing to install, because there is nothing to install.
 #
 # See Constitution Principle VII.
@@ -40,7 +51,56 @@ services:
       retries: 30
       start_period: 10s
 
+  # One-shot: applies app/sql/schema/*.sql in filename order (see
+  # app/server/migrate.ts), then exits 0. Connects as the database owner --
+  # it creates the `somap_app` role and revokes its write privileges, so it
+  # cannot run as that role itself.
+  migrate:
+    build:
+      context: ./app
+      dockerfile: ../docker/app/Dockerfile
+    command: ["node", "server/migrate.ts"]
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      POSTGRES_USER: somap
+      POSTGRES_PASSWORD: somap
+      POSTGRES_DB: somap
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    build:
+      context: ./app
+      dockerfile: ../docker/app/Dockerfile
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      # The read-only role sql/schema/010_grants.sql grants and then
+      # revokes write privileges from. The app never connects as `somap`.
+      PGUSER: somap_app
+      PGPASSWORD: somap_app
+      PGDATABASE: somap
+      PORT: "3000"
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
   tools:
+    # Frozen (plan.md R2): the TASK-0001 spike's evidence
+    # (spikes/task-0001-geocoding/RESULTS.md) must keep reproducing exactly
+    # as published, so this service and docker/tools/ stay byte-identical.
+    # Moving it behind a profile is the only change this feature makes here.
+    profiles: ["spike"]
     build:
       context: ./docker/tools
     environment:
