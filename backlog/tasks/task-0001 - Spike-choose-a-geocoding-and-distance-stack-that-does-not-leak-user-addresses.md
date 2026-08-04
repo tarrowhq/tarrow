@@ -4,7 +4,7 @@ title: 'Spike: choose a geocoding and distance stack that does not leak user add
 status: In Progress
 assignee: []
 created_date: '2026-08-04 15:58'
-updated_date: '2026-08-04 19:14'
+updated_date: '2026-08-04 20:12'
 labels:
   - 'area:geo'
   - 'kind:spike'
@@ -30,10 +30,10 @@ Ships a decision document. The application is untouched, so this satisfies the d
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 Candidate geocoders evaluated against Summit County addresses with a documented accuracy sample
-- [ ] #2 Chosen stack sends no user-entered address to any third party, and this is demonstrable
-- [ ] #3 Failure behavior specified: an address that cannot be confidently geocoded returns an explicit could-not-locate, never a low-confidence coordinate
-- [ ] #4 Distance measurement method documented, including what geometry is used when parcel boundaries are unavailable
-- [ ] #5 Decision and rationale committed to the repo
+- [x] #2 Chosen stack sends no user-entered address to any third party, and this is demonstrable
+- [x] #3 Failure behavior specified: an address that cannot be confidently geocoded returns an explicit could-not-locate, never a low-confidence coordinate
+- [x] #4 Distance measurement method documented, including what geometry is used when parcel boundaries are unavailable
+- [x] #5 Decision and rationale committed to the repo
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -181,4 +181,58 @@ and would exclude every ARM self-hoster. Proposed as constitution 1.2.0, PR #3.
 
 REMAINING: AC#4 (geometry rule for facilities with no parcel) and AC#5
 (decision document), both pending the operator's call on Approach B.
+
+APPROACH B ADOPTED by operator (2026-08-04). AC#2-#5 complete.
+Decision of record: spikes/task-0001-geocoding/DECISION.md.
+
+This SUPERSEDES item 1 of the original plan above. Parcels remain the
+measurement geometry and boundary-to-boundary is unchanged; only the LOOKUP
+key moves off parcel.siteaddress:
+
+    typed address -> normalize -> Address Points match -> that point's parcel
+
+AC#4 answered with measured numbers, not assumptions. Buffer is 304.8m.
+Measured parcel extents (mineral rights excluded):
+
+    <0.25 ac    p50  36m   p95    70m
+    0.25-0.5 ac p50  53m   p95   126m
+    0.5-2 ac    p50 114m   p95   147m
+    2-10 ac     p50 180m   p95   315m
+    10+ ac      p50 578m   p95  1575m   <- school campus
+
+A campus parcel's extent is nearly TWICE the entire buffer. This is the
+empirical confirmation that point-based measurement against a school is not an
+approximation of the legal standard but a different, wrong calculation.
+
+MISSING PARCEL GEOMETRY -- OPPOSITE RULES PER SIDE. Most likely thing to be
+gotten wrong by future work, so stated plainly:
+
+  RESIDENCE side -> DECLINE. A point lies inside its parcel, so measuring from
+  it OVERSTATES distance, which UNDER-restricts (unrecoverable). Making it safe
+  needs subtracting an unbounded reach (p95 1575m) which would flag everything
+  within ~1.9km. Affects 2.15% of address points.
+
+  PREMISES side -> INFLATE GENEROUSLY. A missing/undersized premises silently
+  shrinks a buffer. Over-restriction is safe here. Per-class assumed radius:
+  126m residential-lot daycare, 150m child-care centre.
+
+  SCHOOLS -> NEITHER. At p95 1575m no defensible radius exists. A school
+  without parcel geometry is a DECLARED COVERAGE GAP (Principle II), never an
+  estimated distance.
+
+FUZZY MATCHING IS REJECTED and this must not be revisited casually: 50.1% of
+the parcel-text approach's failures are house-number disagreements between the
+two county datasets. Fuzzy matching converts a safe NO_MATCH into a confident
+UNIQUE_WRONG on exactly those. Any future proposal to relax matching must
+demonstrate it does not raise the wrong-match rate.
+
+DOWNSTREAM CONSEQUENCES (see DECISION.md section 6)
+- Address Points becomes a REQUIRED ingest alongside parcels (TASK-0002.02).
+- TASK-0002.03 coverage manifest must state which delivery path answered and
+  render per-geometry uncertainty.
+- TASK-0012 must exclude mineral rights from measurement geometry.
+- TASK-0005 must review the per-class assumed radii against real facility
+  parcels once ingested.
+- Parcel siteaddress is not unique county-wide; derive municipality by spatial
+  join (needed for TASK-0007 regardless).
 <!-- SECTION:NOTES:END -->
