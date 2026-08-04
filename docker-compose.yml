@@ -40,6 +40,12 @@ services:
     shm_size: 1gb
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # The ingest pipeline's fetched NDJSON, shared with the `etl` service.
+      # PostgreSQL reads these files itself with a server-side COPY, which is
+      # what keeps a bulk-load streaming library out of the image that also
+      # serves the request path. Read-only here: the database consumes this
+      # data, it never produces it.
+      - etldata:/data:ro
     ports:
       # Exposed on loopback only, for inspection with a GUI client. Nothing
       # in the pipeline depends on this being published.
@@ -95,6 +101,37 @@ services:
       retries: 20
       start_period: 5s
 
+  # The ingest pipeline (app/etl/). Behind a profile because it is a job, not
+  # a service: `docker compose up` must not start fetching a quarter of a
+  # million parcels. Run it explicitly:
+  #
+  #   docker compose run --rm etl                fetch every source, then load
+  #   docker compose run --rm etl --skip-fetch   reload from the NDJSON already
+  #                                              on the volume
+  #
+  # Connects as the database OWNER, not as `somap_app`: sql/schema/010_grants.sql
+  # revokes INSERT/UPDATE/DELETE/TRUNCATE from that role by design, which is
+  # Principle IV's enforcement point and the reason the ETL needs its own
+  # credentials.
+  etl:
+    profiles: ["etl"]
+    build:
+      context: ./app
+      dockerfile: ../docker/app/Dockerfile
+    entrypoint: ["node", "etl/ingest.ts"]
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      POSTGRES_USER: somap
+      POSTGRES_PASSWORD: somap
+      POSTGRES_DB: somap
+      ETL_DATA_DIR: /data
+    volumes:
+      - etldata:/data
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
   tools:
     # Frozen (plan.md R2): the TASK-0001 spike's evidence
     # (spikes/task-0001-geocoding/RESULTS.md) must keep reproducing exactly
@@ -123,3 +160,8 @@ services:
 
 volumes:
   pgdata:
+  # Fetched source NDJSON. Written by `etl`, read by `db`'s server-side COPY.
+  # A named volume rather than a bind mount, because Principle VII's "nothing
+  # is installed on a host" extends to not scattering 200MB of working data
+  # across one.
+  etldata:

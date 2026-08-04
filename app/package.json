@@ -10,6 +10,7 @@
     "dev": "react-router dev",
     "typecheck": "react-router typegen && tsc",
     "start": "node --enable-source-maps server/entry.js",
+    "ingest": "node etl/ingest.ts",
     "test": "node --test tests/"
   },
   "dependencies": {
