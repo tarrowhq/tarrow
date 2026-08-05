@@ -190,6 +190,12 @@ the language)
 - [ ] Verify the whole flow from a clean clone: `docker compose up --build`, run the
       documented ingest, submit an address, read the answer — and record the exact command
       sequence in the repository README
+- [ ] Make a zero-collection test run **fail**, and document the `test` compose profile as
+      the only sanctioned way to run the suite. Found by the orchestrator verifying P3:
+      `docker compose run --rm app npm test` exits 0 having collected 0 tests, because the
+      runtime image excludes `tests/` by design. A wrong invocation currently reads as
+      "everything passes", which is harmless while a human reads the count and dangerous
+      the moment it reaches CI or the README
 - [ ] Verify the flow on both `linux/amd64` and `linux/arm64`
 - [ ] Tick TASK-0002's eight acceptance criteria on the board, each against a real
       artifact — a passing test, a running container, or a committed document

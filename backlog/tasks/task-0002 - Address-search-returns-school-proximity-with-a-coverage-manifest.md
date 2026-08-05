@@ -4,7 +4,7 @@ title: Address search returns school proximity with a coverage manifest
 status: In Progress
 assignee: []
 created_date: '2026-08-04 15:58'
-updated_date: '2026-08-05 00:44'
+updated_date: '2026-08-05 00:47'
 labels:
   - 'area:web'
   - 'kind:feature'
@@ -42,7 +42,7 @@ Spec: specs/001-address-search-school-proximity
 - [ ] #8 Deployed and working end to end
 - [x] #9 Spec phase: PostGIS baseline and deploy pipeline
 - [x] #10 Spec phase: Summit County school premises ingest
-- [ ] #11 Spec phase: Proximity query and coverage manifest
+- [x] #11 Spec phase: Proximity query and coverage manifest
 - [ ] #12 Spec phase: No-log privacy architecture, CSP, and verification
 - [ ] #13 Spec phase: Web surface and end to end
 <!-- AC:END -->
@@ -93,4 +93,6 @@ EXPLAIN: resolve_address uses address_points_normalized_idx then parcels_measura
 Pre-existing defects fixed on the way (all outside Phase 3's surface, each recorded in tasks.md Notes): app/tsconfig.json had a deprecated baseUrl that made 'npm run typecheck' abort before checking anything (it had never been green), and lacked allowImportingTsExtensions which the .ts import specifiers Node 22 requires; app/package.json's test script ('node --test tests/') does not work on Node 22; one @ts-ignore added in server/entry.ts for the generated RR7 bundle.
 
 Open, not carded: (1) the normalizer discards the municipality, so one street address in two municipalities becomes an ambiguity resolved to the most restrictive candidate — safe but imprecise, and address_points.city is loaded and unused; (2) an out-of-county address is indistinguishable from a misspelt one (both could-not-locate) — the gap ledger names it, but a dedicated variant would be a better answer.
+
+P3 complete and independently verified by the orchestrator (2026-08-04). Model served: claude-opus-5[1m]. Verified rather than accepted: 43/43 tests pass via docker compose --profile test run --rm test; zero geography columns exist in the schema and all four geometry columns are SRID 6549; the clearance compile-failure fixture really does fail, exit 2, with the five reported diagnostics. The check that matters most is the sign fixture -- 1563 AKERS AVE measures 310.26 m raw from an uncorroborated premises, OUTSIDE the 304.8 m buffer, and flags only because the 126 m assumed radius is subtracted. Inverting the sign breaks a test against real county data rather than a mock. Orchestrator finding handed to P5 as a new box: docker compose run --rm app npm test exits 0 having collected ZERO tests, because the runtime image excludes tests/ by design and only the build stage carries them. A wrong invocation reads as everything-passes, which is dangerous the moment it reaches CI or the README.
 <!-- SECTION:NOTES:END -->

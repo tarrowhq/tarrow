@@ -307,7 +307,7 @@ replaces or absorbs it.
 | date | task | PR | merge | tokens/cost (best-effort) | notes |
 |------|------|----|-------|---------------------------|-------|
 | 2026-08-04 | Lane 0 (runbook + tier pins) | #5 | `1907068` | — | merged; operator signed off on lanes |
-| 2026-08-04 | TASK-0002 | — | — | P1 214k / 117 calls / 35 min · P2 252k / 92 calls / 52 min | in flight. **phases: 1-2 done, 3 pending operator checkpoint.** Claim `629fb4c`, spec `ab7dd9b`, P1 `ec12cea`, P2 `35ee23b`+`4a221c1`. P1 served `claude-sonnet-5`; P2 served `claude-opus-5[1m]`. |
+| 2026-08-04 | TASK-0002 | — | — | P1 214k / 117 calls / 35 min · P2 252k / 92 calls / 52 min · P3 277k / 88 calls / 32 min | in flight. **phases: 1-3 done, 4 dispatched.** Claim `629fb4c`, spec `ab7dd9b`, P1 `ec12cea`, P2 `35ee23b`+`4a221c1`, P3 `85f1d97`+`71db958`. Models served: P1 `claude-sonnet-5`, P2/P3 `claude-opus-5[1m]`. |
 
 ### Notes from execution
 
@@ -344,6 +344,24 @@ replaces or absorbs it.
   the owner-name pattern to catch it — correctly: tuning a heuristic until it catches the
   one miss you already know about produces a source that looks complete and is not.
   The gap is declared by name in the ledger. **Resolution recorded below the log.**
+- **2026-08-04, P3 verified against its own strongest claims.** The orchestrator did not
+  take the phase report at face value. Confirmed independently: 43/43 tests pass through
+  the sanctioned `docker compose --profile test run --rm test` path; no `geography` column
+  exists anywhere in the schema and all four geometry columns are SRID 6549; and the
+  clearance fixture genuinely fails to compile with the five diagnostics reported, exit 2.
+  The load-bearing check was the **sign fixture**: `1563 AKERS AVE` sits **310.26 m** from
+  an uncorroborated premises — *outside* the 304.8 m buffer — and flags only because the
+  126 m assumed radius is subtracted. Inverting the sign therefore breaks a test against
+  real county data rather than against a mock, which is the only version of that test
+  worth having.
+- **2026-08-04, hazard found by the orchestrator: a zero-collection test run reports
+  success.** `docker compose run --rm app npm test` exits 0 having collected **0 tests**,
+  because the runtime image deliberately excludes `tests/` — only the `build` stage carries
+  them, which is what the `test` compose profile targets. A wrong invocation therefore
+  reads as "everything passes" rather than as an error. Harmless while a human is reading
+  the number; dangerous the moment it is wired into CI or into the README's command
+  sequence. **Handed to P5** as a box: the documented command must be the `test` profile,
+  and the suite should fail rather than pass when it collects nothing.
 - **2026-08-04, pre-existing defect found, not fixed.**
   `spikes/task-0001-geocoding/README.md`'s documented command sequence is incomplete —
   `07_measure_final.sql` depends on columns built by `03_measure.sql`/`04_measure_v2.sql`,
