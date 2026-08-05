@@ -89,4 +89,19 @@ COPY scripts ./scripts
 
 EXPOSE 3000
 
-CMD ["node", "server/entry.ts"]
+# --max-http-header-size is raised from Node's 16 KB default to 64 KB.
+#
+# Not a tuning knob -- a bug fix (TASK-0014). Browsers key the cookie jar on
+# hostname and ignore the port, so on a developer machine, where every project
+# shares `localhost`, somap receives the accumulated cookies of every other
+# application ever served from that hostname. Past 16 KB the parser rejects the
+# request before somap sees it, and a housing tool answers with an error for
+# something no part of somap did.
+#
+# 64 KB is headroom, not the fix on its own: server/entry.ts still answers an
+# actual overflow with an explanation rather than a bare failure, because a
+# limit large enough never to be hit is a limit nobody has tested.
+#
+# somap sets no cookies and reads no request header of consequence, so nothing
+# here is made more permissive in any sense that matters -- only more legible.
+CMD ["node", "--max-http-header-size=65536", "server/entry.ts"]

@@ -20,8 +20,33 @@ import { describe, test } from "node:test";
 import {
   CONTENT_SECURITY_POLICY,
   FAILURE_BODY,
+  HEADER_OVERFLOW_BODY,
+  TLS_ON_PLAIN_PORT_BODY,
   withSecurityEnvelope,
 } from "../server/http.ts";
+
+/**
+ * Send raw bytes to the running server and return everything it writes back.
+ * Used for the failures that happen before a response object exists, which
+ * fetch() cannot reach at all.
+ */
+async function rawExchange(payload: Buffer | string): Promise<string> {
+  const url = new URL(ORIGIN);
+  return new Promise<string>((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    const socket = net.connect(
+      { host: url.hostname, port: Number(url.port || 80) },
+      () => socket.write(payload),
+    );
+    socket.on("data", (c: Buffer) => chunks.push(c));
+    socket.on("close", () => resolve(Buffer.concat(chunks).toString("utf8")));
+    socket.on("error", reject);
+    setTimeout(() => {
+      socket.destroy();
+      resolve(Buffer.concat(chunks).toString("utf8"));
+    }, 5000);
+  });
+}
 
 const ORIGIN = process.env.SOMAP_APP_ORIGIN ?? "http://app:3000";
 
@@ -147,6 +172,79 @@ describe("every response from the running server carries it", () => {
         `That would be the one response in this process without a policy on it.\n${raw}`,
     );
     assert.ok(raw.includes("Referrer-Policy: same-origin"));
+    // The generic body is the RIGHT answer here: a bad request line is a
+    // failure somap genuinely cannot explain. The two it can are below, and
+    // this assertion is what stops them being applied to everything.
+    assert.ok(
+      raw.includes(FAILURE_BODY),
+      `an unclassifiable malformed request keeps the generic body\n${raw}`,
+    );
+  });
+
+  // TASK-0014. Both of the failures somap CAN explain. Neither is reachable
+  // through fetch() -- the parser rejects them before a response object exists
+  // -- which is why they are raw-socket exchanges and why they went unnoticed.
+  test("a TLS handshake on the plain-HTTP port is explained", async () => {
+    // The first bytes of a real ClientHello: record type 0x16 (handshake),
+    // version 0x03 0x01. This is what a browser sends after silently
+    // upgrading http:// to https://, which it does for every hostname it does
+    // not consider trustworthy -- so this is the self-hoster's failure, not an
+    // exotic one. somap's own browser suite hit it.
+    const raw = await rawExchange(
+      Buffer.from([0x16, 0x03, 0x01, 0x02, 0x00, 0x01, 0x00, 0x01, 0xfc, 0x03, 0x03]),
+    );
+
+    assert.match(raw, /^HTTP\/1\.1 400 /, `expected a 400, got:\n${raw}`);
+    assert.ok(
+      raw.includes(TLS_ON_PLAIN_PORT_BODY),
+      "A ClientHello must be answered with the body that names TLS and offers " +
+        `a way out, not with the generic failure.\n${raw}`,
+    );
+    assert.ok(!raw.includes(FAILURE_BODY), "the generic body must not appear");
+    assert.ok(raw.includes(`Content-Security-Policy: ${CONTENT_SECURITY_POLICY}`));
+  });
+
+  test("an oversized header block is explained", async () => {
+    // Past the raised 64 KB ceiling, so this exercises the overflow path
+    // rather than the headroom that now absorbs real cookie jars.
+    const bloat = "x".repeat(80_000);
+    const raw = await rawExchange(
+      `GET / HTTP/1.1\r\nHost: ${new URL(ORIGIN).host}\r\nCookie: bloat=${bloat}\r\n\r\n`,
+    );
+
+    assert.match(raw, /^HTTP\/1\.1 400 /, `expected a 400, got:\n${raw}`);
+    assert.ok(
+      raw.includes(HEADER_OVERFLOW_BODY),
+      `An overflow must name the cause and a way out.\n${raw}`,
+    );
+    assert.ok(!raw.includes(FAILURE_BODY), "the generic body must not appear");
+    assert.ok(raw.includes(`Content-Security-Policy: ${CONTENT_SECURITY_POLICY}`));
+    // Nothing from the request may come back. The parser read no URL and no
+    // address; the only thing sent was the bloat, so its echo is what to hunt.
+    assert.ok(
+      !raw.includes(bloat.slice(0, 200)),
+      `the response echoed request content back\n${raw.slice(0, 400)}`,
+    );
+    assert.ok(
+      !/HPE_|ERR_HTTP|at Socket|node:internal/.test(raw),
+      `the response carried a parser code or a stack frame\n${raw}`,
+    );
+  });
+
+  // The headroom itself, asserted rather than assumed: a cookie jar the size a
+  // polluted shared hostname actually produces must simply work.
+  test("a realistic polluted cookie jar (32 KB) is served normally", async () => {
+    const res = await fetch(ORIGIN, {
+      headers: { Cookie: `jar=${"x".repeat(32_000)}` },
+    });
+    assert.equal(
+      res.status,
+      200,
+      "32 KB of cookies is well within what a shared hostname accumulates and " +
+        "must not reach the overflow path at all.",
+    );
+    assertEnvelope("GET / with 32 KB of cookies", res.headers);
+    await res.text();
   });
 
   // TASK-0015, the half that serves the hardened client. `Origin: null` is what

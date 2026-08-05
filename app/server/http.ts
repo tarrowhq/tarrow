@@ -136,6 +136,103 @@ export const FAILURE_BODY =
   "is being made. If you were searching an address, treat this as no answer at " +
   "all and confirm with the registering sheriff's office.\n";
 
+/**
+ * The two failures somap can explain, and why only these two.
+ *
+ * FAILURE_BODY says nothing about the request because it cannot: by the time it
+ * is written, somap does not know what the request was and must not find out.
+ * These are the exceptions, and they are exceptions for the same reason. Both
+ * are rejected by the HTTP parser BEFORE anything is parsed -- so there is no
+ * URL, no method, no header, and above all no address in existence to leak.
+ * That is precisely what lets them afford to be specific.
+ *
+ * Being specific matters here. A person who has just typed their address into a
+ * housing tool and been handed "somap failed" has been told that somap is
+ * broken, when in both of these cases somap is fine and something between them
+ * and it is not. They cannot act on the generic sentence. They can act on these.
+ *
+ * TASK-0014.
+ */
+
+/**
+ * A header block too large for the parser.
+ *
+ * Nearly always cookies. Browsers key the cookie jar on hostname and ignore the
+ * port (RFC 6265 provides no port isolation, deliberately), so every other
+ * application ever served from this hostname has been depositing cookies that
+ * are now sent here too. somap sets none and wants none, and it cannot decline
+ * them -- it can only make the failure legible.
+ */
+export const HEADER_OVERFLOW_BODY =
+  "somap could not read this request, and checked nothing.\n\n" +
+  "Your browser sent more header data than somap accepts. This is almost " +
+  "always cookies: browsers keep one cookie jar per hostname and ignore the " +
+  "port, so anything else you have run on this hostname leaves cookies that " +
+  "get sent here too. somap sets no cookies and has no use for any.\n\n" +
+  "To get past it, open somap in a private window, or clear this hostname's " +
+  "cookies in your browser.\n\n" +
+  "No address was read, so nothing was checked and nothing is being said " +
+  "about any address. If you were searching, treat this as no answer at all.\n";
+
+/**
+ * A TLS handshake delivered to a plain-HTTP port.
+ *
+ * This is the self-hoster's failure, and it is not exotic. Chromium silently
+ * rewrites `http://` to `https://` for any host it does not consider
+ * trustworthy -- `localhost` is exempt, a LAN hostname or an internal IP is
+ * not. So somebody who stands somap up per Principle VII, serves it over plain
+ * HTTP inside their own network, and opens a browser gets their request
+ * upgraded out from under them, and this process receives a ClientHello where
+ * it expected a request line.
+ *
+ * somap's own browser test suite hit exactly this and failed with
+ * `ERR_SSL_PROTOCOL_ERROR`, saying nothing about somap at all -- which is how
+ * the case was found, and a fair preview of what it does to a stranger who has
+ * no reason to suspect TLS.
+ */
+export const TLS_ON_PLAIN_PORT_BODY =
+  "somap could not read this request, and checked nothing.\n\n" +
+  "Your browser tried to speak HTTPS to a somap that is serving plain HTTP. " +
+  "Browsers now upgrade http:// to https:// automatically for most hostnames, " +
+  "so this happens even when you typed http:// yourself.\n\n" +
+  "If you are visiting somebody's somap: ask them for the https:// address, " +
+  "or try http://127.0.0.1 or http://localhost if it is running on this " +
+  "machine -- browsers do not upgrade those.\n\n" +
+  "If you are running this somap: it is serving plain HTTP, and every browser " +
+  "but a local one will try HTTPS against it. Put TLS in front of it, or reach " +
+  "it as localhost.\n\n" +
+  "No address was read, so nothing was checked and nothing is being said " +
+  "about any address. If you were searching, treat this as no answer at all.\n";
+
+/**
+ * Choose the body for a request the HTTP parser refused, from the parser's own
+ * verdict. Returns a fixed constant, always.
+ *
+ * This function reads the error where the rest of this file pointedly does not,
+ * so the boundary is worth stating exactly. It reads two things:
+ *
+ *   - `err.code`, which is an enum from Node's parser (`HPE_*`). A constant.
+ *   - the first two bytes of `err.rawPacket`, which for a TLS record are the
+ *     content type (0x16, handshake) and the major protocol version (0x03).
+ *     Protocol constants, fixed before any user existed.
+ *
+ * It reads nothing else from rawPacket, and NOTHING it reads reaches the
+ * response: the return value is one of three module-level constants, chosen by
+ * a comparison. There is no interpolation, no message, no stack, and no third
+ * byte. A request that got far enough to contain an address is not a request
+ * that reaches this function at all -- the parser rejected it first, which is
+ * the whole reason these bodies can say anything specific.
+ */
+export function bodyForClientError(err: unknown): string {
+  const e = err as { code?: string; rawPacket?: Buffer } | null | undefined;
+  const raw = e?.rawPacket;
+  if (Buffer.isBuffer(raw) && raw.length >= 2 && raw[0] === 0x16 && raw[1] === 0x03) {
+    return TLS_ON_PLAIN_PORT_BODY;
+  }
+  if (e?.code === "HPE_HEADER_OVERFLOW") return HEADER_OVERFLOW_BODY;
+  return FAILURE_BODY;
+}
+
 /** Set the response envelope before anything decides what the response is. */
 export function applySecurityHeaders(res: ServerResponse): void {
   // Set BEFORE the handler runs. Node merges headers set here with any passed
