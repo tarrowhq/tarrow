@@ -177,36 +177,36 @@ the language)
 
 **Goal**: The interface, and proof the whole slice works from a clean clone.
 
-- [ ] Build the address form as a plain RR7 route with a form action — working HTML,
+- [x] Build the address form as a plain RR7 route with a form action — working HTML,
       functional with JavaScript disabled
-- [ ] Build the result view rendering: flagged premises with distances and measurement
+- [x] Build the result view rendering: flagged premises with distances and measurement
       basis, or the outside-every-buffer statement — never approved, legal, permitted, or
       clear
-- [ ] Render could-not-locate and decline as **visually and textually distinct** from a
+- [x] Render could-not-locate and decline as **visually and textually distinct** from a
       located address with no nearby facilities, distinguishable by more than wording
-- [ ] Render the coverage manifest in the **server-rendered document** on every result.
+- [x] Render the coverage manifest in the **server-rendered document** on every result.
       It may be visually collapsed with `<details>` or CSS, but must not require
       JavaScript to reveal. Radix/shadcn interactive primitives are not permitted for this
-- [ ] Render sheriff-confirmation guidance on every result, including declines and errors
-- [ ] Surface the data build date and per-layer verification dates, so a stale self-hosted
+- [x] Render sheriff-confirmation guidance on every result, including declines and errors
+- [x] Surface the data build date and per-layer verification dates, so a stale self-hosted
       instance cannot hide its age
-- [ ] Wire Tailwind and any vendored shadcn source with no off-origin asset
-- [ ] Test over **raw response bodies**: no permission vocabulary appears in any rendered
+- [x] Wire Tailwind and any vendored shadcn source with no off-origin asset
+- [x] Test over **raw response bodies**: no permission vocabulary appears in any rendered
       result (approved, legal, permitted, clear, allowed, OK to live, and the phrasings a
       reader would take as those)
-- [ ] Test over **raw response bodies**: the manifest strings and the sheriff guidance are
+- [x] Test over **raw response bodies**: the manifest strings and the sheriff guidance are
       present on every result shape, with JavaScript never executed
-- [ ] Verify the whole flow from a clean clone: `docker compose up --build`, run the
+- [x] Verify the whole flow from a clean clone: `docker compose up --build`, run the
       documented ingest, submit an address, read the answer — and record the exact command
       sequence in the repository README
-- [ ] Make a zero-collection test run **fail**, and document the `test` compose profile as
+- [x] Make a zero-collection test run **fail**, and document the `test` compose profile as
       the only sanctioned way to run the suite. Found by the orchestrator verifying P3:
       `docker compose run --rm app npm test` exits 0 having collected 0 tests, because the
       runtime image excludes `tests/` by design. A wrong invocation currently reads as
       "everything passes", which is harmless while a human reads the count and dangerous
       the moment it reaches CI or the README
-- [ ] Verify the flow on both `linux/amd64` and `linux/arm64`
-- [ ] Tick TASK-0002's eight acceptance criteria on the board, each against a real
+- [x] Verify the flow on both `linux/amd64` and `linux/arm64`
+- [x] Tick TASK-0002's eight acceptance criteria on the board, each against a real
       artifact — a passing test, a running container, or a committed document
 
 ---
@@ -816,3 +816,199 @@ packages and asserted, and `connect-src 'self'` plus no client JS closes the cli
 - **The `Date` response header is still served.** Harmless, but it is the one piece of
   per-response server state that is not suppressed, and a completeness-minded reviewer will
   ask.
+
+### Phase 5 (no subtask), 2026-08-04 — implemented by a `claude-opus-5[1m]` session
+
+**Everything ran through `docker compose`.** Suite: `docker compose --profile test run
+--rm test` → **146 tests, 33 suites, 0 failures** (was 107 before this phase).
+
+#### The copy is the artifact, so here is where each rule lives as a gate
+
+`app/app/result-view.tsx` is the deliverable of this phase and its header states the four
+rules it is written under. Each has a gate in `app/tests/copy.test.ts`, which reads the
+**raw response body** of **ten** served shapes — the form, two flagged results, the
+unflagged result, a decline, two could-not-locates, the 404 error boundary, a GET to
+`/answer` with nothing submitted, and `search-failed`.
+
+- **Never state or imply permission.** Two lists. `HARD_DENY` runs against the untouched
+  body and no allowlist can excuse it (`you can/may live`, `ok to live`, `good to go`,
+  `in the clear`, `green light`, `no restrictions`, `approved`, `cleared`). `FORBIDDEN` is
+  spec SC-005's vocabulary as word-boundary stems, so `approval`, `clearance`, and
+  `permitted` are caught by their roots.
+- **The one allowlisted phrase is a negation**, and it is `"never as a legal conclusion"` —
+  the last clause of somap's own unverified-rule disclosure, read from the coverage-gap
+  ledger. A blanket ban on `legal` would have deleted the disclosure rather than the claim.
+  It carries a written reason, and a test asserts the phrase still occurs, so a dead
+  exemption cannot sit there quietly widening the gate. It is the **only** entry, and it is
+  the only forbidden word that appears anywhere in any served body (measured, twice per
+  result page, both from the same ledger row).
+- **An absence of flags is not good news.** `"no results found"` and `"no results for"` are
+  forbidden outright. The unflagged answer is headed *"Outside every buffer we checked."*
+  and a test asserts the qualification (*"smaller than it sounds"*) appears **within 400
+  bytes of the headline** — a reader who stops after the first line must not stop on good
+  news.
+- **A refusal and a result differ by more than wording** (User Story 3 scenario 4). Asserted
+  three ways: every shape carries a distinct label above its headline and the set is proved
+  mutually exclusive; the refusals render `answer--stopped` / `answer--broken`, whose CSS is
+  a **dashed** border rather than a colour change, so the difference survives for a reader
+  who cannot distinguish the accents; and **structurally**, no refusal renders *"The parcel
+  somap measured from"*, *"Distance somap measured"*, or a premises list — with the converse
+  asserted too, so the check is not vacuous. `declined` and `could-not-locate` are separated
+  on what somap knows: *"somap knows where this is"* vs *"somap does not know where this
+  address is"*, under different section headings.
+- **The sheriff step is the recommended action.** It says what to ask, what to take with
+  you, and that if that office disagrees **it is right and somap is wrong**. Asserted on all
+  ten shapes on two independent tokens.
+
+#### What every result carries, and the shape of the manifest on the page
+
+Headline absences are **always visible** — never behind a `<details>` — and are read from
+the gap ledger by `subject_type`, not written down in the renderer. The long enumerations
+below them are collapsed and collapsed only: all 31 gap rows, all 7 layers with their dates,
+and the measurement-basis table are in the served document either way, which is what
+`copy.test.ts` asserts.
+
+- **`verifiedAt` renders as `never human-verified`**, and the test counts it: exactly **7**
+  occurrences, one per layer. Not a blank cell, not a dash, and never a fetch date wearing a
+  verification's name.
+- **Data age is a visible sentence**, not a footer: *"This somap instance last fetched data
+  on 4 August 2026, and its oldest layer was fetched on…"* (Principle VII — an instance
+  cannot hide its age).
+- **`ruleContent.statement` is rendered in full on every result**, in its own section headed
+  *"No person has checked the rule somap applied"*, followed by a plain-English restatement.
+  Asserted on all five search-result shapes, including the withdrawn manifest, whose own
+  statement also carries *"not verified rule data"*.
+- **The buffer is never a literal in the renderer.** `bufferMeters` comes from the result and
+  feet are computed from it, so the two units cannot disagree and `304.8` stays defined once
+  (`sql/schema/013`), which `no-fallback.test.ts` still asserts.
+
+#### Two routes, and why
+
+`/` is the form and reads **no database**, so it loads when the database is down.
+`/answer` answers **POST only**. The address travels in the request body: a GET would put it
+in the URL, and a URL reaches browser history, the address bar, the `Referer` header, and
+any future proxy's access log — none of which somap's controls reach. `copy.test.ts` asserts
+no served `href`, `action`, `src`, `content`, or `<title>` on any result carries a searched
+address.
+
+Keeping the action off `/` also keeps `POST /` a 405, which is one of the responses
+`http-headers.test.ts` asserts still carries the full envelope. `no-logging.test.ts` was
+extended to drive its canary through the **real** submit path, which did not exist when that
+test was written.
+
+There is deliberately **no `loader`** on `/answer`: a loader re-runs after the action on a
+document POST, and one that redirected home would have thrown the answer away. A plain GET
+therefore renders an honest *"nothing was submitted"* page rather than an empty result shape.
+
+#### `search-failed` is rendered by a real server, not by a component in a test
+
+Node 22's built-in type stripping does not handle JSX, so no `.tsx` can be imported by
+`node --test` — component-level rendering is not available to this suite at all, and that is
+a constraint worth knowing before someone tries. `search-failed` also cannot be provoked
+against a healthy composition, and the suite must not be able to take the composition down
+to try (`tests/docker.ts` is read-only by design).
+
+So `copy.test.ts` starts a **second somap server inside the test container**
+(`server/entry.ts`, `PGPORT` pointed at a closed port), and reads the document it serves.
+Same code, same renderer, same wire as every other shape.
+
+It was also seen for real: on the clean-clone run below, a search against a **never-loaded**
+database returned `search-failed`, because `server/manifest.ts`'s rule-disclosure gate fires
+before anything else — *"This instance's coverage-gap ledger is missing the row disclosing
+that its distance rule is not verified data. somap will not serve a result that could be
+read as a verified legal conclusion, so it serves none."* That precedence is correct and
+worth recording: an empty database fails **loudly** rather than producing a confident-looking
+empty answer.
+
+#### The zero-collection run now fails (the orchestrator's P3 finding)
+
+`app/scripts/run-tests.mjs` replaces `node --test tests/*.test.ts` as `npm test`. It refuses
+to report a pass when the tests directory is absent, when fewer test files are present than
+the suite has (`MINIMUM_TEST_FILES`), when `node --test` reports fewer tests than it should
+(`MINIMUM_TESTS`), or when no summary is printed at all. Proved:
+
+```
+$ docker compose run --rm app npm test
+somap: REFUSING TO REPORT A PASS.
+  There is no tests directory at /app/tests, so nothing could be collected.
+  A run that collects nothing is not a run that passed.
+  The only sanctioned way to run somap's test suite is:
+      docker compose --profile test run --rm test
+EXIT=1
+```
+
+`scripts/` is copied into the **runtime** image for this reason alone — so the wrong
+invocation produces a legible sentence rather than `MODULE_NOT_FOUND`. Both floors are
+bumped deliberately; lowering one is a diff somebody reviews. The `test` profile is
+documented as the only sanctioned path in `README.md` and `docs/privacy/verification.md`.
+
+#### Deviations and decisions
+
+1. **Tailwind is wired; shadcn is not, and could not be.** Tailwind `4.3.3` +
+   `@tailwindcss/vite` `4.3.3`, pinned exactly, dev dependencies only, resolved entirely at
+   build time — no runtime, no script, no font request. `@theme` overrides Tailwind's own
+   default families with the system stack so no utility class can reintroduce a webfont.
+   **Radix/shadcn interactive primitives were not used**, because Phase 4's zero-JS decision
+   forecloses them and this phase's own box says so; progressive disclosure is
+   `<details>`/`<summary>`.
+2. **One entry added to the build-output scan's allowlist**, and it is the only external URL
+   Tailwind introduces: `https://tailwindcss.com`, in the MIT licence banner Tailwind emits
+   as the first line of the built stylesheet — inside a CSS comment, which no engine ever
+   dereferences, and which the licence requires be carried with the output. The gate bit
+   first (`docker compose build` failed), which is how it was found. The allowlist's doc
+   comment now names this as a **third** admissible category (licence attribution inside a
+   comment) rather than smuggling it under "documentation links", and it explicitly does not
+   extend to a URL outside a comment. `NEVER` is untouched and still applies.
+3. **No inline `style` attributes anywhere.** `style-src 'self'` with no `'unsafe-inline'`
+   blocks a style *attribute*, not only a `<style>` element — so spacing that would naturally
+   be a one-off inline style is a Tailwind utility from the external sheet instead.
+4. **`server/db.ts` now finds `sql/query/` by walking up** rather than by a fixed
+   `../sql/query` from `import.meta.url`. This phase's route imports `server/search.ts`, so
+   Vite's SSR build bundles that module into `build/server/index.js`, two directories deeper,
+   where the old path does not exist — the process would have died at startup. It is not a
+   fallback to a different directory: it finds the one `sql/query` in the image or throws.
+
+#### Verification actually run (commands and results)
+
+**Clean clone, `linux/arm64` (this host).** Cloned `origin/task-0002-walking-skeleton` at
+`abf529d` into an empty directory with nothing else in it, and ran the sequence exactly as
+`README.md` records it:
+
+```
+docker compose up --build -d      # db healthy, migrate exit 0, app healthy
+docker compose run --rm etl       # full fetch of all five services, then load
+docker compose ps
+curl -sS -X POST http://127.0.0.1:3000/answer \
+  --data-urlencode 'address=1464 Garman Rd, Akron, OH 44313'
+```
+
+Row counts identical to Phase 2's, from a fetch performed fresh: `municipalities 31` ·
+`parcels 261,154` (1,128 mineral-rights excluded) · `address_points 258,862` ·
+`school_premises 619` (0 without geometry) · `coverage_gaps 31`. The curl returned
+*"3 school premises are within 304.8 m (1,000 feet) of this address"*, naming Firestone,
+Litchfield and Case Community Learning Centers with their measured distances.
+`docker compose --profile test run --rm test` inside that clean clone: **146 / 146**.
+
+**Mid-ingest, the same clone answered a search against a never-loaded database** — see
+above. `search-failed`, loudly, with every coverage claim withdrawn.
+
+**`linux/amd64`.** `docker buildx build --platform linux/amd64,linux/arm64` succeeds for
+both `docker/app` (context `./app`) and `docker/db`. The **flow** was then run on amd64, not
+just built: the same clone brought up under `DOCKER_DEFAULT_PLATFORM=linux/amd64` as a
+separate compose project, `node -e "process.arch"` inside the built image reporting `x64`,
+the same POST returning the same three premises, and the full suite **146 / 146** on amd64.
+The ingest there was `--skip-fetch` against a copy of the NDJSON the arm64 run had already
+fetched — the county was downloaded once, and the second architecture loaded and served the
+same bytes. Both verification projects were torn down with `down -v` afterwards.
+
+#### What is still open
+
+- **An `<a href>` to somap's own repository or issue tracker is deliberately absent.**
+  Reporting a wrong answer needs TASK-0009 (a report that carries no query context) first;
+  the page says so in as many words rather than linking somewhere that would.
+- **`Referrer-Policy: no-referrer` is doing real work now** that the sheriff section exists:
+  the moment anyone adds a link to a county website, that county would otherwise be told
+  which somap page the reader was on.
+- **The 400-byte proximity assertion on the outside-every-buffer qualification is a proxy
+  for "above the fold"**, which nothing in HTML can actually assert. If the banner is ever
+  restructured, that number needs re-deriving rather than raising.

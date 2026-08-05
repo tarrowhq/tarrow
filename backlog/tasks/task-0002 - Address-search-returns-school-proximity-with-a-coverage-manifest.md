@@ -4,7 +4,7 @@ title: Address search returns school proximity with a coverage manifest
 status: In Progress
 assignee: []
 created_date: '2026-08-04 15:58'
-updated_date: '2026-08-05 01:23'
+updated_date: '2026-08-05 02:12'
 labels:
   - 'area:web'
   - 'kind:feature'
@@ -32,19 +32,19 @@ Spec: specs/001-address-search-school-proximity
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A user can enter an address and receive school proximity results for Summit County
-- [ ] #2 Every result carries a coverage manifest naming layers queried, layers absent, and verification dates
-- [ ] #3 No rendered copy states or implies permission, verified by a test over result strings
-- [ ] #4 A could-not-locate address is distinguishable from a located address with no nearby facilities
-- [ ] #5 No IP address or searched address is recorded anywhere in the stack, including access and error logs
-- [ ] #6 No third-party origin loads in the client, enforced by a build check
-- [ ] #7 Guidance to confirm with the registering sheriff office appears on every result
-- [ ] #8 Deployed and working end to end
+- [x] #1 A user can enter an address and receive school proximity results for Summit County
+- [x] #2 Every result carries a coverage manifest naming layers queried, layers absent, and verification dates
+- [x] #3 No rendered copy states or implies permission, verified by a test over result strings
+- [x] #4 A could-not-locate address is distinguishable from a located address with no nearby facilities
+- [x] #5 No IP address or searched address is recorded anywhere in the stack, including access and error logs
+- [x] #6 No third-party origin loads in the client, enforced by a build check
+- [x] #7 Guidance to confirm with the registering sheriff office appears on every result
+- [x] #8 Deployed and working end to end
 - [x] #9 Spec phase: PostGIS baseline and deploy pipeline
 - [x] #10 Spec phase: Summit County school premises ingest
 - [x] #11 Spec phase: Proximity query and coverage manifest
 - [x] #12 Spec phase: No-log privacy architecture, CSP, and verification
-- [ ] #13 Spec phase: Web surface and end to end
+- [x] #13 Spec phase: Web surface and end to end
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -101,4 +101,28 @@ P4 (No-log privacy architecture, CSP, and verification, subtask .04) dispatched 
 P4 (No-log privacy architecture, CSP, and verification, subtask .04) complete 2026-08-04. Model that actually served: claude-opus-5[1m]. All ten Phase 4 boxes ticked; suite is now 107 tests / 0 failures via docker compose --profile test run --rm test. Headline: the end-to-end log-capture test found three real leaks of the searched address, all of them printed by DEPENDENCIES rather than by somap -- React Router's default handleError, its default root error boundary, and @mjackson/node-fetch-server's defaultErrorHandler (unreachable through @react-router/node's createRequestListener, which hides its onError option). Each closed at source; the request process additionally seals its own stdout/stderr after the startup line, so a fourth site arriving with a dependency bump cannot leak. PostgreSQL's two NON-default settings (log_min_error_statement, log_parameter_max_length) were the real hazard and are now command-line flags that ALTER SYSTEM cannot override. CSP forced somap to ship no client-side JavaScript at all -- softening the operator-signed policy was not an option and RR7's hydration bootstrap is three inline scripts; this binds Phase 5. Also fixed a Phase-1 defect: the client build was never served, so /assets/* had 404'd since P1. docs/privacy/verification.md published. Full detail in specs/001-address-search-school-proximity/tasks.md and on TASK-0002.04.
 
 P4 complete and independently verified by the orchestrator (2026-08-04). Model served: claude-opus-5[1m]. P4 found three real leaks of the searched address, none in somap's own code -- all in dependencies on the error path: React Router's default handleError, its default root error boundary, and @mjackson/node-fetch-server's defaultErrorHandler reached through createRequestListener, which does not expose the onError option that would replace it. Each closed at source, then the process was made to seal its own stdout/stderr on the reasoning that three leak sites in one 7.x minor means a fourth arrives with the next bump. Also generalisable: the three PostgreSQL settings the box named were already image defaults, which is not a control; the real hazards were log_min_error_statement and log_parameter_max_length, which default to logging failing statement text and bind parameters in full, and the address travels as a bind parameter. Orchestrator verification: 107/107 tests, CSP byte-identical on 200 and 404, zero script tags and zero off-origin refs in the served document, stylesheet 200, and an independent canary address absent from all 3062 bytes of captured log with the capture proven non-empty.
+
+Operator checkpoint resolved 2026-08-04: keep zero client-side JavaScript for this slice; do NOT amend the CSP. The nonce-vs-zero-JS question is carded as TASK-0008.01 (landed on main at 5e31b7c), to be decided when the disclosure UX gives it a concrete interaction to justify itself. Recorded honestly: zero-JS was not required by any principle -- it fell out of the script-src 'self' line this sweep's runbook specified, which is incompatible with RR7's inline hydration bootstrap. Hashes cannot resolve it because the context script embeds per-request loader data. P5 (Web surface and end to end, parent ACs #1/#4/#7/#8) dispatched at the default tier: model claude-opus-5, fallback claude-opus-4-8. Rubric justification: the task's own framing -- the hardest part is not the map, it is the language. Result copy that must never state or imply permission, and a could-not-locate that must read as unmistakably distinct from a clean answer.
+
+P5 (Web surface and end to end, parent ACs #1/#4/#7/#8) complete 2026-08-04. Model that actually served: claude-opus-5[1m]. All thirteen Phase 5 boxes ticked; suite is now 146 tests / 33 suites / 0 failures via docker compose --profile test run --rm test (was 107). Full detail in specs/001-address-search-school-proximity/tasks.md Notes.
+
+All eight parent acceptance criteria ticked against artifacts, each one a passing test, a running container, or a committed document:
+
+#1 (enter an address, get results) -- app/app/routes/_index.tsx is a plain <Form method="post" action="/answer">; the clean-clone run below returned "3 school premises are within 304.8 m (1,000 feet) of this address" for 1464 Garman Rd. copy.test.ts asserts the flagged shapes really flagged, including the sign fixture whose premises is 310 m away and only lands inside the buffer because the uncertainty is SUBTRACTED.
+#2 (manifest on every result) -- copy.test.ts reads the raw response body of ten served shapes and asserts the coverage-gap ledger's headline entries, the data-age sentence, and "never human-verified" exactly 7 times, one per layer. The two shapes with no readable manifest are asserted to WITHDRAW the coverage claim explicitly rather than render silence.
+#3 (no permission vocabulary, tested over result strings) -- copy.test.ts, two lists: HARD_DENY against the untouched body (no allowlist can excuse it) and SC-005's vocabulary as word-boundary stems. One allowlisted phrase, "never as a legal conclusion", which is the negated last clause of somap's own unverified-rule disclosure read from the ledger; it carries a written reason and a test asserts it still occurs, so a dead exemption cannot widen the gate. "no results found" is forbidden outright.
+#4 (could-not-locate distinguishable) -- distinct label above each headline (set proved mutually exclusive), dashed border rather than a colour change so it survives for a reader who cannot distinguish the accents, and structurally: no refusal renders a residence, a distance, or a premises list, with the converse asserted so the check is not vacuous.
+#5 (no IP or address recorded) -- Phase 4's no-logging.test.ts, extended this phase to drive its canary through the REAL submit path (POST /answer), which did not exist when that test was written. Green in the 146-test run.
+#6 (no third-party origin, enforced by a build check) -- scan-external-origins.mjs runs as a docker/app/Dockerfile step and FAILED THE BUILD on Tailwind's licence banner, which is how it was found; plus no off-origin src/href on any of the ten served shapes, and CSP on every response.
+#7 (sheriff guidance on every result) -- asserted on all ten shapes on two independent tokens, including the 404 error boundary and the search-failed page.
+#8 (deployed and working end to end, = the container composition per ruling R3) -- clean clone of origin at abf529d into a fresh directory, docker compose up --build -d, docker compose run --rm etl (261,154 parcels / 258,862 address points / 619 school premises / 31 coverage gaps, matching Phase 2 exactly), then the documented curl returning the flagged answer. 146/146 tests pass inside that clean clone. Command sequence recorded in README.md.
+
+Headline decisions and findings:
+
+- The zero-collection hazard the orchestrator handed to P5 is closed. app/scripts/run-tests.mjs replaces the glob as npm test and refuses to report a pass when the tests directory is absent, when fewer test files are present than the suite has, when node --test reports fewer tests than it should, or when no summary is printed. Proved: docker compose run --rm app npm test now prints "REFUSING TO REPORT A PASS" and exits 1. scripts/ is copied into the runtime image for that reason alone, so the wrong invocation reads as a sentence rather than MODULE_NOT_FOUND.
+- Tailwind 4.3.3 wired (build-time only, system font stack, pinned exact). Radix/shadcn NOT used -- Phase 4's zero-JS decision forecloses them and this phase's own box says so. Progressive disclosure is <details>/<summary>.
+- ONE entry added to the build scan's allowlist: https://tailwindcss.com, the MIT licence banner inside the built stylesheet's first CSS comment. Kept rather than stripped because the licence requires the attribution travel with the output; declared rather than waved past. The allowlist doc now names licence-attribution-inside-a-comment as an admissible category and says it does not extend to a URL outside a comment. NEVER is untouched.
+- Node 22's type stripping does not handle JSX, so no .tsx can be imported by node --test. search-failed is therefore rendered by a SECOND somap server started inside the test container with its PGPORT pointed at a closed port -- same code, same renderer, same wire -- rather than by a component call. It was also seen for real: a search against a never-loaded database returns search-failed, because server/manifest.ts's rule-disclosure gate fires first. An empty database fails loudly instead of producing a confident-looking empty answer.
+- Two routes on purpose. / is the form and reads no database, so it loads when the database is down. /answer is POST-only so the address never reaches a URL, browser history, a Referer header, or a proxy log; copy.test.ts asserts no served href/action/src/content or <title> on any result carries a searched address. Keeping the action off / also keeps POST / a 405, which http-headers.test.ts asserts still carries the full envelope.
+- Pre-existing defect fixed: server/db.ts resolved sql/query by a fixed ../sql/query from import.meta.url. This phase's route pulls server/search.ts into the SSR bundle two directories deeper, where that path does not exist and the process would have died at startup. It now walks up to find the one sql/query in the image, or throws.
 <!-- SECTION:NOTES:END -->
