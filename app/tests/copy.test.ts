@@ -422,15 +422,15 @@ describe("every shape was actually captured before anything is concluded", () =>
     const marker: Record<string, string> = {
       form: "A street address in Summit County, Ohio",
       faq: "What somap is",
-      "premises-within-buffer": "Result — inside a buffer somap checked",
-      "premises-within-buffer-by-uncertainty": "Result — inside a buffer somap checked",
-      "outside-every-buffer-we-checked": "Result — outside every buffer we checked",
-      declined: "No result — somap stopped instead of measuring",
-      "could-not-locate": "No result — somap could not find this address",
-      "could-not-locate-empty-input": "No result — somap could not find this address",
-      "error-boundary": "No result — somap could not answer",
-      "nothing-submitted": "No result — nothing was submitted",
-      "search-failed": "No result — somap failed",
+      "premises-within-buffer": "Result: inside a buffer somap checked",
+      "premises-within-buffer-by-uncertainty": "Result: inside a buffer somap checked",
+      "outside-every-buffer-we-checked": "Result: outside every buffer we checked",
+      declined: "No result: somap stopped instead of measuring",
+      "could-not-locate": "No result: somap could not find this address",
+      "could-not-locate-empty-input": "No result: somap could not find this address",
+      "error-boundary": "No result: somap could not answer",
+      "nothing-submitted": "No result: nothing was submitted",
+      "search-failed": "No result: somap failed",
     };
     for (const [name, text] of Object.entries(marker)) {
       assert.ok(

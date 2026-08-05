@@ -254,7 +254,7 @@ export async function search(
         detail:
           "This somap instance has no data loaded for one or more of the layers " +
           "a search must read, so nothing could be checked. An empty database " +
-          "cannot produce an answer about an address -- only the appearance of " +
+          "cannot produce an answer about an address, only the appearance of " +
           "one. Run the documented ingest, and confirm with the registering " +
           "sheriff's office in the meantime.",
       };
@@ -301,7 +301,7 @@ export async function search(
         detail:
           "No address point published by Summit County matches this address. " +
           "somap does not fuzzy-match, and it returns no ZIP centroid, street " +
-          "centroid, or nearby parcel in place of a match -- a confident wrong " +
+          "centroid, or nearby parcel in place of a match. A confident wrong " +
           "building is more dangerous than no answer. The address may be " +
           "outside Summit County, may be spelled differently in the county's " +
           "records, or may not be published by the county at all.",

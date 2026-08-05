@@ -120,7 +120,7 @@ export function ErrorBoundary() {
       </header>
 
       <div className="answer answer--broken">
-        <p className="answer__label">No result — somap could not answer</p>
+        <p className="answer__label">No result: somap could not answer</p>
         <h1 className="answer__headline">
           somap could not answer, and nothing was checked.
         </h1>
@@ -143,7 +143,7 @@ export function ErrorBoundary() {
             Every working somap answer carries a list of which data layers were
             searched, which kinds of place were not searched at all, and how old
             each layer is. This page carries none of that. Do not read the
-            absence of a warning here as the absence of a problem — read it as
+            absence of a warning here as the absence of a problem. Read it as
             somap being unable to speak.{" "}
             <a href="/">Search again</a>.
           </p>
@@ -167,9 +167,9 @@ export function ErrorBoundary() {
 
       <footer className="footnote">
         <p>
-          somap records nothing about what was requested — not the address, not
+          somap records nothing about what was requested: not the address, not
           your IP address, not this failure. That is why there is no error
-          detail on this page: there is none to show, and none was written down
+          detail on this page. There is none to show, and none was written down
           anywhere for anyone to read later.
         </p>
       </footer>

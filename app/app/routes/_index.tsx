@@ -38,7 +38,7 @@ import { Form } from "react-router";
 
 export function meta() {
   return [
-    { title: "somap — school distances for Summit County, Ohio" },
+    { title: "somap: school distances for Summit County, Ohio" },
     {
       name: "description",
       content:
@@ -103,7 +103,8 @@ export default function Index() {
 
       <p className="ask__blurb">
         somap covers <strong>Summit County, Ohio</strong> and checks{" "}
-        <strong>school premises only</strong>. It measures; it does not decide.{" "}
+        <strong>school premises only</strong>. It measures distances and
+        decides nothing.{" "}
         <a href="/faq">
           What somap checks, what it misses, and what happens to what you type
         </a>

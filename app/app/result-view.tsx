@@ -122,7 +122,7 @@ const SCHOOL_TYPE: Record<string, string> = {
   public: "Public school (district, community, or STEM)",
   nonpublic: "Nonpublic school",
   unclassified:
-    "Not classified — the tax roll does not say whether the owner runs a " +
+    "Not classified: the tax roll does not say whether the owner runs a " +
     "nonpublic school or a community school, and somap will not guess",
 };
 
@@ -251,9 +251,9 @@ export function WhatWasNotChecked({
         </ul>
         <p>
           <strong>What it did check:</strong> school premises in Summit County,
-          Ohio — {count(manifest.premises.measurable)} of{" "}
-          {count(manifest.premises.total)} that somap holds have a real parcel
-          boundary and were measured against, using a buffer of{" "}
+          Ohio. {count(manifest.premises.measurable)} of the{" "}
+          {count(manifest.premises.total)} premises somap holds have a real
+          parcel boundary and were measured against, using a buffer of{" "}
           {metresAndFeet(manifest.bufferMeters)} from the nearest point of one
           parcel to the nearest point of the other.{" "}
           {manifest.premises.notMeasurable > 0 ? (
@@ -279,7 +279,7 @@ export function WhatWasNotChecked({
           <strong>How old this is.</strong> This copy of somap last fetched data
           on {newest ?? "a date it cannot report"}, and its oldest layer was
           fetched on {oldest ?? "a date it cannot report"}. No layer has been
-          checked by a person — every one reads{" "}
+          checked by a person: every one reads{" "}
           <span className="never">never human-verified</span> in the table
           below. If you are looking at somebody else&rsquo;s copy of somap,
           those dates are how you tell whether it has been left to go stale.
@@ -358,7 +358,7 @@ export function WhatWasNotChecked({
                     <small>{layer.sourceUrl}</small>
                   </td>
                   <td>{layer.rowCount === null ? "not recorded" : count(layer.rowCount)}</td>
-                  <td>{layer.queried ? "yes" : "no — this layer contributed nothing"}</td>
+                  <td>{layer.queried ? "yes" : "no, this layer contributed nothing"}</td>
                   <td>{day(layer.fetchedAt) ?? "never loaded"}</td>
                   <td>
                     {layer.verifiedAt === null ? (
@@ -400,13 +400,13 @@ export function WhatWasNotChecked({
                   </td>
                   <td>
                     {basis.matchCorroboration === "uncorroborated"
-                      ? "nothing — the parcel is not tax-exempt, which a school premises almost always is"
+                      ? "nothing: the parcel is not tax-exempt, which a school premises almost always is"
                       : (basis.matchCorroboration ?? "not recorded")}
                   </td>
                   <td>{count(basis.premises)}</td>
                   <td>
                     {basis.uncertaintyMeters === null
-                      ? "not measurable — never compared against the buffer"
+                      ? "not measurable, and never compared against the buffer"
                       : metresAndFeet(basis.uncertaintyMeters)}
                   </td>
                 </tr>
@@ -444,7 +444,7 @@ function CoverageWithdrawn({ statement }: { statement: string }) {
           searched, which kinds of place were not searched at all, and how old
           each layer is. This page carries none of that, because somap could not
           read its own record of it. Do not read the absence of a warning here
-          as the absence of a problem — read it as somap being unable to speak.
+          as the absence of a problem. Read it as somap being unable to speak.
         </p>
       </div>
     </section>
@@ -473,7 +473,7 @@ function Residence({ residence }: { residence: ResolvedResidence }) {
   return (
     <details className="disclosure">
       <summary>
-        The parcel somap measured from — #{residence.parcelId}
+        The parcel somap measured from: #{residence.parcelId}
         {residence.siteAddress === null ? null : <>, {residence.siteAddress}</>}.
         If that is not yours, nothing on this page applies to you.
       </summary>
@@ -519,7 +519,7 @@ function Ambiguity({ ambiguity }: { ambiguity: AmbiguityDeclaration }) {
           </strong>{" "}
           Apartment buildings, condominiums, and the same street address
           existing in two places all do this. somap does not pick one quietly:
-          the answer above is the <strong>most restrictive</strong> of them —
+          the answer above is the <strong>most restrictive</strong> of them,
           the one with the most school premises inside the buffer, and among
           ties, the one closest to a school. Ask the sheriff&rsquo;s office
           about your specific unit, and tell them the county records several
@@ -597,7 +597,7 @@ function Premises({ premises }: { premises: FlaggedPremises }) {
             <strong>This boundary may not be the school&rsquo;s.</strong> This
             premises was located by turning a mailing address into a map point,
             and the point landed on a parcel the county does <em>not</em> record
-            as tax-exempt — which a school premises almost always is. The
+            as tax-exempt, which a school premises almost always is. The
             boundary somap measured to may belong to a neighbour, and the real
             school property may reach further than it. Ask the sheriff&rsquo;s
             office about this one by name.
@@ -620,7 +620,7 @@ function Premises({ premises }: { premises: FlaggedPremises }) {
           </dd>
           <dt>Slack subtracted</dt>
           <dd>
-            {metresAndFeet(slack)} — {metres(premises.residenceUncertaintyMeters)}{" "}
+            {metresAndFeet(slack)}: {metres(premises.residenceUncertaintyMeters)}{" "}
             for your parcel, {metres(premises.premisesUncertaintyMeters)} for
             this premises
           </dd>
@@ -674,7 +674,7 @@ function WithinBuffer({
     <>
       <Banner
         tone="flagged"
-        label="Result — inside a buffer somap checked"
+        label="Result: inside a buffer somap checked"
         headline={`${count(n)} school ${plural(
           n,
           "premises is",
@@ -683,7 +683,7 @@ function WithinBuffer({
       >
         <p>
           Here {plural(n, "it is", "they are")}. Ohio&rsquo;s rule is written
-          about the <em>premises</em> — the parcel of land — rather than the
+          about the <em>premises</em> (the parcel of land) rather than the
           building, so a school that owns several parcels appears more than
           once. Repeated names are not a mistake.
         </p>
@@ -723,7 +723,7 @@ function OutsideEveryBuffer({
     <>
       <Banner
         tone="measured"
-        label="Result — outside every buffer we checked"
+        label="Result: outside every buffer we checked"
         headline="Outside every buffer we checked."
       >
         <p>
@@ -731,7 +731,7 @@ function OutsideEveryBuffer({
           <em>that somap holds a boundary for</em> is within{" "}
           {metresAndFeet(result.bufferMeters)} of the parcel at this address.
           That is the whole of the finding: a measurement, not a decision. What
-          somap did not look at is listed below — read it before you rely on
+          somap did not look at is listed below. Read it before you rely on
           anything here, and then make the phone call.
         </p>
       </Banner>
@@ -763,7 +763,7 @@ function Declined({
     <>
       <Banner
         tone="stopped"
-        label="No result — somap stopped instead of measuring"
+        label="No result: somap stopped instead of measuring"
         headline="somap will not give an answer for this address."
       >
         <p>
@@ -779,14 +779,15 @@ function Declined({
           <p>{result.detail}</p>
           <p>
             somap could have produced a number here. It refused because the
-            number would have been wrong in the dangerous direction — it would
+            number would have been wrong in the dangerous direction: it would
             tend to come out <em>too large</em>, and a distance that is too
             large is exactly how an address gets treated as being outside a
-            buffer when it is not. Being annoying is recoverable. That is not.
+            buffer when it is not. Being annoying is recoverable; being wrong
+            that way is not.
           </p>
           <p>
             somap knows where this is; it stopped after that, on purpose. That
-            is not a reason to give up on the address — the sheriff&rsquo;s
+            is not a reason to give up on the address. The sheriff&rsquo;s
             office can answer for one somap will not measure.
           </p>
           <p>
@@ -818,12 +819,12 @@ function CouldNotLocate({
     <>
       <Banner
         tone="stopped"
-        label="No result — somap could not find this address"
+        label="No result: somap could not find this address"
         headline="somap could not find this address, so it checked nothing."
       >
         <p>
           This is not an answer. somap does not know where this address is, so
-          it measured no distances and found nothing — neither near nor far.
+          it measured no distances and found nothing, neither near nor far.
         </p>
       </Banner>
 
@@ -835,8 +836,8 @@ function CouldNotLocate({
             <li>
               <strong>The address is not in Summit County, Ohio.</strong> somap
               holds no data for anywhere else, and it cannot tell an
-              out-of-county address apart from a misspelled one — both land on
-              this page.
+              out-of-county address apart from a misspelled one, so both land
+              on this page.
             </li>
             <li>
               <strong>The county writes it differently.</strong> Try it as it
@@ -879,12 +880,12 @@ function SearchFailed({
     <>
       <Banner
         tone="broken"
-        label="No result — somap failed"
+        label="No result: somap failed"
         headline="somap broke before it could check anything."
       >
         <p>
           This is a fault in this copy of somap, not a finding about your
-          address. Nothing was measured and nothing was found — a broken page is
+          address. Nothing was measured and nothing was found. A broken page is
           not a quiet address.
         </p>
       </Banner>
@@ -901,7 +902,7 @@ function SearchFailed({
           <p>
             somap deliberately keeps no error report that could carry what you
             typed, so there is no record of this failure holding your address
-            anywhere — not in a log, not in a crash report, not on the screen.
+            anywhere: not in a log, not in a crash report, not on the screen.
             That is the trade it makes: a fault here is harder for its
             maintainers to diagnose, and your address is not written down.
           </p>
@@ -939,7 +940,7 @@ export function PrivacyFootnote() {
   return (
     <footer className="footnote">
       <p>
-        somap did not write down the address you typed — not in a log, not in
+        somap did not write down the address you typed: not in a log, not in
         this page&rsquo;s web address, not in a database, and not on its way
         anywhere else. This page is also marked never to be stored by your
         browser, which matters on a shared or library computer. You are not
