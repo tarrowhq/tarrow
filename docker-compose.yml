@@ -274,6 +274,53 @@ services:
       app:
         condition: service_healthy
 
+  # The browser suite, and why it is a separate service.
+  #
+  # TASK-0015: somap shipped an app that did not work in a browser while 146
+  # tests passed, because every one of them reached it through fetch() -- which
+  # does not implement referrer policy and so could not produce the
+  # `Origin: null` that broke the form. A suite with no browser in it cannot
+  # express a bug only a browser can produce.
+  #
+  # Separate from `test` because it targets a different image stage: the
+  # browser costs an apt install of chromium, and nobody pays for it who is not
+  # running it. `docker compose up --build` never builds this stage.
+  #
+  #     docker compose --profile test run --rm browser-test
+  browser-test:
+    profiles: ["test"]
+    build:
+      context: ./app
+      dockerfile: ../docker/app/Dockerfile
+      target: browsertest
+    command: ["npm", "run", "test:browser"]
+    # Shares the app container's network namespace, so the app is reachable at
+    # `http://localhost:3000` from inside the browser.
+    #
+    # That hostname is the point, not a convenience. Chromium silently rewrites
+    # http:// to https:// for any host it does not consider trustworthy, and
+    # `app:3000` is not one -- the suite failed with ERR_SSL_PROTOCOL_ERROR and
+    # said nothing whatever about somap. `localhost` is exempt from that
+    # upgrade by definition, which makes this the one hostname that tests the
+    # application instead of testing Chromium's opinion about TLS.
+    #
+    # (The command-line flags that supposedly disable the upgrade did not, on
+    # this Chromium. They are left in the launch args as belt to this braces,
+    # not relied on.)
+    network_mode: "service:app"
+    environment:
+      SOMAP_APP_ORIGIN: http://localhost:3000
+      CHROMIUM_PATH: /usr/bin/chromium
+    # Chromium's renderer processes exchange data through shared memory, and
+    # Docker's 64MB default /dev/shm is not enough -- the same lesson docker/db
+    # already carries, arrived at from the other direction.
+    shm_size: 1gb
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      app:
+        condition: service_healthy
+
   tools:
     # Frozen (plan.md R2): the TASK-0001 spike's evidence
     # (spikes/task-0001-geocoding/RESULTS.md) must keep reproducing exactly

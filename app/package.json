@@ -12,7 +12,8 @@
     "start": "node --enable-source-maps server/entry.js",
     "ingest": "node etl/ingest.ts",
     "scan:external-origins": "node scripts/scan-external-origins.mjs",
-    "test": "node scripts/run-tests.mjs"
+    "test": "node scripts/run-tests.mjs",
+    "test:browser": "node --test tests/browser/*.test.ts"
   },
   "dependencies": {
     "@react-router/node": "7.18.2",
@@ -29,6 +30,7 @@
     "@types/pg": "8.20.4",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
+    "puppeteer-core": "24.28.0",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",
     "vite": "8.2.0"

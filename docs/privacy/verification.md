@@ -82,7 +82,7 @@ and one stylesheet under `/assets/`. There is **no third-party host** in the lis
 Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self';
   img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self';
   frame-ancestors 'none'
-Referrer-Policy: no-referrer
+Referrer-Policy: same-origin
 Cache-Control: no-store, no-cache, must-revalidate, private
 Permissions-Policy: geolocation=(), camera=(), ...
 ```
@@ -94,8 +94,14 @@ page cannot fetch, XHR, WebSocket, or beacon anywhere but back to somap. `script
 with **no `'unsafe-inline'` and no nonce** means no inline script runs at all.
 `form-action 'self'` means the address you type cannot be submitted to another host.
 `base-uri 'none'` means an injected `<base>` tag cannot silently re-point every relative URL
-somewhere else. `Referrer-Policy: no-referrer` means that if somap ever links you to a county
-website, that county is not told which somap page you were reading. `Cache-Control: no-store`
+somewhere else. `Referrer-Policy: same-origin` means that if somap ever links you to a county
+website, that county is **not** told which somap page you were reading — a referrer is sent
+only back to somap itself, and it carries no address, because what you type travels in the
+body of the form and never appears in a URL. (It reads `same-origin` rather than the stricter
+`no-referrer` for a specific reason: under `no-referrer`, Chromium reports the origin of the
+form submission as `null`, which React Router rejects — the address form answered
+`400 Bad Request` in every Chromium browser until this was fixed. Nothing about what leaves
+your machine changed; see TASK-0015.) `Cache-Control: no-store`
 means your result page is not written to your browser's disk cache, which matters on a shared
 or library computer.
 
