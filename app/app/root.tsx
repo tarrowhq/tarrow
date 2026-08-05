@@ -94,27 +94,90 @@ export default function Root() {
  * the searched address on the screen of a shared computer and into a browser's
  * back-button cache (spec FR-027).
  *
- * PHASE 5 OWNS THE WORDS. This is the minimum that is safe, not the finished
- * copy: the real one needs the sheriff-confirmation guidance every result
- * carries, and it must keep saying nothing about permission.
+ * PHASE 5 WROTE THE WORDS. It carries the sheriff-confirmation guidance every
+ * result carries (spec FR-013), it withdraws every coverage claim explicitly
+ * rather than leaving a silence a reader could take for reassurance, and it
+ * still takes nothing whatsoever from the error.
+ *
+ * It cannot render a coverage manifest read from data, because the reason it
+ * is rendering at all may be that the data could not be read -- and reaching
+ * for the database here would turn one failure into two. So it says the only
+ * true thing available, in the same words server/manifest.ts uses when the
+ * ledger cannot be read: nothing was checked, and somap cannot even tell you
+ * what it would have checked.
  */
 export function ErrorBoundary() {
   return (
-    <main>
-      <h1>somap could not answer</h1>
-      <p>
-        Something went wrong inside this somap instance, or the page you asked
-        for does not exist. Nothing was checked, and somap is not saying
-        anything about any address.
-      </p>
-      <p>
-        somap deliberately records nothing about what was requested, so there is
-        no detail to show you here and none was written down anywhere.
-      </p>
-      <p>
-        If you were searching an address, treat this as no answer at all and
-        confirm the address with the registering sheriff&rsquo;s office.
-      </p>
+    <main className="page">
+      <header className="masthead">
+        <p className="masthead__name">somap</p>
+        <p className="masthead__where">
+          School-premises distances for Summit County, Ohio. A helper, not an
+          authority.
+        </p>
+      </header>
+
+      <div className="answer answer--broken">
+        <p className="answer__label">No result — somap could not answer</p>
+        <h1 className="answer__headline">
+          somap could not answer, and nothing was checked.
+        </h1>
+        <div className="prose">
+          <p>
+            Either something went wrong inside this copy of somap, or the page
+            you asked for does not exist. Either way no address was measured
+            against anything, and somap is making no statement about any
+            address.
+          </p>
+        </div>
+      </div>
+
+      <section className="section">
+        <h2 className="section__title">
+          somap cannot tell you what it checked, because it checked nothing
+        </h2>
+        <div className="prose">
+          <p>
+            Every working somap answer carries a list of which data layers were
+            searched, which kinds of place were not searched at all, and how old
+            each layer is. This page carries none of that. Do not read the
+            absence of a warning here as the absence of a problem — read it as
+            somap being unable to speak.
+          </p>
+          <p>
+            Nothing on this page is a finding. If you were searching an address,
+            treat this as no answer at all and search again from{" "}
+            <a href="/">the address form</a>.
+          </p>
+        </div>
+      </section>
+
+      <section className="section">
+        <h2 className="section__title">
+          Your next step: the sheriff&rsquo;s office you register with
+        </h2>
+        <div className="prose">
+          <p>
+            Call or visit the sheriff&rsquo;s office where you register and ask
+            about the address you were checking. That office enforces the
+            distance rule, and it knows the local rules somap does not load —
+            so it can answer even when somap is broken.
+          </p>
+          <p>
+            somap is a helper. It is not a court, a sheriff&rsquo;s office, or a
+            lawyer, and nothing on this page is advice about the law.
+          </p>
+        </div>
+      </section>
+
+      <footer className="footnote">
+        <p>
+          somap records nothing about what was requested — not the address, not
+          your IP address, not this failure. That is why there is no error
+          detail on this page: there is none to show, and none was written down
+          anywhere for anyone to read later.
+        </p>
+      </footer>
     </main>
   );
 }

@@ -11,19 +11,48 @@
 //      safety-critical spatial queries live as files so a reviewer reads a
 //      diff, the same posture Principle IV takes toward rule content.
 
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 
 const { Pool } = pg;
 
-const QUERY_DIR = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "sql",
-  "query",
-);
+/**
+ * Find `sql/query/` by walking up from this module.
+ *
+ * This used to be a fixed `../sql/query` from `import.meta.url`, which was
+ * correct for exactly one location: `server/db.ts` run directly. Phase 5's
+ * route imports `server/search.ts`, which imports this file, so Vite's SSR
+ * build now also bundles this module into `build/server/index.js` -- two
+ * directories deeper, where `../sql/query` does not exist and the process
+ * would have failed at startup rather than at a query.
+ *
+ * Walking up looking for the directory itself is deliberately not a fallback
+ * to a *different* directory: there is one `sql/query` in this image and this
+ * finds it or throws. A missing query directory is a broken image, and it
+ * fails loudly at startup rather than becoming a search that cannot run.
+ */
+function findQueryDir(): string {
+  let dir = path.dirname(fileURLToPath(import.meta.url));
+  for (;;) {
+    const candidate = path.join(dir, "sql", "query");
+    if (existsSync(candidate)) return candidate;
+    const parent = path.dirname(dir);
+    if (parent === dir) {
+      throw new Error(
+        "No sql/query directory found above " +
+          fileURLToPath(import.meta.url) +
+          ". The spatial queries are authored as files (plan.md R4) and are " +
+          "read at startup; without them this process cannot answer anything " +
+          "and must not pretend otherwise.",
+      );
+    }
+    dir = parent;
+  }
+}
+
+const QUERY_DIR = findQueryDir();
 
 function loadQueries(dir: string): ReadonlyMap<string, string> {
   const queries = new Map<string, string>();

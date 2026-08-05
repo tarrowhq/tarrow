@@ -49,6 +49,14 @@ COPY server ./server
 COPY sql ./sql
 COPY etl ./etl
 
+# The runtime image carries no tests/ and no dev dependencies, and that is
+# deliberate. scripts/ comes along anyway so that `npm test` run against THIS
+# image fails with a sentence explaining which container the suite lives in --
+# rather than exiting 0 having collected zero tests, which is what it did
+# before (scripts/run-tests.mjs). A wrong invocation must look like a wrong
+# invocation, not like a green suite.
+COPY scripts ./scripts
+
 EXPOSE 3000
 
 CMD ["node", "server/entry.ts"]

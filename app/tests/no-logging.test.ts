@@ -81,8 +81,16 @@ let clientAddresses: string[] = [];
 async function driveHttpTraffic(): Promise<void> {
   const encoded = encodeURIComponent(CANARY);
 
-  // A form POST, which is how Phase 5's address form will submit. The address
-  // is in the body. There is no route action yet, so this answers 405 -- an
+  // THE REAL SUBMIT PATH. Phase 5's form POSTs the address to /answer, which
+  // runs the whole query path and renders a full result document. This is how
+  // an address actually arrives, so it is the request that matters most here.
+  await fetch(`${ORIGIN}/answer`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `address=${encoded}`,
+  }).catch(() => undefined);
+
+  // The same body posted to `/`, which has no action and answers 405 -- an
   // error path, which is where a framework is most likely to log.
   await fetch(`${ORIGIN}/`, {
     method: "POST",
