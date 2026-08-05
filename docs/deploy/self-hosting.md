@@ -150,6 +150,14 @@ configuration is not something your users can audit, their retention is not some
 control, and their legal-process posture is not yours. If you use one, you must say so —
 see below.
 
+A **provider tunnel** — Cloudflare Tunnel, and its equivalents — belongs in this third
+category rather than the second, even though it feels more like a private link. The provider
+still terminates TLS and still holds the plaintext; what you gain over a proxied DNS record is
+operational, not privacy. It is a genuine gain, though: no inbound port, no listening socket,
+no reverse proxy of your own to keep configured, and the connector can be given reachability
+to exactly one container. If you are going to have a third party in the path anyway, this is
+the tidier way to have one.
+
 Whatever you pick, do these:
 
 - **Turn off request-body logging** wherever it is available. It is usually off; confirm it
@@ -255,11 +263,23 @@ a convention you have to remember.
 ## The instance we run
 
 For completeness, and because Principle III says a claim you cannot check is not a claim:
-the maintainers run an instance at `soma.infinitynode.media`. Its request path is Cloudflare
-(TLS terminated, proxied) → a Pangolin tunnel server on a rented VPS (TLS terminated) → a
-Traefik reverse proxy on the host, whose access log records client IPs and feeds a fail2ban
-stack. That is the third arrangement in the list above, chosen for operational convenience,
-and three parties hold the plaintext on the way in.
+the maintainers run an instance at `soma.infinitynode.media`.
+
+Its request path is a **Cloudflare Tunnel** — the Cloudflare edge terminates TLS, and a
+`cloudflared` connector sitting in the same Docker network as the application carries the
+request the rest of the way over plain HTTP. That is the third arrangement in the list above:
+one third party holds the plaintext on the way in, and no other party does.
+
+**That instance is a demo**, run for the maintainers and a small number of invited people. It
+is not a service anyone has been referred to, and the trade above was made knowingly on that
+basis. If it ever stops being a demo, the trade has to be made again rather than inherited.
+
+Worth recording, because it is the useful part for anyone building the same thing: that path
+used to be longer. It ran through a self-hosted tunnel server on a rented VPS and then a
+reverse proxy whose access log recorded client IPs — three parties in front of the application
+instead of one. Collapsing it to a single tunnel removed two of them, and removed the inbound
+port and a hand-maintained routing file at the same time. If you are putting somap behind
+something, fewer hops is available and is usually also less work.
 
 It is written down here rather than omitted because a project whose whole argument is
 *check us, do not trust us* does not get to describe the good arrangement and quietly run a
