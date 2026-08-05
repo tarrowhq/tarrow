@@ -2,7 +2,7 @@
 //
 // Two things live here on purpose:
 //
-//   1. A `pg` pool connecting as `somap_app` -- the role sql/schema/010_grants.sql
+//   1. A `pg` pool connecting as `tarrow_app` -- the role sql/schema/010_grants.sql
 //      grants SELECT to and explicitly revokes every write privilege from.
 //      Principle IV is enforced by that grant, not by this file's care.
 //
@@ -83,7 +83,7 @@ export function query(name: string): string {
 }
 
 /**
- * The single pool for this process, connecting as the read-only `somap_app`
+ * The single pool for this process, connecting as the read-only `tarrow_app`
  * role. There is no second, more-privileged pool anywhere in server/ --
  * writes belong to the ETL pipeline (etl/), which connects as the database
  * owner instead.
@@ -91,8 +91,8 @@ export function query(name: string): string {
 export const pool = new Pool({
   host: process.env.PGHOST ?? "db",
   port: Number(process.env.PGPORT ?? 5432),
-  user: process.env.PGUSER ?? "somap_app",
+  user: process.env.PGUSER ?? "tarrow_app",
   password: process.env.PGPASSWORD,
-  database: process.env.PGDATABASE ?? "somap",
+  database: process.env.PGDATABASE ?? "tarrow",
   max: Number(process.env.PGPOOL_MAX ?? 10),
 });

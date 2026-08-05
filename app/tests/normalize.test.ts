@@ -48,7 +48,7 @@ describe("the ported normalizer behaves as the spike measured it", () => {
 
     for (const [input, expected] of cases) {
       const { rows } = await pool.query<{ n: string | null }>(
-        "SELECT somap_normalize_address($1) AS n",
+        "SELECT tarrow_normalize_address($1) AS n",
         [input],
       );
       assert.equal(rows[0].n, expected, `normalizing ${JSON.stringify(input)}`);
@@ -62,8 +62,8 @@ describe("the ported normalizer behaves as the spike measured it", () => {
     // from a different building, and converts a safe no-match into a confident
     // wrong match on exactly those.
     const { rows } = await pool.query<{ a: string; b: string }>(
-      "SELECT somap_normalize_address('4921 Friar Rd') AS a, " +
-        "somap_normalize_address('4932 Friar Rd') AS b",
+      "SELECT tarrow_normalize_address('4921 Friar Rd') AS a, " +
+        "tarrow_normalize_address('4932 Friar Rd') AS b",
     );
     assert.notEqual(rows[0].a, rows[0].b);
   });
@@ -73,7 +73,7 @@ describe("both sides of every match go through the same function", () => {
   test("address_points.normalized is the function's output over the county label", async () => {
     const { rows } = await pool.query<{ mismatched: string; nulls: string }>(
       `SELECT count(*) FILTER (
-                WHERE normalized IS DISTINCT FROM somap_normalize_address(full_address)
+                WHERE normalized IS DISTINCT FROM tarrow_normalize_address(full_address)
               ) AS mismatched,
               count(*) FILTER (WHERE normalized IS NULL) AS nulls
          FROM address_points`,
@@ -102,6 +102,6 @@ describe("both sides of every match go through the same function", () => {
 
   test("resolve_address applies the same function to what the user typed", async () => {
     const { query } = await import("../server/db.ts");
-    assert.match(query("resolve_address"), /somap_normalize_address\(\$1::text\)/);
+    assert.match(query("resolve_address"), /tarrow_normalize_address\(\$1::text\)/);
   });
 });

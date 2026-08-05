@@ -5,7 +5,7 @@
 // own UPDATE/MERGE/upsert.
 //
 // Callers connect as the database owner (see server/migrate.ts for why --
-// the same reasoning applies to ETL writes, which somap_app is revoked
+// the same reasoning applies to ETL writes, which tarrow_app is revoked
 // from performing at all).
 
 import type { PoolClient } from "pg";

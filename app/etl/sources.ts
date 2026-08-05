@@ -61,7 +61,7 @@ export const ADDRESS_POINTS: LayerSource = {
     "Coverage is uneven across municipalities -- DECISION §7 records Cuyahoga " +
     "Falls showing 3,224 points for a city of ~50,000.",
   // DECISION §7: 30,426 duplicate and 26,660 empty ADDR_ID values exist in
-  // the source. Nothing in somap keys on ADDR_ID -- address_points has a
+  // the source. Nothing in tarrow keys on ADDR_ID -- address_points has a
   // surrogate identity primary key and Phase 3 resolves on `normalized` --
   // so the rows are preserved rather than collapsed, and the duplication is
   // audited into the gap ledger on every load.
@@ -298,7 +298,7 @@ export interface DeclaredGap {
  */
 export const DECLARED_GAPS: readonly DeclaredGap[] = [
   // The gap in OUR OWN work, declared in the same ledger and the same shape as
-  // the gaps in the county's data. Principle II applied to somap rather than
+  // the gaps in the county's data. Principle II applied to tarrow rather than
   // only to its sources.
   //
   // The manifest builder REQUIRES this row: server/manifest.ts refuses to
@@ -316,9 +316,9 @@ export const DECLARED_GAPS: readonly DeclaredGap[] = [
       "last verified it, and who verified it. No such record exists yet: rule " +
       "content is authored as reviewable files and compiled into the database by " +
       "TASK-0003, which has not been built. The buffer is applied here from a " +
-      "reading of ORC 2950.034 that no human has signed off inside somap, and the " +
+      "reading of ORC 2950.034 that no human has signed off inside tarrow, and the " +
       "measurement method (nearest parcel boundary to nearest parcel boundary) is " +
-      "somap's own over-restrictive reading of a statute that does not say how the " +
+      "tarrow's own over-restrictive reading of a statute that does not say how the " +
       "1,000 feet is measured. Neither has been checked against Ohio case law. " +
       "Treat every distance here as a reason to call the registering sheriff's " +
       "office, never as a legal conclusion.",
@@ -363,7 +363,7 @@ export const DECLARED_GAPS: readonly DeclaredGap[] = [
     subjectRef: "chartering_status_not_distinguished",
     description:
       "The nonpublic source does not record whether a school is chartered by " +
-      "the Ohio state board, so somap cannot distinguish schools that meet ORC " +
+      "the Ohio state board, so tarrow cannot distinguish schools that meet ORC " +
       "2925.01(R) from those that do not. Both are treated as school premises, " +
       "which over-includes rather than under-includes.",
   },
@@ -386,7 +386,7 @@ export const DECLARED_GAPS: readonly DeclaredGap[] = [
       "administrative buildings, leased annexes. County use code 650 reaches " +
       "these for public school districts only. The equivalent parcels of " +
       "nonpublic schools, and any parcel a school LEASES rather than owns, are " +
-      "not enumerated by any source somap has.",
+      "not enumerated by any source tarrow has.",
   },
   {
     layerId: null,

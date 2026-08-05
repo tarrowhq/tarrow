@@ -23,7 +23,7 @@ Do not edit Backlog task, draft, document, decision, or milestone markdown files
 <!-- BACKLOG.MD GUIDELINES END -->
 
 <!-- pdlc:grounding BEGIN v0.54.0 — planted by pdlc:bootstrap; refreshed wholesale on update. Keep project-specific edits OUTSIDE this block. -->
-# somap — praxis development lifecycle (PDLC)
+# tarrow — praxis development lifecycle (PDLC)
 
 This project is developed with the **praxisflux** plugin suite. This block is the always-on
 grounding: it names the loop, each plugin's role, and the rules that hold between them. The

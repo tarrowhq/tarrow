@@ -57,7 +57,7 @@ export const RESOLVES_BUT_HAS_NO_PARCEL = {
  *
  * "SUPER LEARNING CENTER S FAITH CHRISTIAN ACADEMY" (premises 166) is
  * `point_in_parcel` / `uncorroborated`: its geocoded point landed on a parcel
- * the county does not record as tax-exempt, so the boundary somap holds may be
+ * the county does not record as tax-exempt, so the boundary tarrow holds may be
  * a neighbour's and may UNDERSTATE the real premises. It therefore carries
  * r_b = 126 m (sql/schema/013_measurement_uncertainty.sql).
  *

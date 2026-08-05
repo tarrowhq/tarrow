@@ -34,7 +34,7 @@ export interface LayerQuery {
   readonly pageSize: number;
 }
 
-const USER_AGENT = "somap-etl/0.1 (+https://github.com/evanstern/somap)";
+const USER_AGENT = "tarrow-etl/0.1 (+https://github.com/evanstern/tarrow)";
 const REQUEST_TIMEOUT_MS = 180_000;
 const ATTEMPTS = 5;
 

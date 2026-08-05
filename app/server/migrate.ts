@@ -1,9 +1,9 @@
 // Applies sql/schema/*.sql in filename order, each exactly once, tracked in
 // a schema_migrations table. This is the runner tasks.md Phase 1 asks for.
 //
-// Connects as the database OWNER (POSTGRES_USER), never as `somap_app`:
+// Connects as the database OWNER (POSTGRES_USER), never as `tarrow_app`:
 // 010_grants.sql creates that role and revokes its write privileges, so
-// running migrations as somap_app would be a chicken-and-egg failure at
+// running migrations as tarrow_app would be a chicken-and-egg failure at
 // best and a Principle IV violation at worst.
 //
 // Run as its own one-shot compose service (see docker-compose.yml) so
@@ -28,9 +28,9 @@ async function main(): Promise<void> {
   const client = new Client({
     host: process.env.PGHOST ?? "db",
     port: Number(process.env.PGPORT ?? 5432),
-    user: process.env.POSTGRES_USER ?? "somap",
+    user: process.env.POSTGRES_USER ?? "tarrow",
     password: process.env.POSTGRES_PASSWORD,
-    database: process.env.POSTGRES_DB ?? "somap",
+    database: process.env.POSTGRES_DB ?? "tarrow",
   });
 
   await client.connect();
@@ -81,8 +81,8 @@ async function main(): Promise<void> {
 
     // The runtime role's password, re-set on every migrate.
     //
-    // 010_grants.sql creates `somap_app` with the literal password
-    // `somap_app` and says so in its own comment: it was written when
+    // 010_grants.sql creates `tarrow_app` with the literal password
+    // `tarrow_app` and says so in its own comment: it was written when
     // plan.md R3 ruled public deployment out of scope, so "secret management
     // for a real deployment" was explicitly deferred. TASK-0016 puts an
     // instance on the public internet, which brings that deferral due.
@@ -108,9 +108,9 @@ async function main(): Promise<void> {
     const appPassword = process.env.PGAPPPASSWORD;
     if (appPassword) {
       await client.query(
-        `ALTER ROLE somap_app WITH PASSWORD ${client.escapeLiteral(appPassword)}`,
+        `ALTER ROLE tarrow_app WITH PASSWORD ${client.escapeLiteral(appPassword)}`,
       );
-      console.log("somap_app password set from PGAPPPASSWORD");
+      console.log("tarrow_app password set from PGAPPPASSWORD");
     }
 
     console.log("migrations complete");

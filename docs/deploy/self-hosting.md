@@ -1,6 +1,6 @@
-# Running a somap instance of your own
+# Running a tarrow instance of your own
 
-`docs/privacy/verification.md` tells you how to check somap's claims on your own laptop.
+`docs/privacy/verification.md` tells you how to check tarrow's claims on your own laptop.
 This document is about the other thing Principle VII asks for: **an instance you run, that
 we never see, serving somebody other than you.**
 
@@ -20,8 +20,8 @@ Two images, published on every change to `main`:
 
 | Image | What it is |
 |---|---|
-| `ghcr.io/evanstern/somap-app` | The React Router server that answers requests, the migration runner, and the ETL pipeline. One image, three entrypoints. |
-| `ghcr.io/evanstern/somap-db` | PostgreSQL 17 with PostGIS, built on the official `postgres` image rather than pulled from `postgis/postgis`, which publishes amd64 only. |
+| `ghcr.io/evanstern/tarrow-app` | The React Router server that answers requests, the migration runner, and the ETL pipeline. One image, three entrypoints. |
+| `ghcr.io/evanstern/tarrow-db` | PostgreSQL 17 with PostGIS, built on the official `postgres` image rather than pulled from `postgis/postgis`, which publishes amd64 only. |
 
 Both are `linux/amd64` and `linux/arm64`, so an ARM VPS or a Raspberry Pi is a supported
 target rather than an aspiration.
@@ -45,11 +45,11 @@ Then edit `.env`. Three values are required and none of them has a default, beca
 a published value somewhere in this repository and silently inheriting one is the failure
 this arrangement exists to prevent:
 
-- `SOMAP_IMAGE_TAG` — the immutable tag to run, e.g. `sha-1a2b3c4`.
+- `TARROW_IMAGE_TAG` — the immutable tag to run, e.g. `sha-1a2b3c4`.
 - `POSTGRES_PASSWORD` — the database owner. The development composition's is the literal
-  string `somap`, in public version control.
+  string `tarrow`, in public version control.
 - `PGAPPPASSWORD` — the read-only runtime role. `app/sql/schema/010_grants.sql` creates that
-  role with the literal password `somap_app`, also in public version control. The migration
+  role with the literal password `tarrow_app`, also in public version control. The migration
   job re-sets it from this variable on every run, so changing it here and redeploying
   rotates it.
 
@@ -87,7 +87,7 @@ an accidentally public one.
 
 ### If the packages are private
 
-somap's repository is private, and a package created by GitHub's registry inherits the
+tarrow's repository is private, and a package created by GitHub's registry inherits the
 repository's visibility. If `docker compose ... up` fails with `denied` or
 `unauthorized`, the packages have not been made public yet and you will need a pull
 credential, or the operator of that registry needs to flip the packages to public in their
@@ -95,26 +95,26 @@ GitHub package settings. This is a one-time switch per package, not a per-releas
 
 If you would rather not depend on our registry at all — which Principle VII expects of you —
 build the images yourself from a source checkout and push them wherever you like, then set
-`SOMAP_REGISTRY` to point at your own:
+`TARROW_REGISTRY` to point at your own:
 
 ```sh
 docker buildx build --platform linux/amd64,linux/arm64 \
-  -f docker/app/Dockerfile --target runtime -t <your-registry>/somap-app:<tag> --push ./app
+  -f docker/app/Dockerfile --target runtime -t <your-registry>/tarrow-app:<tag> --push ./app
 docker buildx build --platform linux/amd64,linux/arm64 \
-  -f docker/db/Dockerfile -t <your-registry>/somap-db:<tag> --push ./docker/db
+  -f docker/db/Dockerfile -t <your-registry>/tarrow-db:<tag> --push ./docker/db
 ```
 
 ---
 
 ## What your reverse proxy can see
 
-**This is the section that matters.** Everything somap claims about not recording what was
-searched is a claim about somap. The moment you put something in front of it, that something
-is in the path, and somap has no way to make claims on its behalf.
+**This is the section that matters.** Everything tarrow claims about not recording what was
+searched is a claim about tarrow. The moment you put something in front of it, that something
+is in the path, and tarrow has no way to make claims on its behalf.
 
-### The thing somap does, and the thing it does not do
+### The thing tarrow does, and the thing it does not do
 
-somap sends the searched address in the **request body**, not the URL. That is deliberate and
+tarrow sends the searched address in the **request body**, not the URL. That is deliberate and
 structural (`app/app/root.tsx`): an address in a query string ends up in browser history, in
 the address bar, in a `Referer` header on any subsequent navigation, and in the access log of
 every proxy between the user and the server, because access logs record request lines.
@@ -127,15 +127,15 @@ holds the decrypted request — headers and body together. A TLS-terminating pro
 searched address. Not the IP alone; the address itself, the one datum this project exists
 around, the one that "exists nowhere else in the world."
 
-So the question for your deployment is not *does somap log the address* — it does not — but
+So the question for your deployment is not *does tarrow log the address* — it does not — but
 **how many parties hold the plaintext on its way in, and who are they.**
 
 ### What each arrangement costs
 
-Roughly in order of what somap's users would prefer, if they were asked:
+Roughly in order of what tarrow's users would prefer, if they were asked:
 
-**TLS terminated on the machine somap runs on.** Your reverse proxy holds the plaintext, and
-it is your machine. Nobody else is in the path. This is the arrangement somap's privacy
+**TLS terminated on the machine tarrow runs on.** Your reverse proxy holds the plaintext, and
+it is your machine. Nobody else is in the path. This is the arrangement tarrow's privacy
 documentation actually describes, and it is the one worth the extra effort.
 
 **A reverse proxy or tunnel on infrastructure you rent.** A VPS terminating TLS and forwarding
@@ -163,23 +163,23 @@ Whatever you pick, do these:
 - **Turn off request-body logging** wherever it is available. It is usually off; confirm it
   rather than assume it.
 - **Check what your access log format actually captures.** A default format records the
-  client IP. Principle III names IP addresses as data somap does not store — and your proxy
-  is not somap, so if it stores them, they are stored.
-- **Shorten or disable retention** for somap's route specifically, if your proxy allows
+  client IP. Principle III names IP addresses as data tarrow does not store — and your proxy
+  is not tarrow, so if it stores them, they are stored.
+- **Shorten or disable retention** for tarrow's route specifically, if your proxy allows
   per-route configuration. If it feeds something else — a fail2ban, an analytics pipeline —
   work out what that means before deciding it is fine.
 - **Say what you did.** A user cannot audit your proxy. The only thing that makes your
   instance honest is you telling them what is in front of it. This is the same reasoning as
   Principle II: absence of a disclosure is not evidence of absence.
 
-### somap must have its own origin
+### tarrow must have its own origin
 
-Do not mount somap on a path of an existing site — `example.org/somap`. Give it a hostname
+Do not mount tarrow on a path of an existing site — `example.org/tarrow`. Give it a hostname
 of its own.
 
 Cookies are scoped by host and **not** by port or path in the way you would want. RFC 6265
-provides no port isolation, by design. A site that shares a hostname with somap sends somap
-its cookies, including session tokens, on every request. somap sets no cookies, wants none,
+provides no port isolation, by design. A site that shares a hostname with tarrow sends tarrow
+its cookies, including session tokens, on every request. tarrow sets no cookies, wants none,
 and has no mechanism to decline them: cookie prefixes constrain how a cookie may be *set*,
 not which are *sent*, and `Clear-Site-Data` would purge the whole host's jar and sign your
 users out of everything else on it.
@@ -210,7 +210,7 @@ To actually change the owner's password, change it in the database and then in `
 
 ```sh
 docker compose -f docker-compose.deploy.yml exec db \
-  psql -U somap -d somap -c "ALTER ROLE somap PASSWORD 'the-new-one'"
+  psql -U tarrow -d tarrow -c "ALTER ROLE tarrow PASSWORD 'the-new-one'"
 # then update POSTGRES_PASSWORD in .env to match, and redeploy
 ```
 
@@ -220,13 +220,51 @@ standing up a genuinely fresh instance and see that authentication failure, chec
 volume before you doubt your `.env`:
 
 ```sh
-docker volume ls | grep somap
+docker volume ls | grep tarrow
+```
+
+## Upgrading from a release named `somap`
+
+The project shipped its first images under the placeholder name `somap`. That string reads as
+"SO" + "map", which is precisely the inference this tool exists to avoid inviting about the
+people using it — in a container name, a connection string, or a browser tab someone else can
+see. It is gone. If you deployed before the rename, three things move.
+
+**The images are published under new names.** `ghcr.io/evanstern/somap-app` and
+`ghcr.io/evanstern/somap-db` receive no further tags. Pull `ghcr.io/evanstern/tarrow-app`
+and `ghcr.io/evanstern/tarrow-db` instead, and rename `SOMAP_IMAGE_TAG` and
+`SOMAP_REGISTRY` to `TARROW_IMAGE_TAG` and `TARROW_REGISTRY` in your `.env`. The old tags
+keep working for as long as the registry holds them; nothing is deleted out from under a
+running instance.
+
+**The database objects rename themselves.** Migration `014_rename_to_tarrow.sql` renames the
+application role `somap_app` to `tarrow_app` and renames the four authored SQL functions. It
+runs as part of the ordinary migration job, and it is a no-op on a database created after the
+rename. You run no SQL by hand. `PGAPPPASSWORD` continues to work unchanged: the migration
+runner re-sets the role's password after the migrations have applied, by which point the role
+already carries its new name.
+
+**The database name and the owner role do not rename, and cannot.** Postgres reads
+`POSTGRES_DB` and `POSTGRES_USER` only when it initialises an empty data directory, so an
+existing volume keeps the database named `somap` owned by `somap` no matter what your `.env`
+says. This is cosmetic — the name is internal to the container and nothing outside reads it —
+so keeping it is a legitimate choice. If you take it, leave `POSTGRES_DB` and `POSTGRES_USER`
+set to `somap` in your `.env`, or the containers will come up and fail to authenticate
+against a database that is not there.
+
+To adopt the new names completely, recreate the volume and reload. The database is a derived,
+disposable projection (Principle IV), so this costs an ETL run and nothing else:
+
+```sh
+docker compose -f docker-compose.deploy.yml down -v
+docker compose -f docker-compose.deploy.yml up -d
+docker compose -f docker-compose.deploy.yml --profile etl run --rm etl
 ```
 
 ## Keeping it honest over time
 
 An instance running six-month-old data is a Principle I hazard unless it announces itself as
-one. somap carries the build date of its data and the verification dates of its rules and
+one. tarrow carries the build date of its data and the verification dates of its rules and
 surfaces them per Principles II and V — we cannot update your deployment, but we can make it
 incapable of hiding its age.
 
@@ -237,7 +275,7 @@ about staleness rather than assuming it is current:
 docker compose -f docker-compose.deploy.yml --profile etl run --rm etl
 ```
 
-To move to a newer build, change `SOMAP_IMAGE_TAG` in `.env` and:
+To move to a newer build, change `TARROW_IMAGE_TAG` in `.env` and:
 
 ```sh
 docker compose -f docker-compose.deploy.yml up -d
@@ -250,10 +288,10 @@ a convention you have to remember.
 
 ## What this document does not cover
 
-- **The threat model.** What somap defends against and what it does not, named adversary by
+- **The threat model.** What tarrow defends against and what it does not, named adversary by
   adversary, is TASK-0010's artifact and is not written yet. This document covers one
   specific gap in one specific place.
-- **TLS certificates.** Get them from your proxy of choice; somap has no opinion and no
+- **TLS certificates.** Get them from your proxy of choice; tarrow has no opinion and no
   involvement.
 - **Backups.** There is nothing to back up. The database is a derived, disposable projection
   rebuilt in full from files and public sources (Principle IV). If you lose it, re-run the
@@ -278,7 +316,7 @@ Worth recording, because it is the useful part for anyone building the same thin
 used to be longer. It ran through a self-hosted tunnel server on a rented VPS and then a
 reverse proxy whose access log recorded client IPs — three parties in front of the application
 instead of one. Collapsing it to a single tunnel removed two of them, and removed the inbound
-port and a hand-maintained routing file at the same time. If you are putting somap behind
+port and a hand-maintained routing file at the same time. If you are putting tarrow behind
 something, fewer hops is available and is usually also less work.
 
 It is written down here rather than omitted because a project whose whole argument is

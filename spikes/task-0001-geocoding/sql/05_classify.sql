@@ -31,7 +31,7 @@ ANALYZE probe;
 
 -- ---------------------------------------------------------------------------
 -- Approach B's build-time artifact: each address point's parcel.
--- This is what somap would precompute; here it doubles as the lookup table.
+-- This is what tarrow would precompute; here it doubles as the lookup table.
 -- ---------------------------------------------------------------------------
 DROP TABLE IF EXISTS ap_parcel;
 CREATE TABLE ap_parcel AS

@@ -73,8 +73,8 @@ ANALYZE ap_parcel2;
 DROP TABLE IF EXISTS variant2;
 CREATE TABLE variant2 AS
 SELECT a.ap_uid,
-    somap_normalize_address(a.lsn) AS n_canonical,
-    somap_normalize_address(
+    tarrow_normalize_address(a.lsn) AS n_canonical,
+    tarrow_normalize_address(
         initcap(trim(regexp_replace(
             coalesce(a.addr_num,'') || ' ' ||
             coalesce((SELECT long FROM dir_long WHERE canonical = upper(a.pre_dir)), a.pre_dir, '') || ' ' ||
@@ -83,7 +83,7 @@ SELECT a.ap_uid,
             coalesce(a.suf_dir,''), '\s+', ' ', 'g'))) ||
         ', ' || coalesce(initcap(a.city),'') || ', OH ' || coalesce(a.zip,'')
     ) AS n_verbose,
-    somap_normalize_address(
+    tarrow_normalize_address(
         lower(trim(regexp_replace(
             coalesce(a.addr_num,'') || ' ' || coalesce(a.pre_dir,'') || ' ' ||
             coalesce(a.str_name,'') || ' ' || coalesce(a.str_type,'') || ' ' ||

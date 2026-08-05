@@ -1,23 +1,23 @@
-# Verifying somap's privacy claims yourself
+# Verifying tarrow's privacy claims yourself
 
 **You are not asked to believe any of this.** This document tells you how to check it.
 
-somap's users are people on a sex offender registry looking for somewhere they are allowed
+tarrow's users are people on a sex offender registry looking for somewhere they are allowed
 to live. The thing they type into it — **the address they are trying to move to** — exists
 nowhere else in the world. It is not in the registry, it is not in a court record, it is not
 in a county file. It exists only because somebody typed it, and the only way it becomes a
-record anybody can subpoena, steal, or leak is if somap writes it down.
+record anybody can subpoena, steal, or leak is if tarrow writes it down.
 
-somap's position (Constitution Principle III) is that the control is **not holding the
+tarrow's position (Constitution Principle III) is that the control is **not holding the
 data** — not encrypting it, not anonymising it, not promising to delete it later. And that
 the claim has to be *checkable*, because a population that has been failed by systems
 claiming to help it has no reason to extend faith to another privacy policy.
 
 This page is the procedure. It assumes you have a container runtime and this repository,
-that you have never read somap's source, and that you do not trust the people who wrote it.
+that you have never read tarrow's source, and that you do not trust the people who wrote it.
 
 Everything here runs against **the composition** — `docker compose`. That is the only
-supported way to run somap (Principle VII), so it is also the only thing worth checking.
+supported way to run tarrow (Principle VII), so it is also the only thing worth checking.
 
 ---
 
@@ -28,7 +28,7 @@ supported way to run somap (Principle VII), so it is also the only thing worth c
 | 1 | The searched address is recorded in no log stream — application, HTTP server, PostgreSQL, or container output. | FR-023 |
 | 2 | Your IP address is recorded in no log stream either. | FR-023 |
 | 3 | An error says what failed. It never says what was searched. | FR-027 |
-| 4 | Every response carries a Content-Security-Policy that permits only somap's own origin. | FR-025 |
+| 4 | Every response carries a Content-Security-Policy that permits only tarrow's own origin. | FR-025 |
 | 5 | Nothing in the page loads from a third-party origin. No fonts, no scripts, no analytics, no beacons. | FR-026 |
 | 6 | The query path makes no outbound network call. | FR-024 |
 
@@ -41,14 +41,14 @@ Every claim above is a claim about **the composition** — the containers `docke
 starts, and those only. Each check below reads them from outside, which is what makes the
 answers trustworthy, and it is also what bounds them.
 
-They are not claims about anything you put in front of the composition. If you reach somap
+They are not claims about anything you put in front of the composition. If you reach tarrow
 through a reverse proxy, a tunnel, or a CDN, that thing is in the request path and this
 document has said nothing whatever about it.
 
-That distinction is easy to under-read, so here it is at its sharpest. somap sends the
+That distinction is easy to under-read, so here it is at its sharpest. tarrow sends the
 searched address in the **request body** rather than the URL, deliberately, so that it never
 reaches browser history, the address bar, a `Referer`, or a proxy's access log — access logs
-record request lines, and somap's request line says only `POST /answer`. What that defeats is
+record request lines, and tarrow's request line says only `POST /answer`. What that defeats is
 *logging*. What it does not defeat, and never could, is *interception*: **any proxy that
 terminates TLS holds the decrypted body, and can therefore read the searched address itself.**
 
@@ -75,7 +75,7 @@ docker compose run --rm etl          # fetches the county and federal source dat
 Wait for `docker compose ps` to show `db` and `app` healthy. `app` publishes on
 `127.0.0.1:3000`.
 
-Throughout, `<p>` is your compose project name — the directory name, usually `somap`. Run
+Throughout, `<p>` is your compose project name — the directory name, usually `tarrow`. Run
 `docker compose ps` to see it in the container names.
 
 ---
@@ -118,13 +118,13 @@ Permissions-Policy: geolocation=(), camera=(), ...
 (That policy is one line on the wire; it is wrapped here to fit.)
 
 **Read what each clause buys you.** `default-src 'self'` and `connect-src 'self'` mean the
-page cannot fetch, XHR, WebSocket, or beacon anywhere but back to somap. `script-src 'self'`
+page cannot fetch, XHR, WebSocket, or beacon anywhere but back to tarrow. `script-src 'self'`
 with **no `'unsafe-inline'` and no nonce** means no inline script runs at all.
 `form-action 'self'` means the address you type cannot be submitted to another host.
 `base-uri 'none'` means an injected `<base>` tag cannot silently re-point every relative URL
-somewhere else. `Referrer-Policy: same-origin` means that if somap ever links you to a county
-website, that county is **not** told which somap page you were reading — a referrer is sent
-only back to somap itself, and it carries no address, because what you type travels in the
+somewhere else. `Referrer-Policy: same-origin` means that if tarrow ever links you to a county
+website, that county is **not** told which tarrow page you were reading — a referrer is sent
+only back to tarrow itself, and it carries no address, because what you type travels in the
 body of the form and never appears in a URL. (It reads `same-origin` rather than the stricter
 `no-referrer` for a specific reason: under `no-referrer`, Chromium reports the origin of the
 form submission as `null`, which React Router rejects — the address form answered
@@ -135,7 +135,7 @@ or library computer.
 
 4. **View source.** `Ctrl-U`. Count the `<script>` tags.
 
-There are **none**. somap ships no client-side JavaScript at all — see
+There are **none**. tarrow ships no client-side JavaScript at all — see
 `app/app/root.tsx` for the reasoning. This is why claim 5 is easy to check: there is no
 script to audit, no bundle to read, and nothing that could contact anybody after the page
 loads.
@@ -160,8 +160,8 @@ printf 'GET / HTTP/9.9\r\n\r\n' | nc 127.0.0.1 3000                    # 400, ma
 ```
 
 All three carry the same policy. The last one is worth doing: it is malformed enough that
-Node rejects it before somap's code runs at all, and Node's own default answer carries no
-headers whatsoever. somap replaces that handler (`app/server/entry.ts`) so that even this
+Node rejects it before tarrow's code runs at all, and Node's own default answer carries no
+headers whatsoever. tarrow replaces that handler (`app/server/entry.ts`) so that even this
 response is covered.
 
 ---
@@ -193,13 +193,13 @@ curl -sS -o /dev/null http://127.0.0.1:3000/ -H "User-Agent: probe $ADDR"
 Now read **everything the composition wrote**:
 
 ```
-docker compose logs --no-log-prefix         > /tmp/somap-logs.txt
-docker logs <p>-app-1                      >> /tmp/somap-logs.txt 2>&1
-docker logs <p>-db-1                       >> /tmp/somap-logs.txt 2>&1
+docker compose logs --no-log-prefix         > /tmp/tarrow-logs.txt
+docker logs <p>-app-1                      >> /tmp/tarrow-logs.txt 2>&1
+docker logs <p>-db-1                       >> /tmp/tarrow-logs.txt 2>&1
 
-grep -ic 'ZZYZX'   /tmp/somap-logs.txt
-grep -ic '8675309' /tmp/somap-logs.txt
-grep -ic 'SENTINEL' /tmp/somap-logs.txt
+grep -ic 'ZZYZX'   /tmp/tarrow-logs.txt
+grep -ic '8675309' /tmp/tarrow-logs.txt
+grep -ic 'SENTINEL' /tmp/tarrow-logs.txt
 ```
 
 **What you should see: `0`, three times.**
@@ -207,7 +207,7 @@ grep -ic 'SENTINEL' /tmp/somap-logs.txt
 Then look for yourself:
 
 ```
-grep -c . /tmp/somap-logs.txt        # how much was written at all
+grep -c . /tmp/tarrow-logs.txt        # how much was written at all
 docker logs <p>-app-1
 ```
 
@@ -215,13 +215,13 @@ The application container's entire output, from the moment it started to now, is
 line**:
 
 ```
-somap app listening on :3000
+tarrow app listening on :3000
 ```
 
 That is not an accident of quiet traffic. After that line prints, the process **seals its own
 output**: `process.stdout.write`, `process.stderr.write`, and every `console` method are
 replaced with functions that discard (`app/server/silence.ts`). Nothing loaded into that
-process — somap's code, React Router, the PostgreSQL driver, or a dependency nobody has
+process — tarrow's code, React Router, the PostgreSQL driver, or a dependency nobody has
 chosen yet — can put a byte on those streams.
 
 That is deliberately blunt, and it is blunt because careful was not enough. See §7.
@@ -231,7 +231,7 @@ That is deliberately blunt, and it is blunt because careful was not enough. See 
 Do not look for one specific address — look for **any**:
 
 ```
-grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' /tmp/somap-logs.txt | sort -u
+grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' /tmp/tarrow-logs.txt | sort -u
 ```
 
 Nothing, or at most the loopback/bind address in a startup banner. There is no access log,
@@ -245,11 +245,11 @@ PostgreSQL's `log_connections` (off — §4) and its `log_line_prefix` (contains
 curl -sS "http://127.0.0.1:3000/search/8675309-ZZYZX-SENTINEL"
 ```
 
-Read the page you get back. It says somap could not answer and that nothing was checked. It
+Read the page you get back. It says tarrow could not answer and that nothing was checked. It
 does **not** echo the path you asked for, and it does not show an error message, a status
 detail, or a stack trace. Then re-run the greps above: still zero.
 
-This costs somap something real and it is worth knowing what: **a fault in the running server
+This costs tarrow something real and it is worth knowing what: **a fault in the running server
 is not diagnosable from its output.** An error report that *usually* omits the address is a
 control you could not check, so there is no error report. Faults are reproduced against
 fixture addresses instead.
@@ -297,7 +297,7 @@ place. Off means stderr only, which is the container stream you already captured
 ### Check it from inside
 
 ```
-docker compose exec db psql -U somap -d somap -c \
+docker compose exec db psql -U tarrow -d tarrow -c \
   "SELECT name, setting, source FROM pg_settings WHERE name LIKE 'log%' ORDER BY name;"
 ```
 
@@ -305,7 +305,7 @@ Note the **`source` column reads `command line`** for each of them. That is the 
 Try to change one:
 
 ```
-docker compose exec db psql -U somap -d somap \
+docker compose exec db psql -U tarrow -d tarrow \
   -c "ALTER SYSTEM SET log_statement='all';" -c "SELECT pg_reload_conf();" -c "SHOW log_statement;"
 ```
 
@@ -316,7 +316,7 @@ afterwards: `ALTER SYSTEM RESET log_statement;`.)
 ### Confirm no extension is keeping query text elsewhere
 
 ```
-docker compose exec db psql -U somap -d somap -c "SELECT extname FROM pg_extension ORDER BY 1;"
+docker compose exec db psql -U tarrow -d tarrow -c "SELECT extname FROM pg_extension ORDER BY 1;"
 ```
 
 `pg_stat_statements`, `pgaudit`, and `auto_explain` all retain query text somewhere the
@@ -353,7 +353,7 @@ It fails, names the file, and exits non-zero.
 
 ### Fonts specifically
 
-`app/app/styles.css` is somap's only stylesheet. It contains no `@font-face`, no `@import`,
+`app/app/styles.css` is tarrow's only stylesheet. It contains no `@font-face`, no `@import`,
 and no `url()`. It names a **system font stack** — fonts already on your own device.
 
 This is the single most likely accidental violation of claim 5, and it is worse than it
@@ -396,7 +396,7 @@ The reasoning also sits in `docker-compose.yml` beside the `app` service, where 
 reading the composition and wondering why the obvious control is missing will actually find
 it.
 
-If you self-host somap behind your own reverse proxy, you *can* have this: put `app` on an
+If you self-host tarrow behind your own reverse proxy, you *can* have this: put `app` on an
 internal network with no published port and let the proxy be the only thing that reaches it.
 That is a stronger deployment than ours and we would rather you ran it.
 
@@ -468,7 +468,7 @@ carries no `tests/`. It used to exit 0 having collected **zero** tests, so a wro
 read as "everything passes". It now refuses:
 
 ```
-somap: REFUSING TO REPORT A PASS.
+tarrow: REFUSING TO REPORT A PASS.
 
   There is no tests directory at /app/tests, so nothing could be collected.
   A run that collects nothing is not a run that passed.
@@ -490,7 +490,7 @@ The tests that back this page:
 `app/tests/no-logging.test.ts` reads container logs through the Docker engine API, which is
 why the `test` service mounts `/var/run/docker.sock`. Container output only exists *outside*
 the container that produced it, so a suite that cannot reach the engine could only re-assert
-that somap does not log — the claim, not the evidence. The mount is on the `test` profile
+that tarrow does not log — the claim, not the evidence. The mount is on the `test` profile
 alone; `docker compose up` never starts that service.
 
 **One stream is excluded from the capture, and this is the whole of it:** the `test`
@@ -504,19 +504,19 @@ filtered.
 
 Being straight about the edges is part of the point.
 
-- **This covers the composition, not a deployment.** If you put somap behind a reverse proxy,
+- **This covers the composition, not a deployment.** If you put tarrow behind a reverse proxy,
   a load balancer, or a CDN, *that* thing's access log is a record of who asked for what, and
-  nothing here reaches it. somap is not currently deployed publicly for exactly this reason:
+  nothing here reaches it. tarrow is not currently deployed publicly for exactly this reason:
   no provider is chosen and no edge logging posture has been reviewed
   (`docs/design/task-0002-walking-skeleton-runbook.md`, ruling R3).
 - **This is about data at rest and in logs, not about traffic analysis.** Somebody who can
-  watch your network sees that you contacted somap. Nothing on this page changes that. Use
+  watch your network sees that you contacted tarrow. Nothing on this page changes that. Use
   Tor if that matters to you.
 - **Rule content is not yet verified data.** Separate from privacy, and stated on every
-  result somap returns: the 1,000-foot buffer is applied without the file-authored,
+  result tarrow returns: the 1,000-foot buffer is applied without the file-authored,
   human-verified rule record the constitution requires. That work is TASK-0003.
 - **The strongest version of all of this is not trusting us at all.** Constitution Principle
-  VII: somap must remain deployable in full by somebody who has never spoken to us, from
+  VII: tarrow must remain deployable in full by somebody who has never spoken to us, from
   publicly available inputs. Run your own instance and we never see anything, and none of the
   checks above have to be repeated.
 

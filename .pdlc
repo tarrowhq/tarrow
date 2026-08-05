@@ -1,7 +1,7 @@
 {
   "planted": "pdlc:bootstrap",
   "version": "0.54.0",
-  "name": "somap",
+  "name": "tarrow",
   "peers": [
     "backlog",
     "spec-kit"

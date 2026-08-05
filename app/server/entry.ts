@@ -63,7 +63,7 @@ const server = createServer(
 // fixed constants. Nothing derived from the request reaches the socket -- see
 // that function for why this is not a hole in the rule that the error is never
 // inspected. Two of the three answers name a cause and a way out, because
-// these are the only failures somap can explain: the parser rejected them
+// these are the only failures tarrow can explain: the parser rejected them
 // before an address existed to protect (TASK-0014).
 server.on("clientError", (err: Error, socket: Socket) => {
   if (socket.writableEnded || socket.destroyed) return;
@@ -103,7 +103,7 @@ server.on("request", (_req, res) => {
 // an outsider cannot check. Reproduce faults against fixture data instead --
 // docs/privacy/verification.md says so in the same words.
 const CRASH_LINE =
-  "somap: fatal error in the request process. No error content is printed, " +
+  "tarrow: fatal error in the request process. No error content is printed, " +
   "by design (Constitution Principle III). Exiting.";
 
 process.on("uncaughtException", () => {
@@ -124,6 +124,6 @@ server.listen(PORT, () => {
   // code nobody in this repository wrote. See server/silence.ts for the three
   // places that already did, and why closing each at its source was not
   // enough on its own.
-  writeSealedLine(`somap app listening on :${PORT}`);
+  writeSealedLine(`tarrow app listening on :${PORT}`);
   sealProcessOutput();
 });

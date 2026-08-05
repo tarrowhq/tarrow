@@ -45,7 +45,7 @@ WITH input AS (
     -- The same function that produced address_points.normalized at ingest
     -- (sql/schema/012_address_normalization.sql). One normalizer, applied to
     -- both sides, so a match is a comparison of two canonical forms.
-    SELECT somap_normalize_address($1::text) AS normalized
+    SELECT tarrow_normalize_address($1::text) AS normalized
 )
 SELECT i.normalized                            AS normalized_input,
        pt.address_point_id,
@@ -60,7 +60,7 @@ SELECT i.normalized                            AS normalized_input,
        -- point with no parcel within 5 m can produce.
        m.match_basis,
        m.gap_m,
-       somap_residence_uncertainty_m(m.match_basis) AS residence_uncertainty_m
+       tarrow_residence_uncertainty_m(m.match_basis) AS residence_uncertainty_m
   FROM input i
   LEFT JOIN LATERAL (
         SELECT ap.id AS address_point_id,

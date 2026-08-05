@@ -1,7 +1,7 @@
 // The test that would have caught TASK-0015, and the reason this directory
 // exists at all.
 //
-// somap shipped an app that did not work in a browser while 146 tests passed.
+// tarrow shipped an app that did not work in a browser while 146 tests passed.
 // Every one of them reached the app through `fetch()`, and fetch is not a
 // browser: it does not implement referrer policy, so it cannot produce the
 // `Origin: null` that React Router rejected, and no assertion over a response
@@ -23,7 +23,7 @@ import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 import puppeteer, { type Browser } from "puppeteer-core";
 
-const ORIGIN = process.env.SOMAP_APP_ORIGIN ?? "http://app:3000";
+const ORIGIN = process.env.TARROW_APP_ORIGIN ?? "http://app:3000";
 const CHROMIUM = process.env.CHROMIUM_PATH ?? "/usr/bin/chromium";
 
 // A real Summit County address with school premises inside the buffer. The same
@@ -42,10 +42,10 @@ before(async () => {
     // HttpsUpgrades is disabled because Chromium silently rewrites http:// to
     // https:// for any host that is not localhost, and the app here is reached
     // as `app:3000` over the compose network with no TLS. Without this the
-    // suite fails with ERR_SSL_PROTOCOL_ERROR and says nothing about somap.
+    // suite fails with ERR_SSL_PROTOCOL_ERROR and says nothing about tarrow.
     //
     // Worth knowing beyond this file: that upgrade is real browser behaviour,
-    // so a SELF-HOSTER serving somap over plain HTTP on a LAN hostname hits it
+    // so a SELF-HOSTER serving tarrow over plain HTTP on a LAN hostname hits it
     // too. Recorded for the self-hosting guidance rather than only worked
     // around here.
     args: [
@@ -60,7 +60,7 @@ after(async () => {
   await browser?.close();
 });
 
-describe("a real browser can actually use somap", () => {
+describe("a real browser can actually use tarrow", () => {
   test("submitting the address form returns an answer, not a 400", async () => {
     const page = await browser.newPage();
     try {
@@ -107,7 +107,7 @@ describe("a real browser can actually use somap", () => {
   test("the answer arrives with JavaScript disabled", async () => {
     const page = await browser.newPage();
     try {
-      // somap ships no client script (TASK-0008.01 holds the decision open),
+      // tarrow ships no client script (TASK-0008.01 holds the decision open),
       // so the whole flow must work with scripting off. This is not a
       // degraded mode for this user population -- for someone browsing
       // defensively it is the only mode.
@@ -129,7 +129,7 @@ describe("a real browser can actually use somap", () => {
     }
   });
 
-  test("no request leaves somap's own origin, and no script is loaded", async () => {
+  test("no request leaves tarrow's own origin, and no script is loaded", async () => {
     const page = await browser.newPage();
     const offOrigin: string[] = [];
     const scripts: string[] = [];
@@ -155,7 +155,7 @@ describe("a real browser can actually use somap", () => {
       assert.deepEqual(
         scripts,
         [],
-        "somap ships no client JavaScript. A script request means something " +
+        "tarrow ships no client JavaScript. A script request means something " +
           "reintroduced it -- see TASK-0008.01 before allowing this.",
       );
     } finally {

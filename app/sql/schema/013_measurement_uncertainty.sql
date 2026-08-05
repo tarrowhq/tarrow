@@ -39,13 +39,13 @@
 -- Renaming this function to drop the word `unverified` is a change that must
 -- not happen before TASK-0003 lands: the name is a load-bearing disclosure, not
 -- a style choice.
-CREATE FUNCTION somap_unverified_state_buffer_m()
+CREATE FUNCTION tarrow_unverified_state_buffer_m()
 RETURNS double precision
 LANGUAGE sql
 IMMUTABLE PARALLEL SAFE
 AS $$ SELECT 304.8::double precision $$;
 
-COMMENT ON FUNCTION somap_unverified_state_buffer_m() IS
+COMMENT ON FUNCTION tarrow_unverified_state_buffer_m() IS
     'ORC 2950.034''s 1,000-foot buffer as 304.8 m. NOT verified rule data: no '
     'file-authored, human-verified rule record backs it yet (TASK-0003). The '
     'coverage manifest discloses this on every result.';
@@ -56,7 +56,7 @@ COMMENT ON FUNCTION somap_unverified_state_buffer_m() IS
 --
 -- DECISION §3, residence side: a point lies inside its parcel, so measuring
 -- from a bare point OVERSTATES the distance, which under-restricts -- the
--- unrecoverable error. somap therefore never measures a residence from a point
+-- unrecoverable error. tarrow therefore never measures a residence from a point
 -- at all: if the resolved address point has no parcel within 5 m, it DECLINES
 -- (sql/query/resolve_address.sql). What remains is only how the parcel was
 -- attributed to the point.
@@ -76,7 +76,7 @@ COMMENT ON FUNCTION somap_unverified_state_buffer_m() IS
 -- Any other basis is a defect, not a case to interpolate: NULL propagates
 -- through the subtraction and the row disappears from the result rather than
 -- being measured on a guessed radius.
-CREATE FUNCTION somap_residence_uncertainty_m(match_basis text)
+CREATE FUNCTION tarrow_residence_uncertainty_m(match_basis text)
 RETURNS double precision
 LANGUAGE sql
 IMMUTABLE PARALLEL SAFE
@@ -87,7 +87,7 @@ AS $$
            END
 $$;
 
-COMMENT ON FUNCTION somap_residence_uncertainty_m(text) IS
+COMMENT ON FUNCTION tarrow_residence_uncertainty_m(text) IS
     'r_a for d_min = d - r_a - r_b. 0 m when the address point is inside its '
     'parcel, 5 m when the parcel was attributed by proximity. Returns NULL for '
     'any unknown basis so the row cannot be measured at all.';
@@ -129,7 +129,7 @@ COMMENT ON FUNCTION somap_residence_uncertainty_m(text) IS
 --   'uncorroborated'  the school's point matched a parcel that is NOT
 --                     tax-exempt. A school premises essentially always is, so
 --                     the match is probably a mailing-address geocode landing
---                     on a neighbouring property, and the boundary somap holds
+--                     on a neighbouring property, and the boundary tarrow holds
 --                     probably UNDERSTATES the real premises -- the
 --                     under-restricting direction, which Principle I forbids
 --                     leaving unhandled. 126 m is added: DECISION §3's own
@@ -144,7 +144,7 @@ COMMENT ON FUNCTION somap_residence_uncertainty_m(text) IS
 --                     enforced. It is an uncertainty term on a premises whose
 --                     geometry we hold but whose ATTRIBUTION the county's own
 --                     tax status contradicts.
-CREATE FUNCTION somap_premises_uncertainty_m(
+CREATE FUNCTION tarrow_premises_uncertainty_m(
     match_basis text,
     match_corroboration text
 )
@@ -165,7 +165,7 @@ AS $$
            END
 $$;
 
-COMMENT ON FUNCTION somap_premises_uncertainty_m(text, text) IS
+COMMENT ON FUNCTION tarrow_premises_uncertainty_m(text, text) IS
     'r_b for d_min = d - r_a - r_b. 0 m for a surveyed county parcel, +5 m '
     'when the parcel was attributed by proximity, +126 m when the county''s '
     'tax status contradicts the match (probable geocoding error that would '

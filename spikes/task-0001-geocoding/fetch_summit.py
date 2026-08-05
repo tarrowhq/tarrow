@@ -40,7 +40,7 @@ def fetch(url, params, attempts=5):
     for attempt in range(attempts):
         try:
             req = urllib.request.Request(
-                f"{url}?{qs}", headers={"User-Agent": "somap-spike/0.1"}
+                f"{url}?{qs}", headers={"User-Agent": "tarrow-spike/0.1"}
             )
             with urllib.request.urlopen(req, timeout=180) as resp:
                 payload = json.loads(resp.read().decode("utf-8"))

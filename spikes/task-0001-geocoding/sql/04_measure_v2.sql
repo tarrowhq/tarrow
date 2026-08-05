@@ -105,9 +105,9 @@ ALTER TABLE variant ADD COLUMN n_canonical text;
 ALTER TABLE variant ADD COLUMN n_verbose   text;
 ALTER TABLE variant ADD COLUMN n_messy     text;
 UPDATE variant SET
-    n_canonical = somap_normalize_address(v_canonical),
-    n_verbose   = somap_normalize_address(v_verbose),
-    n_messy     = somap_normalize_address(v_messy);
+    n_canonical = tarrow_normalize_address(v_canonical),
+    n_verbose   = tarrow_normalize_address(v_verbose),
+    n_messy     = tarrow_normalize_address(v_messy);
 
 CREATE INDEX ON variant (addr_id);
 CREATE INDEX ON variant (n_canonical);

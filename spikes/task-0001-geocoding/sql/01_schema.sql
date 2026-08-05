@@ -3,7 +3,7 @@
 -- Two independently-maintained Summit County datasets:
 --
 --   parcel     -- Tax Parcels. Polygons. Address is ONE freetext field
---                 (siteaddress), no city, no ZIP. This is what somap would
+--                 (siteaddress), no city, no ZIP. This is what tarrow would
 --                 match a user's typed address against.
 --
 --   addrpoint  -- Address Points, maintained by the county addressing

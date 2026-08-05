@@ -16,7 +16,7 @@
 -- that goes stale silently, which is the failure Principle II exists to
 -- prevent.
 --
--- Takes no parameters: what somap covers does not depend on what was asked.
+-- Takes no parameters: what tarrow covers does not depend on what was asked.
 -- Returns exactly one row, and is attached to EVERY result -- flagged,
 -- unflagged, declined, could-not-locate, and errored alike.
 
@@ -59,7 +59,7 @@ basis_rows AS (
     SELECT sp.match_basis,
            sp.match_corroboration,
            count(*)                                                   AS premises,
-           somap_premises_uncertainty_m(sp.match_basis, sp.match_corroboration)
+           tarrow_premises_uncertainty_m(sp.match_basis, sp.match_corroboration)
                                                                       AS uncertainty_m
       FROM school_premises sp
      GROUP BY sp.match_basis, sp.match_corroboration
@@ -67,7 +67,7 @@ basis_rows AS (
 premises_counts AS (
     SELECT count(*)                                  AS total,
            count(*) FILTER (WHERE geom IS NOT NULL)   AS measurable,
-           -- Premises somap holds a name for but no boundary. These are NOT
+           -- Premises tarrow holds a name for but no boundary. These are NOT
            -- measured and NOT approximated by a radius (DECISION §3); each one
            -- has a coverage_gaps row and the manifest reports it as not
            -- checked.
@@ -95,4 +95,4 @@ SELECT
     -- The buffer being applied, from the single definition of it
     -- (sql/schema/013_measurement_uncertainty.sql). The function's name carries
     -- the disclosure: no verified rule record backs this number yet.
-    somap_unverified_state_buffer_m()                                           AS buffer_m;
+    tarrow_unverified_state_buffer_m()                                           AS buffer_m;

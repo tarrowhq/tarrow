@@ -1,6 +1,6 @@
 // The shape of an answer.
 //
-// Constitution Principle I: "somap never says 'approved,' 'legal,' or 'clear.'
+// Constitution Principle I: "tarrow never says 'approved,' 'legal,' or 'clear.'
 // The strongest available answer is 'outside every buffer we checked.'"
 // Spec FR-010 sharpens that into a requirement on THIS file: "An unqualified
 // clearance MUST be structurally inexpressible, not merely absent from the
@@ -142,14 +142,14 @@ export interface ManifestPremisesCounts {
   /** Premises with real parcel geometry -- the ones distance was measured to. */
   readonly measurable: number;
   /**
-   * Premises somap holds a name for but no boundary. NOT measured and NOT
+   * Premises tarrow holds a name for but no boundary. NOT measured and NOT
    * approximated by a radius (DECISION §3). Each has a gap-ledger row.
    */
   readonly notMeasurable: number;
 }
 
 /**
- * The state of somap's own rule content.
+ * The state of tarrow's own rule content.
  *
  * There is deliberately NO `verified: true` inhabitant. This release applies
  * ORC 2950.034's buffer without the file-authored, human-verified rule record
@@ -265,7 +265,7 @@ export interface AmbiguityCandidate {
 
 /**
  * One typed address matched several distinct parcels -- up to 505 for a
- * condominium; "2200 HIGH ST" appears 218 times (DECISION §4). somap never
+ * condominium; "2200 HIGH ST" appears 218 times (DECISION §4). tarrow never
  * silently picks one: the ambiguity is declared, and the answer shown is the
  * MOST RESTRICTIVE candidate.
  */
@@ -291,7 +291,7 @@ export interface PremisesWithinBuffer {
 }
 
 /**
- * The strongest statement somap is permitted to make (Principle I). It is a
+ * The strongest statement tarrow is permitted to make (Principle I). It is a
  * statement about what WE CHECKED, which is why the manifest beside it is not
  * decoration: this variant means nothing at all without the list of layers,
  * facility classes, and jurisdictions that were absent from the search.
@@ -309,7 +309,7 @@ export type DeclineReason =
    * The address resolved, but its point sits inside no parcel and within 5 m
    * of none either. DECISION §3: measuring from a bare point OVERSTATES the
    * distance and therefore UNDER-restricts, and making it safe would mean
-   * subtracting an unbounded assumed parcel reach (p95 1,575 m). So somap
+   * subtracting an unbounded assumed parcel reach (p95 1,575 m). So tarrow
    * declines. ~2.16% of address points, measured.
    */
   | "resolved-point-has-no-parcel"
@@ -327,7 +327,7 @@ export type DeclineReason =
    */
   | "data-not-loaded";
 
-/** somap could answer, and refuses to, because answering would under-restrict. */
+/** tarrow could answer, and refuses to, because answering would under-restrict. */
 export interface Declined {
   readonly kind: "declined";
   readonly manifest: CoverageManifest;
@@ -342,7 +342,7 @@ export type CouldNotLocateReason =
   | "input-normalized-to-nothing";
 
 /**
- * somap could not resolve the address at all. Never a ZIP centroid, never a
+ * tarrow could not resolve the address at all. Never a ZIP centroid, never a
  * street centroid, never a fuzzy match, never a nearby-parcel consolation
  * (DECISION §4) -- there is no code path that could produce one.
  */

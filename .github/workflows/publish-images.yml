@@ -1,10 +1,10 @@
-# Publishes somap's two images so that an instance can be stood up by someone
+# Publishes tarrow's two images so that an instance can be stood up by someone
 # who has never spoken to us and has no source checkout.
 #
 # Constitution Principle VII: "Packaging is a deliverable, not documentation.
 # An instance someone else can actually stand up is the artifact that proves
 # this principle; a README describing how one might is not." Until this
-# workflow existed, somap had the README and not the artifact.
+# workflow existed, tarrow had the README and not the artifact.
 #
 # It also enforces the two consequences the 1.2.0 amendment recorded and the
 # repository had never met:
@@ -79,7 +79,7 @@ jobs:
         run: |
           docker compose -f docker-compose.yml config --format json \
             | jq -S '.services.db.command' > /tmp/dev-db-command.json
-          SOMAP_IMAGE_TAG=parity-check \
+          TARROW_IMAGE_TAG=parity-check \
           POSTGRES_PASSWORD=parity-check \
           PGAPPPASSWORD=parity-check \
           docker compose -f docker-compose.deploy.yml config --format json \
@@ -119,7 +119,7 @@ jobs:
           # The application image, which is also the ETL image and the
           # migration image -- one artifact, three entrypoints, exactly as in
           # the development composition.
-          - image: somap-app
+          - image: tarrow-app
             context: ./app
             dockerfile: ./docker/app/Dockerfile
             target: runtime
@@ -127,7 +127,7 @@ jobs:
           # from postgis/postgis, which publishes amd64 only. See
           # docker/db/Dockerfile -- that choice is the reason this workflow
           # can offer arm64 at all.
-          - image: somap-db
+          - image: tarrow-db
             context: ./docker/db
             dockerfile: ./docker/db/Dockerfile
             target: ""
@@ -186,7 +186,7 @@ jobs:
   #
   # Only the amd64 image is exercised, because that is what the runner is. The
   # arm64 image is built and published but not smoke-tested; standing it up
-  # under emulation would test QEMU more than it tests somap.
+  # under emulation would test QEMU more than it tests tarrow.
   smoke:
     needs: [prepare, publish]
     runs-on: ubuntu-latest
@@ -206,8 +206,8 @@ jobs:
       - name: Configure the deployment
         run: |
           {
-            echo "SOMAP_REGISTRY=ghcr.io/${{ github.repository_owner }}"
-            echo "SOMAP_IMAGE_TAG=${{ needs.prepare.outputs.tag }}"
+            echo "TARROW_REGISTRY=ghcr.io/${{ github.repository_owner }}"
+            echo "TARROW_IMAGE_TAG=${{ needs.prepare.outputs.tag }}"
             echo "POSTGRES_PASSWORD=$(openssl rand -base64 32)"
             echo "PGAPPPASSWORD=$(openssl rand -base64 32)"
           } > .env
@@ -220,7 +220,7 @@ jobs:
         run: |
           docker compose -f docker-compose.deploy.yml up -d
           for _ in $(seq 1 60); do
-            state=$(docker inspect --format '{{.State.Health.Status}}' somap-app-1 2>/dev/null || echo starting)
+            state=$(docker inspect --format '{{.State.Health.Status}}' tarrow-app-1 2>/dev/null || echo starting)
             [ "$state" = "healthy" ] && echo "app healthy" && exit 0
             sleep 3
           done
@@ -235,7 +235,7 @@ jobs:
       # auditing the instance would.
       - name: The database logs nothing about what was asked
         run: |
-          cmd=$(docker inspect --format '{{json .Config.Cmd}}' somap-db-1)
+          cmd=$(docker inspect --format '{{json .Config.Cmd}}' tarrow-db-1)
           echo "$cmd"
           fail=0
           for flag in \
@@ -282,9 +282,9 @@ jobs:
       - name: The published development credential is refused
         run: |
           if docker compose -f docker-compose.deploy.yml run --rm --no-deps \
-               -e PGPASSWORD=somap_app db \
-               psql -w -h db -U somap_app -d somap -c 'select 1'; then
-            echo "somap_app still accepts the credential published in this repository."
+               -e PGPASSWORD=tarrow_app db \
+               psql -w -h db -U tarrow_app -d tarrow -c 'select 1'; then
+            echo "tarrow_app still accepts the credential published in this repository."
             exit 1
           fi
           echo "Refused, as it must be."
@@ -293,7 +293,7 @@ jobs:
         run: |
           docker compose -f docker-compose.deploy.yml run --rm --no-deps \
             -e PGPASSWORD="$(grep '^PGAPPPASSWORD=' .env | cut -d= -f2-)" db \
-            psql -w -h db -U somap_app -d somap -c 'select current_user'
+            psql -w -h db -U tarrow_app -d tarrow -c 'select current_user'
 
       - name: It serves
         run: |

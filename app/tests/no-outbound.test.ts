@@ -132,7 +132,7 @@ describe("no built asset references an external origin", () => {
     // Prove the gate bites. A scanner that passes everything passes the build
     // output too, and would be indistinguishable from this one until the day
     // it mattered.
-    const probe = path.join(APP_ROOT, "build", "somap-scan-probe.js");
+    const probe = path.join(APP_ROOT, "build", "tarrow-scan-probe.js");
     writeFileSync(probe, 'const f = "https://fonts.googleapis.com/css2?family=Inter";\n');
     try {
       let failed = false;

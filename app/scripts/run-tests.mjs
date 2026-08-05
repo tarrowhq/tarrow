@@ -34,7 +34,7 @@
 //
 // That builds the Dockerfile's `build` stage, which is the only stage carrying
 // tests/ and the dev dependencies (tsc, which the compile-failure fixture
-// needs), and it runs against the real composition as the read-only somap_app
+// needs), and it runs against the real composition as the read-only tarrow_app
 // role. A check run on a host is not a check.
 
 import { spawn } from "node:child_process";
@@ -54,7 +54,7 @@ const APP_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEST_DIR = path.join(APP_ROOT, "tests");
 
 const SANCTIONED = `
-  The only sanctioned way to run somap's test suite is:
+  The only sanctioned way to run tarrow's test suite is:
 
       docker compose --profile test run --rm test
 
@@ -64,7 +64,7 @@ const SANCTIONED = `
 `;
 
 function refuse(why) {
-  process.stderr.write(`\nsomap: REFUSING TO REPORT A PASS.\n\n  ${why}\n${SANCTIONED}\n`);
+  process.stderr.write(`\ntarrow: REFUSING TO REPORT A PASS.\n\n  ${why}\n${SANCTIONED}\n`);
   process.exit(1);
 }
 
@@ -144,14 +144,14 @@ child.on("close", (code, signal) => {
   }
   if (failed > 0 || code !== 0) {
     process.stderr.write(
-      `\nsomap: ${failed} test${failed === 1 ? "" : "s"} failed ` +
+      `\ntarrow: ${failed} test${failed === 1 ? "" : "s"} failed ` +
         `(exit ${code}).\n`,
     );
     process.exit(code === 0 ? 1 : code);
   }
 
   process.stdout.write(
-    `\nsomap: ${total} tests collected, ${passed} passed, ${failed} failed, ` +
+    `\ntarrow: ${total} tests collected, ${passed} passed, ${failed} failed, ` +
       `across ${files.length} files.\n`,
   );
 });

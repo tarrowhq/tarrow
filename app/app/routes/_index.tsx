@@ -3,7 +3,7 @@
 // WHY POST AND NOT GET. The address goes in the request BODY, never in the
 // URL. A URL reaches the browser's history and its address bar, the `Referer`
 // header of anything the page links to, and the access log of any proxy or CDN
-// a future deployment sits behind -- none of which somap's controls reach
+// a future deployment sits behind -- none of which tarrow's controls reach
 // (Constitution Principle III; app/server/http.ts). This is not a preference
 // about REST; it is the reason the form works the way it does, and it should
 // not be "improved" into a query string.
@@ -38,7 +38,7 @@ import { Form } from "react-router";
 
 export function meta() {
   return [
-    { title: "somap: school distances for Summit County, Ohio" },
+    { title: "tarrow: school distances for Summit County, Ohio" },
     {
       name: "description",
       content:
@@ -52,7 +52,7 @@ export default function Index() {
   return (
     <main className="page page--ask">
       <header className="masthead masthead--ask">
-        <p className="masthead__name">somap</p>
+        <p className="masthead__name">tarrow</p>
       </header>
 
       <h1 className="ask__question">How far is an address from a school?</h1>
@@ -85,14 +85,14 @@ export default function Index() {
       </Form>
 
       {/* The one thing a reader has to know BEFORE typing, and the only thing
-          on this page drawn to be unmissable. It is not decoration: somap
+          on this page drawn to be unmissable. It is not decoration: tarrow
           answers about the address it matched or it answers about nothing, and
           a reader who assumes it will helpfully find the nearest thing is a
           reader who can be answered about the wrong building. */}
       <div className="notice">
         <p>
-          <strong>somap does not correct spelling, and it does not guess.</strong>{" "}
-          Type the address as it appears on a bill. If somap cannot find exactly
+          <strong>tarrow does not correct spelling, and it does not guess.</strong>{" "}
+          Type the address as it appears on a bill. If tarrow cannot find exactly
           what you typed, it says so rather than answering about the wrong
           building.
         </p>
@@ -102,11 +102,11 @@ export default function Index() {
       </div>
 
       <p className="ask__blurb">
-        somap covers <strong>Summit County, Ohio</strong> and checks{" "}
+        tarrow covers <strong>Summit County, Ohio</strong> and checks{" "}
         <strong>school premises only</strong>. It measures distances and
         decides nothing.{" "}
         <a href="/faq">
-          What somap checks, what it misses, and what happens to what you type
+          What tarrow checks, what it misses, and what happens to what you type
         </a>
       </p>
     </main>

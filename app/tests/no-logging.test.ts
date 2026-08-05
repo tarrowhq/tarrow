@@ -9,7 +9,7 @@
 //
 // Spec FR-023, FR-027, and User Story 4 scenario 1. Constitution Principle III:
 // the uniquely dangerous datum is where somebody is TRYING to move; it exists
-// nowhere else in the world, and somap does not create it as a record.
+// nowhere else in the world, and tarrow does not create it as a record.
 //
 // TWO WAYS THIS TEST COULD LIE TO US, AND WHAT IS DONE ABOUT EACH
 //
@@ -41,7 +41,7 @@ import {
 } from "./docker.ts";
 import { NEAR_A_SCHOOL } from "./fixtures.ts";
 
-const ORIGIN = process.env.SOMAP_APP_ORIGIN ?? "http://app:3000";
+const ORIGIN = process.env.TARROW_APP_ORIGIN ?? "http://app:3000";
 
 /**
  * A canary address, chosen to be unmistakable.
@@ -99,13 +99,13 @@ async function driveHttpTraffic(): Promise<void> {
   }).catch(() => undefined);
 
   // The address in a query string, in a path segment, and in headers. None of
-  // these is how somap submits a search -- they are here because they are how
+  // these is how tarrow submits a search -- they are here because they are how
   // an access log, a 404 handler, or a proxy would capture one.
   await fetch(`${ORIGIN}/?address=${encoded}`).catch(() => undefined);
   await fetch(`${ORIGIN}/search/${encoded}`).catch(() => undefined);
   await fetch(`${ORIGIN}/`, {
     headers: {
-      "User-Agent": `somap-privacy-probe ${CANARY}`,
+      "User-Agent": `tarrow-privacy-probe ${CANARY}`,
       Referer: `${ORIGIN}/?address=${encoded}`,
       "X-Probe-Address": CANARY,
     },
@@ -160,7 +160,7 @@ before(async () => {
   const client = await pool.connect();
   try {
     await assert.rejects(
-      client.query("SELECT 1 FROM somap_no_such_table_privacy_probe WHERE x = $1", [
+      client.query("SELECT 1 FROM tarrow_no_such_table_privacy_probe WHERE x = $1", [
         CANARY,
       ]),
       "the deliberate database error must actually raise, or the log it would " +
@@ -222,7 +222,7 @@ describe("the capture is real before anything is concluded from it", () => {
     assert.ok(app);
     assert.match(
       app.text,
-      /somap app listening on :\d+/,
+      /tarrow app listening on :\d+/,
       "the server's startup line must appear in the capture",
     );
   });
@@ -251,7 +251,7 @@ describe("no searched address appears in any log stream", () => {
             hay.includes(forbidden.toUpperCase()),
             false,
             `${stream.container} (${which}) recorded a searched address. ` +
-              "Constitution Principle III: somap does not create a record of " +
+              "Constitution Principle III: tarrow does not create a record of " +
               "where somebody is trying to move.",
           );
         }

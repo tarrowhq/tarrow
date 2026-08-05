@@ -1,4 +1,4 @@
-// The document shell -- and the place somap decides it ships no client-side
+// The document shell -- and the place tarrow decides it ships no client-side
 // JavaScript at all.
 //
 // WHY <Scripts /> AND <ScrollRestoration /> ARE NOT HERE
@@ -13,7 +13,7 @@
 //
 //   1. Add 'unsafe-inline' or a per-request nonce to script-src. That is the
 //      operator-specified policy softened by an implementer, which the runbook
-//      forbids outright -- and a policy that admits somap's own inline script
+//      forbids outright -- and a policy that admits tarrow's own inline script
 //      admits every other one, which is the hole an analytics snippet walks
 //      through.
 //   2. Leave <Scripts /> in and let the browser block it. The page would still
@@ -103,7 +103,7 @@ export default function Root() {
  * is rendering at all may be that the data could not be read -- and reaching
  * for the database here would turn one failure into two. So it says the only
  * true thing available, in the same words server/manifest.ts uses when the
- * ledger cannot be read: nothing was checked, and somap cannot even tell you
+ * ledger cannot be read: nothing was checked, and tarrow cannot even tell you
  * what it would have checked.
  */
 export function ErrorBoundary() {
@@ -111,7 +111,7 @@ export function ErrorBoundary() {
     <main className="page">
       <header className="masthead">
         <p className="masthead__name">
-          <a href="/">somap</a>
+          <a href="/">tarrow</a>
         </p>
         <p className="masthead__where">
           School-premises distances for Summit County, Ohio. A helper, not an
@@ -120,15 +120,15 @@ export function ErrorBoundary() {
       </header>
 
       <div className="answer answer--broken">
-        <p className="answer__label">No result: somap could not answer</p>
+        <p className="answer__label">No result: tarrow could not answer</p>
         <h1 className="answer__headline">
-          somap could not answer, and nothing was checked.
+          tarrow could not answer, and nothing was checked.
         </h1>
         <div className="prose">
           <p>
-            Either something went wrong inside this copy of somap, or the page
+            Either something went wrong inside this copy of tarrow, or the page
             you asked for does not exist. Either way no address was measured
-            against anything, and somap is making no statement about any
+            against anything, and tarrow is making no statement about any
             address.
           </p>
         </div>
@@ -136,15 +136,15 @@ export function ErrorBoundary() {
 
       <section className="section">
         <h2 className="section__title">
-          somap cannot tell you what it checked, because it checked nothing
+          tarrow cannot tell you what it checked, because it checked nothing
         </h2>
         <div className="prose">
           <p>
-            Every working somap answer carries a list of which data layers were
+            Every working tarrow answer carries a list of which data layers were
             searched, which kinds of place were not searched at all, and how old
             each layer is. This page carries none of that. Do not read the
             absence of a warning here as the absence of a problem. Read it as
-            somap being unable to speak.{" "}
+            tarrow being unable to speak.{" "}
             <a href="/">Search again</a>.
           </p>
         </div>
@@ -158,16 +158,16 @@ export function ErrorBoundary() {
           <p>
             Call or visit the sheriff&rsquo;s office where you register and ask
             about the address you were checking. That office enforces the
-            distance rule and knows the local rules somap does not load, so it
-            can answer even when somap is broken.{" "}
-            <a href="/faq">What somap is, and what it is not</a>.
+            distance rule and knows the local rules tarrow does not load, so it
+            can answer even when tarrow is broken.{" "}
+            <a href="/faq">What tarrow is, and what it is not</a>.
           </p>
         </div>
       </section>
 
       <footer className="footnote">
         <p>
-          somap records nothing about what was requested: not the address, not
+          tarrow records nothing about what was requested: not the address, not
           your IP address, not this failure. That is why there is no error
           detail on this page. There is none to show, and none was written down
           anywhere for anyone to read later.
