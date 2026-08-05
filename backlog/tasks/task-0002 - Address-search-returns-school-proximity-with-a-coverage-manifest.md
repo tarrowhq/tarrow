@@ -1,10 +1,10 @@
 ---
 id: TASK-0002
 title: Address search returns school proximity with a coverage manifest
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-08-04 15:58'
-updated_date: '2026-08-05 02:12'
+updated_date: '2026-08-05 02:43'
 labels:
   - 'area:web'
   - 'kind:feature'
@@ -125,4 +125,12 @@ Headline decisions and findings:
 - Node 22's type stripping does not handle JSX, so no .tsx can be imported by node --test. search-failed is therefore rendered by a SECOND somap server started inside the test container with its PGPORT pointed at a closed port -- same code, same renderer, same wire -- rather than by a component call. It was also seen for real: a search against a never-loaded database returns search-failed, because server/manifest.ts's rule-disclosure gate fires first. An empty database fails loudly instead of producing a confident-looking empty answer.
 - Two routes on purpose. / is the form and reads no database, so it loads when the database is down. /answer is POST-only so the address never reaches a URL, browser history, a Referer header, or a proxy log; copy.test.ts asserts no served href/action/src/content or <title> on any result carries a searched address. Keeping the action off / also keeps POST / a 405, which http-headers.test.ts asserts still carries the full envelope.
 - Pre-existing defect fixed: server/db.ts resolved sql/query by a fixed ../sql/query from import.meta.url. This phase's route pulls server/search.ts into the SSR bundle two directories deeper, where that path does not exist and the process would have died at startup. It now walks up to find the one sql/query in the image, or throws.
+
+spec-bridge sync: PostGIS baseline and deploy pipeline: 11/11 · Summit County school premises ingest: 12/12 · Proximity query and coverage manifest: 17/17 · No-log privacy architecture, CSP, and verification: 10/10 · Web surface and end to end: 13/13 — status In Progress → Done
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+All spec tasks complete (PostGIS baseline and deploy pipeline: 11/11 · Summit County school premises ingest: 12/12 · Proximity query and coverage manifest: 17/17 · No-log privacy architecture, CSP, and verification: 10/10 · Web surface and end to end: 13/13). Derived Done by spec-bridge sync.
+<!-- SECTION:FINAL_SUMMARY:END -->
