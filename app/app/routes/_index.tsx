@@ -15,86 +15,55 @@
 // which, for this population, is a safety property rather than an ergonomic
 // one.
 //
+// WHY THIS PAGE IS A QUESTION, A BOX, AND TWO FOOTNOTES (TASK-0017)
+//
+// It used to open with four paragraphs and a four-bullet callout, all of it
+// true and all of it load-bearing, sitting between the reader and the field.
+// The reader is frequently under a deadline to move. Disclosure they scroll
+// past is disclosure that was not delivered, so those words did not survive
+// here by being defensible -- they had to earn the space above the field, and
+// only two sentences did. The rest moved to /faq, which is a real page, is
+// linked from here and from every answer, and needs no JavaScript.
+//
+// What did NOT move is the constitutional obligation. Principle II binds every
+// RESULT -- "every result states what was checked and what was not" -- and
+// that lives on the answer page in full (app/result-view.tsx). This page is
+// not a result and says nothing about any address.
+//
 // This route reads no database. If the database is down, this page still
-// loads, still says what somap does not know, and still tells the reader to
-// call the sheriff's office -- and the failure surfaces on the answer page as
-// an explicit failure rather than as a blank form nobody can explain.
+// loads, and the failure surfaces on the answer page as an explicit failure
+// rather than as a blank form nobody can explain.
 
 import { Form } from "react-router";
 
-import { Masthead, PrivacyFootnote, SheriffNextStep } from "../result-view.tsx";
-
 export function meta() {
   return [
-    { title: "somap — school-premises distances for Summit County, Ohio" },
+    { title: "somap — school distances for Summit County, Ohio" },
     {
       name: "description",
       content:
-        "Check how far a Summit County, Ohio address is from school premises, " +
-        "alongside a statement of everything that was not checked.",
+        "Measure how far a Summit County, Ohio address is from school " +
+        "premises. A helper, not an authority.",
     },
   ];
 }
 
 export default function Index() {
   return (
-    <main className="page">
-      <Masthead />
+    <main className="page page--ask">
+      <header className="masthead masthead--ask">
+        <p className="masthead__name">somap</p>
+      </header>
 
-      <div className="prose">
-        <p>
-          somap checks <strong>one thing</strong>: how far a Summit County, Ohio
-          address is from the school premises it holds, measured from the edge
-          of one parcel of land to the edge of the other, against the
-          1,000-foot buffer in Ohio Revised Code 2950.034.
-        </p>
-        <p>
-          It exists to turn days of guessing into an hour of searching plus one
-          phone call. It does not replace the phone call.
-        </p>
-      </div>
-
-      <div className="callout prose">
-        <p className="callout__title">Read this before you type an address</p>
-        <ul>
-          <li>
-            <strong>somap does not decide anything.</strong> It measures
-            distances and it tells you what it did not measure. It is not a
-            court, a sheriff&rsquo;s office, or a lawyer, and nothing it says is
-            advice about the law.
-          </li>
-          <li>
-            <strong>This release checks school premises only.</strong> Ohio
-            protects several other kinds of place — preschools, day-care
-            centres, children&rsquo;s crisis care and residential infant care —
-            and the cities and villages of Summit County have their own
-            residency rules on top of the state&rsquo;s. None of those are
-            loaded. Every answer lists them by name.
-          </li>
-          <li>
-            <strong>Nobody has checked somap&rsquo;s reading of the rule.</strong>{" "}
-            The buffer it applies comes from somap reading the statute, not from
-            a rule record a person has signed off. Every answer says so.
-          </li>
-          <li>
-            <strong>somap does not write down what you type.</strong> Not the
-            address, not your IP address, not the fact that you searched. You
-            are not asked to believe that — the procedure for checking it
-            yourself is <code>docs/privacy/verification.md</code> in the source.
-          </li>
-        </ul>
-      </div>
+      <h1 className="ask__question">How far is an address from a school?</h1>
 
       <Form method="post" action="/answer">
         <label className="field">
-          <span className="field__label">
+          {/* Visually hidden rather than absent: the question above reads as a
+              label to somebody who can see it, and a screen reader needs one
+              attached to the input itself. A placeholder is not a label. */}
+          <span className="field__label visually-hidden">
             A street address in Summit County, Ohio
-          </span>
-          <span className="field__hint">
-            For example: <code>1464 Garman Rd, Akron, OH 44313</code>. somap
-            does not correct spelling and does not guess at a nearby street — if
-            it cannot find exactly what you typed, it says so rather than
-            answering about the wrong building.
           </span>
           <input
             className="field__input"
@@ -115,18 +84,30 @@ export default function Index() {
         </button>
       </Form>
 
-      <div className="prose mt-4">
+      {/* The one thing a reader has to know BEFORE typing, and the only thing
+          on this page drawn to be unmissable. It is not decoration: somap
+          answers about the address it matched or it answers about nothing, and
+          a reader who assumes it will helpfully find the nearest thing is a
+          reader who can be answered about the wrong building. */}
+      <div className="notice">
         <p>
-          <small>
-            What you type is sent inside the form, never in the web address, so
-            it does not appear in your browser&rsquo;s history, in the address
-            bar, or in anything that logs web addresses along the way.
-          </small>
+          <strong>somap does not correct spelling, and it does not guess.</strong>{" "}
+          Type the address as it appears on a bill. If somap cannot find exactly
+          what you typed, it says so rather than answering about the wrong
+          building.
+        </p>
+        <p className="notice__example">
+          For example <code>1464 Garman Rd, Akron, OH 44313</code>
         </p>
       </div>
 
-      <SheriffNextStep />
-      <PrivacyFootnote onHomePage />
+      <p className="ask__blurb">
+        somap covers <strong>Summit County, Ohio</strong> and checks{" "}
+        <strong>school premises only</strong>. It measures; it does not decide.{" "}
+        <a href="/faq">
+          What somap checks, what it misses, and what happens to what you type
+        </a>
+      </p>
     </main>
   );
 }

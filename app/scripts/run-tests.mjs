@@ -44,7 +44,11 @@ import { fileURLToPath } from "node:url";
 
 /** Bumped deliberately. See the header. */
 const MINIMUM_TEST_FILES = 10;
-const MINIMUM_TESTS = 146;
+// 146 -> 216 (TASK-0017). Only ~10 of those 70 are new assertions; the rest
+// are the copy gates that had been registering ZERO tests because their loops
+// iterated a list that `before()` had not filled yet. The floor is what makes
+// that kind of silent shrinkage visible, so it moves up with the repair.
+const MINIMUM_TESTS = 216;
 
 const APP_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEST_DIR = path.join(APP_ROOT, "tests");

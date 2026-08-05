@@ -70,10 +70,8 @@ function NothingWasSubmitted() {
         <div className="prose">
           <p>
             You have arrived at the answer page without an address — usually a
-            bookmark, a refresh, or a back button. somap has measured nothing
-            and is saying nothing about any address.
-          </p>
-          <p>
+            bookmark, a refresh, or a back button. somap measured nothing and is
+            saying nothing about any address.{" "}
             <a href="/">Start a search</a>.
           </p>
         </div>

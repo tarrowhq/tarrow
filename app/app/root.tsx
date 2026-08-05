@@ -110,7 +110,9 @@ export function ErrorBoundary() {
   return (
     <main className="page">
       <header className="masthead">
-        <p className="masthead__name">somap</p>
+        <p className="masthead__name">
+          <a href="/">somap</a>
+        </p>
         <p className="masthead__where">
           School-premises distances for Summit County, Ohio. A helper, not an
           authority.
@@ -142,30 +144,23 @@ export function ErrorBoundary() {
             searched, which kinds of place were not searched at all, and how old
             each layer is. This page carries none of that. Do not read the
             absence of a warning here as the absence of a problem — read it as
-            somap being unable to speak.
-          </p>
-          <p>
-            Nothing on this page is a finding. If you were searching an address,
-            treat this as no answer at all and search again from{" "}
-            <a href="/">the address form</a>.
+            somap being unable to speak.{" "}
+            <a href="/">Search again</a>.
           </p>
         </div>
       </section>
 
       <section className="section">
         <h2 className="section__title">
-          Your next step: the sheriff&rsquo;s office you register with
+          Your next step: the sheriff&rsquo;s office where you register
         </h2>
         <div className="prose">
           <p>
             Call or visit the sheriff&rsquo;s office where you register and ask
             about the address you were checking. That office enforces the
-            distance rule, and it knows the local rules somap does not load —
-            so it can answer even when somap is broken.
-          </p>
-          <p>
-            somap is a helper. It is not a court, a sheriff&rsquo;s office, or a
-            lawyer, and nothing on this page is advice about the law.
+            distance rule and knows the local rules somap does not load, so it
+            can answer even when somap is broken.{" "}
+            <a href="/faq">What somap is, and what it is not</a>.
           </p>
         </div>
       </section>
