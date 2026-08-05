@@ -307,7 +307,7 @@ replaces or absorbs it.
 | date | task | PR | merge | tokens/cost (best-effort) | notes |
 |------|------|----|-------|---------------------------|-------|
 | 2026-08-04 | Lane 0 (runbook + tier pins) | #5 | `1907068` | — | merged; operator signed off on lanes |
-| 2026-08-04 | TASK-0002 | — | — | P1 214k / 117 calls / 35 min · P2 252k / 92 calls / 52 min · P3 277k / 88 calls / 32 min | in flight. **phases: 1-3 done, 4 dispatched.** Claim `629fb4c`, spec `ab7dd9b`, P1 `ec12cea`, P2 `35ee23b`+`4a221c1`, P3 `85f1d97`+`71db958`. Models served: P1 `claude-sonnet-5`, P2/P3 `claude-opus-5[1m]`. |
+| 2026-08-04 | TASK-0002 | — | — | P1 214k/117 · P2 252k/92 · P3 277k/88 · P4 245k/112 calls | in flight. **phases: 1-4 done, 5 pending operator checkpoint.** Claim `629fb4c`, spec `ab7dd9b`, P1 `ec12cea`, P2 `35ee23b`+`4a221c1`, P3 `85f1d97`+`71db958`, P4 `ee011db`. Models served: P1 `claude-sonnet-5`, P2–P4 `claude-opus-5[1m]`. |
 
 ### Notes from execution
 
@@ -362,6 +362,35 @@ replaces or absorbs it.
   the number; dangerous the moment it is wired into CI or into the README's command
   sequence. **Handed to P5** as a box: the documented command must be the `test` profile,
   and the suite should fail rather than pass when it collects nothing.
+- **2026-08-04, P4 found three real leaks of the searched address — none in somap's code.**
+  All three were in dependencies, on the *error* path, which is exactly where nobody looks:
+  React Router's default `handleError` `console.error`s the full request URL; its default
+  root error boundary does it again while server-rendering the 404; and
+  `@mjackson/node-fetch-server`'s `defaultErrorHandler`, reached through
+  `@react-router/node`'s `createRequestListener`, which does not expose the `onError`
+  option that would replace it. Each was closed at source, and then — correctly — the
+  process was made to seal its own stdout/stderr, on the reasoning that three leak sites in
+  one 7.x minor means a fourth arrives with the next dependency bump. The accepted cost is
+  stated in every file it touches: a running-server fault is not diagnosable from its
+  output. **This is the phase justifying its tier.** No box named these; they were found by
+  going to look.
+- **2026-08-04, P4's `log_statement=none` finding is worth generalising.** The three
+  settings the box named were already the image defaults, which is not a control — a
+  default is something you inherit, not something you enforce. The actual hazards were two
+  *non-default* settings: `log_min_error_statement` (defaults to logging the full text of
+  any failing statement) and `log_parameter_max_length` (defaults to logging bind
+  parameters in full). The searched address travels as a bind parameter. Both are now set
+  as command-line flags so `ALTER SYSTEM SET log_statement='all'` cannot override them —
+  verified by trying it: with the override, 11 tests fail and the log reads
+  `DETAIL: Parameters: $1 = '1464 Garman Rd, Akron, OH 44313'` verbatim.
+- **2026-08-04, orchestrator re-verification of P4.** 107/107 tests through the sanctioned
+  profile; CSP byte-identical to the runbook's on both 200 and 404; **zero `<script>` tags
+  and zero off-origin `src`/`href` in the served document**; the stylesheet returns 200
+  (P4 also fixed a Phase-1 defect where `build/client` was never served, so `/assets/*` had
+  404'd since Phase 1 — an unstyled page is a privacy defect, because the next person to
+  find it reaches for a CDN). An independent canary address, submitted by POST, appears
+  **0 times** across all 3,062 bytes of captured container log, with the capture proven
+  non-empty rather than merely empty.
 - **2026-08-04, pre-existing defect found, not fixed.**
   `spikes/task-0001-geocoding/README.md`'s documented command sequence is incomplete —
   `07_measure_final.sql` depends on columns built by `03_measure.sql`/`04_measure_v2.sql`,

@@ -4,7 +4,7 @@ title: Address search returns school proximity with a coverage manifest
 status: In Progress
 assignee: []
 created_date: '2026-08-04 15:58'
-updated_date: '2026-08-05 01:19'
+updated_date: '2026-08-05 01:23'
 labels:
   - 'area:web'
   - 'kind:feature'
@@ -43,7 +43,7 @@ Spec: specs/001-address-search-school-proximity
 - [x] #9 Spec phase: PostGIS baseline and deploy pipeline
 - [x] #10 Spec phase: Summit County school premises ingest
 - [x] #11 Spec phase: Proximity query and coverage manifest
-- [ ] #12 Spec phase: No-log privacy architecture, CSP, and verification
+- [x] #12 Spec phase: No-log privacy architecture, CSP, and verification
 - [ ] #13 Spec phase: Web surface and end to end
 <!-- AC:END -->
 
@@ -99,4 +99,6 @@ P3 complete and independently verified by the orchestrator (2026-08-04). Model s
 P4 (No-log privacy architecture, CSP, and verification, subtask .04) dispatched 2026-08-04 at the default tier: model claude-opus-5, fallback claude-opus-4-8. Rubric justification: x:privacy. Principle III is non-negotiable and this phase is its entire enforcement surface, spanning the layers that are routinely forgotten -- PostgreSQL statement logging, error reporting that carries query context, font origins, and CSP. Model that actually served: recorded on completion.
 
 P4 (No-log privacy architecture, CSP, and verification, subtask .04) complete 2026-08-04. Model that actually served: claude-opus-5[1m]. All ten Phase 4 boxes ticked; suite is now 107 tests / 0 failures via docker compose --profile test run --rm test. Headline: the end-to-end log-capture test found three real leaks of the searched address, all of them printed by DEPENDENCIES rather than by somap -- React Router's default handleError, its default root error boundary, and @mjackson/node-fetch-server's defaultErrorHandler (unreachable through @react-router/node's createRequestListener, which hides its onError option). Each closed at source; the request process additionally seals its own stdout/stderr after the startup line, so a fourth site arriving with a dependency bump cannot leak. PostgreSQL's two NON-default settings (log_min_error_statement, log_parameter_max_length) were the real hazard and are now command-line flags that ALTER SYSTEM cannot override. CSP forced somap to ship no client-side JavaScript at all -- softening the operator-signed policy was not an option and RR7's hydration bootstrap is three inline scripts; this binds Phase 5. Also fixed a Phase-1 defect: the client build was never served, so /assets/* had 404'd since P1. docs/privacy/verification.md published. Full detail in specs/001-address-search-school-proximity/tasks.md and on TASK-0002.04.
+
+P4 complete and independently verified by the orchestrator (2026-08-04). Model served: claude-opus-5[1m]. P4 found three real leaks of the searched address, none in somap's own code -- all in dependencies on the error path: React Router's default handleError, its default root error boundary, and @mjackson/node-fetch-server's defaultErrorHandler reached through createRequestListener, which does not expose the onError option that would replace it. Each closed at source, then the process was made to seal its own stdout/stderr on the reasoning that three leak sites in one 7.x minor means a fourth arrives with the next bump. Also generalisable: the three PostgreSQL settings the box named were already image defaults, which is not a control; the real hazards were log_min_error_statement and log_parameter_max_length, which default to logging failing statement text and bind parameters in full, and the address travels as a bind parameter. Orchestrator verification: 107/107 tests, CSP byte-identical on 200 and 404, zero script tags and zero off-origin refs in the served document, stylesheet 200, and an independent canary address absent from all 3062 bytes of captured log with the capture proven non-empty.
 <!-- SECTION:NOTES:END -->
