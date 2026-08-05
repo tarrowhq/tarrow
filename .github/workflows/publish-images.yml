@@ -24,10 +24,14 @@
 
 name: publish images
 
+# A release on a `v*` tag is published by dispatching this workflow WITH THAT
+# TAG SELECTED AS THE REF, not by a tag-push trigger. The `paths` filter below
+# would apply to a tag push too, so tagging a commit that happens not to touch
+# app/ or docker/ would silently publish nothing -- which is the one moment
+# somebody is definitely expecting a publish. Dispatch has no such filter.
 on:
   push:
     branches: [main]
-    tags: ["v*"]
     paths:
       - "app/**"
       - "docker/**"
@@ -143,11 +147,18 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+          # EVERY TAG PUBLISHED HERE IS IMMUTABLE, and the omissions are the
+          # point. There is no `latest`, no `main`, and no `{{major}}.{{minor}}`
+          # -- a moving tag is a way for two instances to end up running
+          # different code that computes statutory distances while both claim
+          # to be on the same version, which is the failure Principle VII's
+          # pinning rule exists to prevent. `sha-<short>` always; a plain
+          # `{{version}}` when the workflow is dispatched against a `v*` tag,
+          # which resolves to nothing on a branch ref and so publishes nothing
+          # extra there.
           tags: |
             type=raw,value=${{ needs.prepare.outputs.tag }}
-            type=raw,value=main,enable={{is_default_branch}}
             type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
 
       # The application build runs `npm run scan:external-origins` as a
       # Dockerfile step (see docker/app/Dockerfile), so a third-party origin
