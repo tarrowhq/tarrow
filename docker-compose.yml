@@ -132,6 +132,39 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  # The test suite. Behind a profile because it is a job, not a service:
+  #
+  #   docker compose run --rm test
+  #
+  # Built from the Dockerfile's `build` stage rather than its runtime stage,
+  # because that is the only stage carrying the dev dependencies the tests need
+  # -- `tsc`, which the compile-failure fixture requires in order to prove that
+  # constructing a result meaning "clear" does not type-check. The runtime image
+  # deliberately still has none of them.
+  #
+  # Connects as `somap_app`, the same read-only role the request path uses
+  # (sql/schema/010_grants.sql), so the tests exercise the query under the
+  # privileges the query actually has -- not the owner's.
+  #
+  # Constitution Principle VII: a check run on a host is not a check. There is
+  # no host here; this is the only way the suite runs.
+  test:
+    profiles: ["test"]
+    build:
+      context: ./app
+      dockerfile: ../docker/app/Dockerfile
+      target: build
+    command: ["npm", "test"]
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      PGUSER: somap_app
+      PGPASSWORD: somap_app
+      PGDATABASE: somap
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
   tools:
     # Frozen (plan.md R2): the TASK-0001 spike's evidence
     # (spikes/task-0001-geocoding/RESULTS.md) must keep reproducing exactly

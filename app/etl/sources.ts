@@ -297,6 +297,32 @@ export interface DeclaredGap {
  * discover on its own because they are absences in the sources themselves.
  */
 export const DECLARED_GAPS: readonly DeclaredGap[] = [
+  // The gap in OUR OWN work, declared in the same ledger and the same shape as
+  // the gaps in the county's data. Principle II applied to somap rather than
+  // only to its sources.
+  //
+  // The manifest builder REQUIRES this row: server/manifest.ts refuses to
+  // produce a manifest when no `rule_content` gap is present, so deleting it
+  // fails every search loudly instead of quietly removing a disclosure. That
+  // is what keeps the honesty a gate rather than a habit.
+  {
+    layerId: null,
+    subjectType: "rule_content",
+    subjectRef: "orc_2950_034_buffer_unverified",
+    description:
+      "The 1,000-foot (304.8 m) buffer this release applies is NOT verified rule " +
+      "data. Constitution Principle V requires every rule to carry, as data, its " +
+      "citation, a resolvable source URL, its effective date, the date a human " +
+      "last verified it, and who verified it. No such record exists yet: rule " +
+      "content is authored as reviewable files and compiled into the database by " +
+      "TASK-0003, which has not been built. The buffer is applied here from a " +
+      "reading of ORC 2950.034 that no human has signed off inside somap, and the " +
+      "measurement method (nearest parcel boundary to nearest parcel boundary) is " +
+      "somap's own over-restrictive reading of a statute that does not say how the " +
+      "1,000 feet is measured. Neither has been checked against Ohio case law. " +
+      "Treat every distance here as a reason to call the registering sheriff's " +
+      "office, never as a legal conclusion.",
+  },
   {
     layerId: SCHOOLS_PRIVATE_NCES.id,
     subjectType: "school_premises",

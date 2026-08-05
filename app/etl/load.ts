@@ -149,6 +149,48 @@ export async function loadAddressPoints(
   return { staged, loaded, droppedNoGeometry: staged - loaded };
 }
 
+export interface NormalizationReport {
+  /** Rows that produced a usable normalized form. */
+  readonly normalized: number;
+  /** Rows the normalizer could not reduce to anything -- unfindable by search. */
+  readonly unnormalizable: number;
+}
+
+/**
+ * Fill address_points.normalized -- the column a typed address is matched
+ * against (DECISION §1: a typed address resolves against the Address Points
+ * layer, never against parcels.site_address).
+ *
+ * Both sides of the match go through the SAME function
+ * (sql/schema/012_address_normalization.sql), which is what makes the match a
+ * comparison of two canonical forms rather than of our string handling against
+ * theirs. LSN -- the addressing authority's own composed form ("4718 KRANCZ
+ * DR") -- is the input, exactly as in the spike that measured 96.79%.
+ *
+ * This runs inside address_points' truncate-and-reload (Principle IV). There is
+ * deliberately no way to refresh `normalized` on its own: an incremental
+ * re-normalization is precisely the reconciliation path this codebase does not
+ * have, and a partially re-normalized index would silently stop finding
+ * addresses.
+ */
+export async function normalizeAddressPoints(
+  client: PoolClient,
+): Promise<NormalizationReport> {
+  await client.query(
+    "UPDATE address_points SET normalized = somap_normalize_address(full_address)",
+  );
+  await client.query("ANALYZE address_points");
+  const { rows } = await client.query<{ ok: string; bad: string }>(
+    `SELECT count(*) FILTER (WHERE normalized IS NOT NULL) AS ok,
+            count(*) FILTER (WHERE normalized IS NULL)     AS bad
+       FROM address_points`,
+  );
+  return {
+    normalized: Number(rows[0].ok),
+    unnormalizable: Number(rows[0].bad),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Parcels
 // ---------------------------------------------------------------------------

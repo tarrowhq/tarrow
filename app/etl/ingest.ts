@@ -32,6 +32,7 @@ import {
   loadMunicipalities,
   loadParcels,
   loadSchoolPremises,
+  normalizeAddressPoints,
   stageNdjson,
   stampLayer,
   writeGaps,
@@ -226,9 +227,26 @@ async function main(): Promise<void> {
       );
       audits.push(audit);
       await dropStage(c, stage);
+
+      // The matching index itself. Inside this reload rather than beside it:
+      // a normalized column refreshed separately from the rows it describes
+      // would be the reconciliation path Principle IV forbids.
+      const norm = await normalizeAddressPoints(c);
       summary.push(
-        `address_points: ${counts.loaded} (${counts.droppedNoGeometry} without geometry)`,
+        `address_points: ${counts.loaded} (${counts.droppedNoGeometry} without geometry, ` +
+          `${norm.normalized} normalized for matching, ${norm.unnormalizable} unnormalizable)`,
       );
+      if (norm.unnormalizable > 0) {
+        gaps.push({
+          layerId: ADDRESS_POINTS.id,
+          subjectType: "source_records",
+          subjectRef: "address_points_without_normalized_form",
+          description:
+            `${norm.unnormalizable} published address points carry no usable address ` +
+            `label, so no typed address can ever match them. A search for one of those ` +
+            `addresses returns could-not-locate rather than a nearby guess.`,
+        });
+      }
       gaps.push({
         layerId: ADDRESS_POINTS.id,
         subjectType: "source_records",

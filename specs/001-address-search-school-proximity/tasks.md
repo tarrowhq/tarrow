@@ -92,37 +92,37 @@ Principle I expressed as arithmetic; a sign error here is the unrecoverable fail
 **Goal**: Given a typed address, the honest answer plus the machine-readable statement of
 what produced it.
 
-- [ ] Port address normalization from `spikes/task-0001-geocoding/sql/02_normalize.sql`
+- [x] Port address normalization from `spikes/task-0001-geocoding/sql/02_normalize.sql`
       into `app/sql/query/resolve_address.sql` — the rule-based normalization that reached
       96.8% on its own; libpostal is not adopted
-- [ ] Resolve typed address → Address Points match → that point's parcel. Never match
+- [x] Resolve typed address → Address Points match → that point's parcel. Never match
       typed addresses against `parcel.siteaddress`
-- [ ] Implement `app/sql/query/proximity.sql`: nearest boundary of the residence parcel to
+- [x] Implement `app/sql/query/proximity.sql`: nearest boundary of the residence parcel to
       nearest boundary of the premises parcel, in EPSG:6549, buffer 304.8 m
-- [ ] Confirm by `EXPLAIN` that the spatial index is used and that no geography cast
+- [x] Confirm by `EXPLAIN` that the spatial index is used and that no geography cast
       appears in the plan
-- [ ] Carry an uncertainty radius on every geometry and compare on the pessimistic bound
+- [x] Carry an uncertainty radius on every geometry and compare on the pessimistic bound
       `d_min = d(a,b) − r_a − r_b`, flagging when `d_min < buffer`
-- [ ] Decline when the resolved address point has no parcel within 5 m
-- [ ] Declare ambiguity when one normalized address maps to several parcels, resolving to
+- [x] Decline when the resolved address point has no parcel within 5 m
+- [x] Declare ambiguity when one normalized address maps to several parcels, resolving to
       the most restrictive candidate rather than silently selecting one
-- [ ] Ensure there is **no code path** that returns a coarse fallback — no ZIP centroid,
+- [x] Ensure there is **no code path** that returns a coarse fallback — no ZIP centroid,
       no street centroid, no fuzzy match, no nearby-parcel consolation
-- [ ] Define the result type as a discriminated union in which **no inhabitant means
+- [x] Define the result type as a discriminated union in which **no inhabitant means
       approved, legal, permitted, or clear**, and in which the coverage manifest is a
       mandatory field on every variant including declines
-- [ ] Build the manifest from data: layers queried, layers absent, per-layer verification
+- [x] Build the manifest from data: layers queried, layers absent, per-layer verification
       and refresh dates, the coverage-gap ledger, which delivery path answered, and the
       per-geometry measurement basis
-- [ ] State in the manifest that rule content is **not yet verified data** — the 304.8 m
+- [x] State in the manifest that rule content is **not yet verified data** — the 304.8 m
       buffer is applied without the file-authored rule record Principle V requires, which
       TASK-0003 builds
-- [ ] Test: a known address near a known school flags, with the measured distance
-- [ ] Test: a known address far from every school returns outside-every-buffer
-- [ ] Test: an address point with no parcel declines
-- [ ] Test: an unmatched address returns could-not-locate, distinct from both of the above
-- [ ] Test: the manifest is non-empty and complete on **every** result variant
-- [ ] Test: attempting to construct a result meaning "clear" fails to type-check —
+- [x] Test: a known address near a known school flags, with the measured distance
+- [x] Test: a known address far from every school returns outside-every-buffer
+- [x] Test: an address point with no parcel declines
+- [x] Test: an unmatched address returns could-not-locate, distinct from both of the above
+- [x] Test: the manifest is non-empty and complete on **every** result variant
+- [x] Test: attempting to construct a result meaning "clear" fails to type-check —
       recorded as a compile-failure fixture, not merely asserted in prose
 
 ---
@@ -441,3 +441,200 @@ parcel carries no identifier at all — kept, because its polygon is measurement
 - **`address_points.normalized` is still NULL** — Phase 3 fills it, and its index exists.
 - Migrations `006`–`009` and `011` are Phase 2's; `001`–`005` and `010` were not touched.
   `008`, `009`, and `011` are corrections found by *running* the load, and each says so.
+
+### Phase 3 (TASK-0002.03), 2026-08-04 — implemented by a `claude-opus-5` session
+
+**Everything ran through `docker compose`.** New job service `test` (profile `test`):
+`docker compose run --rm test`. It builds from the Dockerfile's **`build` stage**, not the
+runtime stage, because that is the only stage carrying `tsc` — which the compile-failure
+fixture needs in order to prove a clearance does not type-check. The runtime image still
+has no dev dependencies. Tests connect as **`somap_app`**, the read-only role, so the
+query is exercised under the privileges it actually has. **43 tests, 13 suites, 0
+failures.**
+
+#### Where each thing lives, and why it is not where the box said
+
+- **`sql/schema/012_address_normalization.sql`** — the normalizer ported from the spike,
+  byte-faithful (four lookup tables + `somap_normalize_address`). The box said "port into
+  `app/sql/query/resolve_address.sql`". It is a plpgsql function plus tables, and
+  `somap_app` has `CREATE` revoked (010) — the query loader physically cannot define it.
+  Authored content compiled into the database by a build step is also the exact shape
+  Principle IV sets. `resolve_address.sql` is the query file that **calls** it, and is
+  where a reviewer auditing resolution reads the logic. R4's requirement — the
+  safety-critical statement is reviewed as a file diff — holds either way.
+- **`sql/schema/013_measurement_uncertainty.sql`** — three functions, and each
+  safety-critical constant is written down **exactly once** anywhere in the repo:
+  `somap_unverified_state_buffer_m()` (304.8), `somap_residence_uncertainty_m(basis)`,
+  `somap_premises_uncertainty_m(basis, corroboration)`. Duplicating a radius or the buffer
+  across two files is precisely how a sign or a value drifts, so
+  `tests/no-fallback.test.ts` asserts `304.8` and `126` appear in **that one file and
+  nowhere else** — including in the TypeScript.
+- **The function name `somap_unverified_state_buffer_m` is a load-bearing disclosure.**
+  Do not rename it to drop `unverified` before TASK-0003 lands.
+
+#### The uncertainty radii, and the one judgement call in them
+
+`d_min = d(a,b) − r_a − r_b`, flag when `d_min < 304.8`. Both radii subtract.
+
+| Side | Basis | r |
+|---|---|---:|
+| residence | `point_in_parcel` | 0 m |
+| residence | `point_near_parcel` | 5 m |
+| premises | `board_of_education_parcel`, `named_exempt_parcel`, `point_in_parcel` | 0 m |
+| premises | `point_near_parcel` | 5 m |
+| premises | `none` (no geometry) | **NULL** — never measured |
+| premises | `+ uncorroborated` | **+126 m** |
+
+**The +126 m is a Phase-3 decision and the only value DECISION §3 did not already fix.**
+The 15 `uncorroborated` rows are schools whose geocoded point landed on a parcel the county
+does **not** record as tax-exempt — probably a neighbour's lot, so the boundary somap holds
+probably **understates** the premises, which is the under-restricting direction. 126 m is
+DECISION §3's own measured p95 extent for a typical suburban lot, and the figure it already
+adopts as the assumed radius for a residential-lot facility. It is **not** an assumed
+radius for a school known only by a point — DECISION §3 forbids those at any value, and the
+`none` → NULL branch is how that prohibition is enforced in arithmetic rather than in a
+`WHERE` clause somebody could drop.
+
+#### Resolution policy, decided from measured data rather than taste
+
+Measured over all 258,859 normalized address points:
+
+- 5,579 points (**2.16%**) have no parcel within 5 m — matching DECISION §3's 2.15%.
+- 232,728 distinct normalized forms; 5,817 (2.5%) carry more than one point.
+- **5,451** normalized forms are entirely unmeasurable → `resolved-point-has-no-parcel`.
+- **61** normalized forms (**0.026%**) mix measurable and unmeasurable points.
+
+Those 61 are the only case where "answer for the candidates we can measure" was even
+tempting. Doing so would state a result while leaving one possible location unchecked —
+a false *outside every buffer*. They **decline** (`some-candidates-have-no-parcel`). The
+measured cost of the safe choice is 0.026% of searches, so it was not a trade at all.
+
+Where several candidates are all measurable, the ambiguity is **declared** (every candidate
+listed, with its flag count and nearest pessimistic distance) and the answer shown is the
+**most restrictive** candidate: more flags first, then nearest `d_min`, then parcel id so
+two runs cannot disagree. Several address points on **one** parcel are not an ambiguity —
+every unit of a building is the same distance from every premises.
+
+#### The type-level gate (spec FR-010)
+
+`app/server/result.ts`. Beyond the closed union, a set of compile-time assertions rejects
+any **kind, reason, basis, or field name** in the result or the manifest whose text carries
+permission vocabulary (`clear`, `approv`, `permit`, `legal`, `allow`, `lawful`, `eligib`,
+`authoriz`, …, matched as substrings). Adding a `kind: "clear"` variant, or a
+`permitted: boolean` field, breaks the build **in `result.ts`**, in code the author of that
+variant never opened. `ManifestRuleContent` has **no `verified: true` inhabitant** —
+TASK-0003 adds it along with the data that earns it.
+
+Two proofs, deliberately both:
+
+- `tests/types/clearance.compile-failure.ts` — excluded from the main tsconfig, compiled
+  by `tests/types/tsconfig.compile-failure.json`, and `tests/result-type.test.ts` asserts
+  `tsc` **fails** with one diagnostic per case. Case 5 is the load-bearing one: it widens
+  the union with a clearance variant and the vocabulary assertion rejects it
+  (`Type 'true' is not assignable to type '"clear-to-live-here"'`).
+- `tests/types/clearance-guard.ts` — the same cases behind `@ts-expect-error`, **inside**
+  the main tsconfig, so `npm run typecheck` fails the moment any of them starts compiling,
+  with no dedicated test run.
+
+#### Deviations and pre-existing defects fixed (all outside Phase 3's own surface)
+
+1. **`app/tsconfig.json` had `baseUrl`**, which TypeScript 6 reports as a hard error
+   (TS5101) — `npm run typecheck` aborted before checking a single file and had evidently
+   never been green. Removed; nothing declared `paths`.
+2. **`allowImportingTsExtensions` was missing.** Every relative import carries the literal
+   `.ts` extension because Node 22's type stripping requires it (Phase 1's note), and the
+   typechecker rejected exactly what the runtime demands. Added.
+3. **`app/server/entry.ts`** — one `@ts-ignore` on the generated RR7 bundle import, which
+   has no declarations and lives outside the typechecked tree. Phase 4 owns this file;
+   nothing else in it was touched.
+4. **`app/package.json`** — `"test": "node --test tests/"` does not work (Node 22 resolves
+   the directory as a module and throws `MODULE_NOT_FOUND`). Now
+   `node --test tests/*.test.ts`.
+5. **`app/etl/sources.ts`, `load.ts`, `ingest.ts`** — Phase 2 files, extended not rewritten:
+   a `rule_content` declared gap (below), `normalizeAddressPoints()`, and its call **inside**
+   `address_points`' truncate-and-reload. There is deliberately no way to refresh
+   `normalized` on its own; a partially re-normalized index would silently stop finding
+   addresses, and an incremental refresh is the reconciliation path Principle IV forbids.
+
+#### The rule-content disclosure is a gate, not a paragraph
+
+`DECLARED_GAPS` gained one row: `subject_type='rule_content'`,
+`subject_ref='orc_2950_034_buffer_unverified'`, stating that the 304.8 m buffer **and the
+nearest-boundary measurement method** are applied without the file-authored, human-verified
+rule record Principle V requires, and that neither has been checked against Ohio case law.
+
+`server/manifest.ts` **refuses to build a manifest at all** when that row is absent
+(`MissingRuleDisclosureError`), so every search fails loudly rather than quietly losing a
+disclosure. Tested both ways.
+
+#### `EXPLAIN`: index used, no geography cast
+
+`tests/explain.test.ts` runs `EXPLAIN (ANALYZE, BUFFERS)` on both queries, prints the plans
+into the test output, and asserts them.
+
+- `resolve_address` → `Index Scan using address_points_normalized_idx` then
+  `Index Scan using parcels_measurable_geom_idx`, `Index Cond: (geom && st_expand(ap.geom,
+  '5'::double precision))`. **No `Seq Scan on parcels`. No `geography` anywhere.**
+- `proximity` → `Index Scan using parcels_pkey` for the residence, then
+  `Index Scan using school_premises_geom_idx` with the expanded search box. **No
+  `geography`.** The one `Seq Scan` in the plan is over `school_premises` (619 rows) inside
+  the `search_bound` CTE that takes `max(r_b)` over the whole table — an aggregate over
+  every row is a full scan by definition and is not on a measurement path.
+- Also asserted structurally: **no `geography` column exists in the schema at all**, and
+  **every** geometry column is SRID 6549.
+
+#### What Phase 4 (privacy) needs from this
+
+- **Nothing in the query path logs, by construction.** `server/search.ts` writes nothing —
+  not the address, not a normalized form, not a parcel id, not a timing. Every `detail`
+  string on every result variant is a **fixed constant**; none interpolates user input, and
+  the `catch` blocks deliberately do **not** inspect or forward the caught error, because a
+  driver message could carry query text (FR-027). Keep it that way when adding the error
+  boundary.
+- **`search()` takes an optional connection factory** (`search(raw, connect?)`), used only
+  by tests to reach the failure variants. No production caller passes it.
+- The `test` compose service is where Phase 4's log-capture test can also live; it already
+  runs as `somap_app` against the real composition.
+- `docker compose exec db psql` currently logs nothing about statements, but that is the
+  image default and not yet asserted — Phase 4's box.
+
+#### What Phase 5 (web surface) needs from this
+
+- **`import { search } from "../server/search.ts"`** returns a `SearchResult`. It **never
+  throws**: a failure is a variant carrying the manifest, because a thrown error rendered
+  as a blank page after typing an address reads like a clean answer.
+- **Five variants to render**, and `SEARCH_RESULT_KINDS` is exported for exhaustiveness:
+  `premises-within-buffer`, `outside-every-buffer-we-checked`, `declined`,
+  `could-not-locate`, `search-failed`. `declined` and `could-not-locate` are **different
+  answers** and spec User Story 3 requires them to look different, not merely read
+  differently.
+- **The manifest is on every variant**, in two availabilities. `read-from-data` carries
+  `layers` (with `verifiedAt` — currently `null` on **every** layer, which must render as
+  *never human-verified*, not as a blank), `gaps` (31 rows, already written as
+  manifest-ready prose), `measurementBases`, `premises` counts, `bufferMeters`,
+  `dataFetchedAt`/`oldestLayerFetchedAt` (Principle VII's "cannot hide its age"), and
+  `ruleContent`. `could-not-be-read` carries `ruleContent` and a withdrawal `statement`
+  only — render it as *nothing was checked*.
+- **`ruleContent.statement` must appear on every result.** It is the disclosure that the
+  rule is not verified data. It is long; it is not a footnote.
+- **A school can appear as several premises rows** (Western Reserve Academy has seven).
+  Repeated names in a flag list are ORC 2925.01(S) working as written.
+- **Render `corroboration: 'uncorroborated'`.** Those premises were flagged with a 126 m
+  uncertainty because their boundary may be a neighbour's — the user is entitled to know
+  the flag rests on that.
+- `ambiguity` is non-null when one address matched several parcels; it names the count, the
+  candidates, and that the answer shown is the most restrictive one.
+- **Do not compute anything in the route.** A renderer that derives "no flags ⇒ fine" is
+  the failure the type gate exists to prevent; it cannot construct a clearance, but it can
+  still write one as a sentence. That is Phase 5's own test (`copy.test.ts`).
+
+#### Still open, and carded nowhere yet
+
+- **Municipality is discarded at normalization.** The place name is stripped, so
+  "100 MAIN ST" in two municipalities becomes one ambiguity resolved to the most
+  restrictive candidate. That is safe but imprecise, and `address_points.city` is loaded
+  and unused. Narrowing candidates by a typed city would improve precision — and must be
+  shown not to increase the wrong-match rate before it is adopted (DECISION §4).
+- **An out-of-county address is indistinguishable from a misspelt one**: both return
+  `could-not-locate`. The gap ledger names `outside_summit_county`, so the manifest covers
+  it, but a dedicated variant would be a better answer.

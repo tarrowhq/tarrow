@@ -4,7 +4,20 @@
     "**/*.tsx",
     ".react-router/types/**/*.ts"
   ],
-  "exclude": ["build", "node_modules"],
+  "//": [
+    "tests/types/clearance.compile-failure.ts is EXPECTED not to compile: it is",
+    "the fixture proving a result meaning 'clear' cannot be constructed",
+    "(spec FR-010). It is excluded here and compiled only by",
+    "tests/types/tsconfig.compile-failure.json, which tests/result-type.test.ts",
+    "runs and asserts fails. tests/types/clearance-guard.ts stays INCLUDED --",
+    "it holds the same cases behind @ts-expect-error, so an ordinary typecheck",
+    "fails the moment any of them starts compiling."
+  ],
+  "exclude": [
+    "build",
+    "node_modules",
+    "tests/types/clearance.compile-failure.ts"
+  ],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2023"],
     "types": ["node", "vite/client"],
@@ -13,7 +26,16 @@
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
     "rootDirs": [".", "./.react-router/types"],
-    "baseUrl": ".",
+    // `baseUrl` was here and is removed: TypeScript 6 reports it as a hard
+    // error (TS5101, deprecated for 7.0), which aborted `npm run typecheck`
+    // before it checked a single file. Nothing declared `paths`, so it was
+    // doing no work -- found by Phase 3 when it made the typecheck a gate.
+    // Server and ETL code runs as .ts directly under Node 22's built-in type
+    // stripping, which REQUIRES the literal .ts extension on every relative
+    // import (Phase 1's note in tasks.md). Without this option the typechecker
+    // rejects the extension the runtime demands, and the two disagree about
+    // the same source file.
+    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "verbatimModuleSyntax": true,
     "resolveJsonModule": true,
