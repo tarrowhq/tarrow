@@ -5,7 +5,7 @@ status: In Progress
 assignee:
   - '@claude'
 created_date: '2026-08-05 20:14'
-updated_date: '2026-08-05 20:38'
+updated_date: '2026-08-05 20:39'
 labels:
   - 'kind:debt'
 dependencies: []
@@ -51,3 +51,9 @@ The upgrade path was exercised rather than asserted. The ETL loaded into a datab
 
 Two deliberate non-renames, both recorded in the commit message. The maintainers' live host soma.infinitynode.media is left as written because editing it before DNS moves would make the document assert something false, against Principle III. Board cards are left as the historical record of work done under the old name, per operator decision.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Renamed the project from the placeholder somap to tarrow: 603 substitutions across 70 files, plus a new migration 014_rename_to_tarrow.sql that renames the application role and the four authored SQL functions inside a database created under the old identifiers. Verified against the full 266,518-parcel county load, with the upgrade path exercised on a live pre-rename database rather than asserted: 216 passed / 0 failed both before and after, matching baseline exactly, plus the browser suite at 3 passed / 0 failed. The database name and owner role cannot be renamed from inside the database and are documented as operator-controlled instead. Two references to the old name are deliberately retained and recorded: the maintainers' live hostname, which would become a false claim if edited before DNS moves, and the board cards, which are the historical record. Delivered as PR #13.
+<!-- SECTION:FINAL_SUMMARY:END -->
