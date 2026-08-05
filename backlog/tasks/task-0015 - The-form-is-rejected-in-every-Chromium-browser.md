@@ -1,10 +1,10 @@
 ---
 id: TASK-0015
 title: The form is rejected in every Chromium browser
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-08-05 13:39'
-updated_date: '2026-08-05 13:44'
+updated_date: '2026-08-05 14:16'
 labels:
   - 'area:web'
   - 'kind:bug'
@@ -56,3 +56,9 @@ So this task also adds a browser-driven test to the composition: load the page i
 <!-- SECTION:NOTES:BEGIN -->
 Fix scope, stated precisely so it is not misread later: the change makes the BROWSER stop sending Origin: null. It does not make the SERVER accept a null origin -- verified after the change, Origin: null still returns 400. React Router's rejection of a null origin is CSRF protection and was left intact. That leaves a residual case worth knowing about: anything else that produces a null origin (a sandboxed iframe, a data: document, a privacy extension that strips or nulls Origin) still breaks the form. This population uses privacy extensions, so that is not hypothetical. Whether somap should also accept a null origin is a separate security decision and is deliberately not taken here -- though the argument is unusually strong for this app: somap has no cookies, no sessions, and no state-changing operations, so a forged request performs a search on the victim's behalf with no side effect and nothing to steal, which is close to the definition of a non-threat. Raise it as its own card rather than folding it into a bug fix.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+somap did not work in any Chromium browser: Referrer-Policy: no-referrer made the browser serialize the form POST's origin as null, and React Router refuses a non-GET request whose Origin is present and does not match. Two individually-correct mechanisms composing into an outage. Fixed both halves -- Referrer-Policy is now same-origin (conceding nothing: cross-origin still sends no referrer, and the same-origin referrer carries no address because the address travels in a POST body), and an opaque Origin: null is now dropped before the router sees it, which makes the request originless rather than foreign while a named cross-site origin is still refused. The second half exists because null is what a hardened client sends, including a privacy extension that strips the header, and Principle III takes as given that these users are paranoid for good reason. Safe here for a reason that does not generalise: somap has no cookies, no session, no auth, and no writable table, so a forged submission has no authority to ride and no effect to cause. Also put a real browser in the composition, because 146 tests passed against an app that did not work -- every one reached it through fetch(), which does not implement referrer policy and so could not produce the failing Origin. 147 tests plus 3 browser tests green; verified by hand in Brave.
+<!-- SECTION:FINAL_SUMMARY:END -->

@@ -4,6 +4,7 @@ title: A large header block fails as an unexplained 400
 status: To Do
 assignee: []
 created_date: '2026-08-05 13:20'
+updated_date: '2026-08-05 14:16'
 labels:
   - 'area:web'
   - 'kind:bug'
@@ -48,3 +49,9 @@ Note this is largely a localhost artifact. On its own origin somap receives only
 - [ ] #3 The overflow response names no address, because none has been parsed in that failure mode
 - [ ] #4 A test asserts a 20KB header block produces the explanatory response rather than the generic failure body
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Returned to To Do 2026-08-05: TASK-0015 (somap unusable in every Chromium browser) took priority and merged first as PR #8. TASK-0014's worktree was cut before that and its edits are unmerged; resuming it needs origin/main merged into the branch, since PR #8 touched both server/http.ts and server/entry.ts -- the same two files this task changes.
+<!-- SECTION:NOTES:END -->
