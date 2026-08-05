@@ -8,7 +8,7 @@ merge → re-ground. Direction is decided; do not re-litigate it: the **constitu
 rulings below** win. Plan-of-record is the board; this file carries only ordering,
 doctrine, and the log.
 
-**Status:** draft · operator sign-off on lanes: pending
+**Status:** done · operator sign-off on lanes: 2026-08-04 (PR #5) · sweep closed 2026-08-04
 <!-- Only the OPERATOR flips draft → signed-off (the author never pre-fills it). An
      executing session must refuse a runbook whose status it cannot verify. -->
 
@@ -307,7 +307,29 @@ replaces or absorbs it.
 | date | task | PR | merge | tokens/cost (best-effort) | notes |
 |------|------|----|-------|---------------------------|-------|
 | 2026-08-04 | Lane 0 (runbook + tier pins) | #5 | `1907068` | — | merged; operator signed off on lanes |
-| 2026-08-04 | TASK-0002 | #6 | pending | P1 214k/117 · P2 252k/92 · P3 277k/88 · P4 245k/112 · P5 328k/108 · **1.32M subagent tokens / 517 tool calls / ~3h20m** | **phases 1-5 done.** Claim `629fb4c`, spec `ab7dd9b`, P1 `ec12cea`, P2 `35ee23b`+`4a221c1`, P3 `85f1d97`+`71db958`, P4 `ee011db`, P5 `813ca2c`+`abf529d`+`6804e22`. Models: P1 `claude-sonnet-5`, P2–P5 `claude-opus-5[1m]`. 146 tests green; all 8 card ACs ticked against artifacts. |
+| 2026-08-04 | TASK-0002 | #6 | `c38a226` | P1 214k/117 · P2 252k/92 · P3 277k/88 · P4 245k/112 · P5 328k/108 · **1.32M subagent tokens / 517 tool calls / ~3h20m** | **merged; board Done derived by sync at `34dab92`.** phases 1-5 done. Claim `629fb4c`, spec `ab7dd9b`, P1 `ec12cea`, P2 `35ee23b`+`4a221c1`, P3 `85f1d97`+`71db958`, P4 `ee011db`, P5 `813ca2c`+`abf529d`+`6804e22`. Models: P1 `claude-sonnet-5`, P2–P5 `claude-opus-5[1m]`. 146 tests green; all 8 card ACs ticked against artifacts. |
+
+### Sweep closed — what it left behind
+
+TASK-0002 Done via merged PR #6 (`c38a226`); board Done **derived** by
+`spec-bridge:sync`, never hand-set (`34dab92`). Spec `001` carries a real spec.md,
+plan.md, and tasks.md with all 63 boxes ticked. No stale worktrees. 146 tests green on
+main. Grounding: **no `docs/wiki/` corpus exists**, so there was no freshness gate to
+satisfy and nothing to re-pin — building one is the natural next step, not a debt.
+
+Three follow-ups carded from findings this sweep made, all on `main`:
+
+| Card | Why it exists |
+|---|---|
+| **TASK-0005.04** | A named missing school. The nonpublic source is a voluntary biennial federal survey; St. Vincent–St. Mary is absent from it. Wired as an explicit dependency of TASK-0011, the launch gate. |
+| **TASK-0008.01** | Whether somap keeps shipping zero client-side JavaScript, or amends the CSP for a hydration nonce. Deferred here on purpose: TASK-0008 is the first work with a real interaction that could argue for it. |
+| **TASK-0013** | The TASK-0001 spike's README does not reproduce its own published numbers without undocumented steps. Frozen by R2 during this sweep. |
+
+**The lesson worth carrying to the next sweep:** every one of those three came from a
+phase (or the orchestrator) *going to look* at something no box named — P2 spot-checking a
+school it had no reason to doubt, P4 auditing dependency error paths, the orchestrator
+re-running a phase's own verification instead of accepting it. The boxes caught what the
+boxes described. The findings that mattered most were not in any box.
 
 ### Notes from execution
 
