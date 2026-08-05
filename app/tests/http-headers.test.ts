@@ -42,7 +42,7 @@ const EXPECTED_CSP =
 
 const EXPECTED_HEADERS: ReadonlyArray<readonly [string, string]> = [
   ["content-security-policy", EXPECTED_CSP],
-  ["referrer-policy", "no-referrer"],
+  ["referrer-policy", "same-origin"],
   ["x-content-type-options", "nosniff"],
   ["x-frame-options", "DENY"],
 ];
@@ -146,7 +146,50 @@ describe("every response from the running server carries it", () => {
       "Node's default clientError handler answers 400 with no headers at all. " +
         `That would be the one response in this process without a policy on it.\n${raw}`,
     );
-    assert.ok(raw.includes("Referrer-Policy: no-referrer"));
+    assert.ok(raw.includes("Referrer-Policy: same-origin"));
+  });
+
+  // TASK-0015, the half that serves the hardened client. `Origin: null` is what
+  // a sandboxed frame, a data: document, or a privacy extension that strips the
+  // header sends. Principle III takes it as given that somap's users are
+  // paranoid for good reason; answering the ones who act on it with a 400 is
+  // the wrong trade. A genuine cross-site origin is still refused -- that case
+  // is asserted below, so this test cannot pass by disabling the check.
+  test("an opaque Origin is served; a foreign Origin is still refused", async () => {
+    const form = new URLSearchParams({ address: "1464 Garman Rd, Akron, OH 44313" });
+
+    const opaque = await fetch(`${ORIGIN}/answer`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Origin: "null",
+      },
+      body: form,
+    });
+    assert.equal(
+      opaque.status,
+      200,
+      "Origin: null must be served. A hardened browser sends it, and somap " +
+        "has no cookies, no session, and no writable table to protect.",
+    );
+    await opaque.text();
+
+    const foreign = await fetch(`${ORIGIN}/answer`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Origin: "https://evil.example",
+      },
+      body: form,
+    });
+    assert.notEqual(
+      foreign.status,
+      200,
+      "A named cross-site Origin must still be refused. If this passes, the " +
+        "opaque-origin normalization was written too broadly and turned off " +
+        "the check instead of narrowing it.",
+    );
+    await foreign.text().catch(() => {});
   });
 });
 

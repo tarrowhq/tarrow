@@ -64,7 +64,7 @@ server.on("clientError", (_err: Error, socket: Socket) => {
       "Content-Type: text/plain; charset=utf-8\r\n" +
       `Content-Length: ${body.length}\r\n` +
       `Content-Security-Policy: ${CONTENT_SECURITY_POLICY}\r\n` +
-      "Referrer-Policy: no-referrer\r\n" +
+      "Referrer-Policy: same-origin\r\n" +
       "Cache-Control: no-store, no-cache, must-revalidate, private\r\n" +
       "X-Content-Type-Options: nosniff\r\n" +
       "X-Frame-Options: DENY\r\n" +

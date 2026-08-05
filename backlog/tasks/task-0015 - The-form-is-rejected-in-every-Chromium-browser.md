@@ -4,6 +4,7 @@ title: The form is rejected in every Chromium browser
 status: To Do
 assignee: []
 created_date: '2026-08-05 13:39'
+updated_date: '2026-08-05 13:44'
 labels:
   - 'area:web'
   - 'kind:bug'
@@ -49,3 +50,9 @@ So this task also adds a browser-driven test to the composition: load the page i
 - [ ] #4 The browser used by that test builds and runs on both linux/amd64 and linux/arm64
 - [ ] #5 TASK-0002 AC #1 is re-ticked, against a browser rather than against a curl
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Fix scope, stated precisely so it is not misread later: the change makes the BROWSER stop sending Origin: null. It does not make the SERVER accept a null origin -- verified after the change, Origin: null still returns 400. React Router's rejection of a null origin is CSRF protection and was left intact. That leaves a residual case worth knowing about: anything else that produces a null origin (a sandboxed iframe, a data: document, a privacy extension that strips or nulls Origin) still breaks the form. This population uses privacy extensions, so that is not hypothetical. Whether somap should also accept a null origin is a separate security decision and is deliberately not taken here -- though the argument is unusually strong for this app: somap has no cookies, no sessions, and no state-changing operations, so a forged request performs a search on the victim's behalf with no side effect and nothing to steal, which is close to the definition of a non-threat. Raise it as its own card rather than folding it into a bug fix.
+<!-- SECTION:NOTES:END -->
