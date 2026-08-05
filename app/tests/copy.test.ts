@@ -15,13 +15,13 @@
 // would pass while the served page was broken.
 //
 // The one shape that cannot be provoked against a healthy composition --
-// `search-failed` -- is produced by starting a SECOND somap server inside this
+// `search-failed` -- is produced by starting a SECOND tarrow server inside this
 // container, pointed at a port with no database behind it, and reading ITS
 // served document. Same code, same renderer, same wire. See `withoutADatabase`.
 //
 // WHY THE VOCABULARY LIST HAS AN ALLOWLIST, AND WHY THAT IS NOT A LOOPHOLE
 //
-// A blanket ban on the word "legal" would force somap to weaken the disclosure
+// A blanket ban on the word "legal" would force tarrow to weaken the disclosure
 // that its own rule content is unverified -- a paragraph that ends "never as a
 // legal conclusion", which is the OPPOSITE of a permission claim and which
 // server/manifest.ts refuses to serve a result without. So exact negated
@@ -49,7 +49,7 @@ import {
 } from "./fixtures.ts";
 
 const APP_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const ORIGIN = process.env.SOMAP_APP_ORIGIN ?? "http://app:3000";
+const ORIGIN = process.env.TARROW_APP_ORIGIN ?? "http://app:3000";
 
 // ---------------------------------------------------------------------------
 // The vocabulary
@@ -65,7 +65,7 @@ const HARD_DENY: ReadonlyArray<readonly [RegExp, string]> = [
   [/good to go/i, "reads as permission"],
   [/in the clear/i, "reads as permission"],
   [/green light/i, "reads as permission"],
-  [/no restrictions/i, "claims an absence somap cannot know"],
+  [/no restrictions/i, "claims an absence tarrow cannot know"],
   [/this address is (?:clear|legal|approved|permitted|allowed|safe)/i, "a verdict"],
   [/\bapproved\b/i, "the constitution names this word"],
   [/\bcleared\b/i, "the constitution names this word"],
@@ -102,7 +102,7 @@ const ALLOWED_NEGATIONS: ReadonlyArray<{ phrase: string; why: string }> = [
   {
     phrase: "never as a legal conclusion",
     why:
-      "The last clause of somap's own unverified-rule disclosure, read from " +
+      "The last clause of tarrow's own unverified-rule disclosure, read from " +
       "the coverage-gap ledger (server/manifest.ts refuses to build a manifest " +
       "without that row). It tells the reader the opposite of permission: that " +
       "no distance on the page is a conclusion about the law. Banning the word " +
@@ -150,8 +150,8 @@ const MANIFEST_TOKENS = [
  * deal of this page on the argument that disclosure a reader scrolls past was
  * never delivered. That argument cuts both ways: disclosure a reader never
  * opens was not delivered either. The line drawn, and the line this gate
- * holds, is that WHAT SOMAP DID NOT CHECK stays on the page unfolded, while
- * HOW SOMAP KNOWS WHAT IT CHECKED may fold away.
+ * holds, is that WHAT TARROW DID NOT CHECK stays on the page unfolded, while
+ * HOW TARROW KNOWS WHAT IT CHECKED may fold away.
  *
  * These three are the facility-class and jurisdiction gaps -- the ones that
  * make an unflagged answer honest. "St. Vincent-St. Mary High School" is
@@ -164,7 +164,7 @@ const VISIBLE_GAP_TOKENS = [
   "Coverage is Summit County, Ohio only",
 ] as const;
 
-/** Everything inside a <details>, removed. somap nests none, so this is exact. */
+/** Everything inside a <details>, removed. tarrow nests none, so this is exact. */
 function withoutCollapsedContent(body: string): string {
   return body.replace(/<details[\s\S]*?<\/details>/g, " ");
 }
@@ -195,7 +195,7 @@ interface Shape {
   readonly name: string;
   readonly status: number;
   readonly body: string;
-  /** A result somap produced from a submitted address. */
+  /** A result tarrow produced from a submitted address. */
   readonly isSearchResult: boolean;
   /** ...and one whose coverage manifest was read from data rather than withdrawn. */
   readonly hasLoadedManifest: boolean;
@@ -263,7 +263,7 @@ const LOADED_MANIFESTS = ROSTER.filter((r) => r.hasLoadedManifest).map((r) => r.
  * five result shapes plus the three pages a reader lands on instead of one
  * (the error boundary, a bare GET of /answer, and a failed search). Those
  * three are included precisely because they are the shapes most easily read as
- * "nothing found": a page where somap could not answer must still point at the
+ * "nothing found": a page where tarrow could not answer must still point at the
  * office that can.
  *
  * `form` and `faq` are NOT on it. Neither is a result and neither says
@@ -296,7 +296,7 @@ async function submit(origin: string, address: string): Promise<Response> {
 }
 
 /**
- * A second somap server, in this container, with nowhere to connect.
+ * A second tarrow server, in this container, with nowhere to connect.
  *
  * `search-failed` cannot be provoked against a healthy composition, and the
  * suite must not be able to take the composition down to try -- tests/docker.ts
@@ -330,7 +330,7 @@ async function withoutADatabase<T>(use: (origin: string) => Promise<T>): Promise
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
     throw new Error(
-      "the database-less somap server never came up, so the search-failed " +
+      "the database-less tarrow server never came up, so the search-failed " +
         "shape was never rendered and nothing about it was checked",
     );
   } finally {
@@ -421,16 +421,16 @@ describe("every shape was actually captured before anything is concluded", () =>
   test("each shape really is the shape it is named after", () => {
     const marker: Record<string, string> = {
       form: "A street address in Summit County, Ohio",
-      faq: "What somap is",
-      "premises-within-buffer": "Result: inside a buffer somap checked",
-      "premises-within-buffer-by-uncertainty": "Result: inside a buffer somap checked",
+      faq: "What tarrow is",
+      "premises-within-buffer": "Result: inside a buffer tarrow checked",
+      "premises-within-buffer-by-uncertainty": "Result: inside a buffer tarrow checked",
       "outside-every-buffer-we-checked": "Result: outside every buffer we checked",
-      declined: "No result: somap stopped instead of measuring",
-      "could-not-locate": "No result: somap could not find this address",
-      "could-not-locate-empty-input": "No result: somap could not find this address",
-      "error-boundary": "No result: somap could not answer",
+      declined: "No result: tarrow stopped instead of measuring",
+      "could-not-locate": "No result: tarrow could not find this address",
+      "could-not-locate-empty-input": "No result: tarrow could not find this address",
+      "error-boundary": "No result: tarrow could not answer",
       "nothing-submitted": "No result: nothing was submitted",
-      "search-failed": "No result: somap failed",
+      "search-failed": "No result: tarrow failed",
     };
     for (const [name, text] of Object.entries(marker)) {
       assert.ok(
@@ -456,7 +456,7 @@ describe("every shape was actually captured before anything is concluded", () =>
     );
     assert.ok(
       !shape("outside-every-buffer-we-checked").body.includes(
-        "What somap found inside the buffer",
+        "What tarrow found inside the buffer",
       ),
     );
   });
@@ -470,7 +470,7 @@ describe("no rendered copy states or implies permission (FR-014, AC #3)", () => 
         assert.doesNotMatch(
           body,
           pattern,
-          `${name}: ${why}. Constitution Principle I -- somap never says a ` +
+          `${name}: ${why}. Constitution Principle I -- tarrow never says a ` +
             "person may live somewhere, and no allowlist excuses this one.",
         );
       }
@@ -588,7 +588,7 @@ describe("the coverage manifest is on every result (FR-009, FR-015, AC #2)", () 
      * document means a table that quietly lost a row still passes as long as
      * some sentence elsewhere makes the total come out right.
      *
-     * So: find the table somap marks as the layer registry, and require that
+     * So: find the table tarrow marks as the layer registry, and require that
      * every row of it -- all 7 -- renders the marker. A null verification date
      * must read NEVER, not a blank cell, not a dash, and never a fetch date
      * wearing a verification's name.
@@ -629,7 +629,7 @@ describe("the coverage manifest is on every result (FR-009, FR-015, AC #2)", () 
   }
 
   for (const name of SEARCH_RESULTS) {
-    test(`${name} says the rule somap applied is not verified data`, () => {
+    test(`${name} says the rule tarrow applied is not verified data`, () => {
       assert.ok(
         shape(name).body.toLowerCase().includes(RULE_NOT_VERIFIED),
         `${name} omits the Principle V disclosure. The 304.8 m buffer is ` +
@@ -666,7 +666,7 @@ describe("the coverage manifest is on every result (FR-009, FR-015, AC #2)", () 
     for (const name of ["search-failed", "error-boundary"]) {
       assert.ok(
         shape(name).body.includes(
-          "somap cannot tell you what it checked, because it checked nothing",
+          "tarrow cannot tell you what it checked, because it checked nothing",
         ),
         `${name} must withdraw its coverage claim explicitly. A silence where ` +
           "the manifest would be reads as reassurance.",
@@ -681,8 +681,8 @@ describe("a refusal and a result differ by more than a sentence (User Story 3, A
 
   test("only results render a measured parcel, a distance, or a premises list", () => {
     const STRUCTURE = [
-      "The parcel somap measured from",
-      "Distance somap measured",
+      "The parcel tarrow measured from",
+      "Distance tarrow measured",
       "How the parcel was attached to the address",
     ];
     for (const name of REFUSALS) {
@@ -690,16 +690,16 @@ describe("a refusal and a result differ by more than a sentence (User Story 3, A
         assert.equal(
           shape(name).body.includes(marker),
           false,
-          `${name} renders "${marker}". A page where somap measured nothing ` +
+          `${name} renders "${marker}". A page where tarrow measured nothing ` +
             "must not have the furniture of a page where it measured something.",
         );
       }
     }
     // ...and the results do, so the check above is not vacuous.
-    assert.ok(shape("premises-within-buffer").body.includes("Distance somap measured"));
+    assert.ok(shape("premises-within-buffer").body.includes("Distance tarrow measured"));
     assert.ok(
       shape("outside-every-buffer-we-checked").body.includes(
-        "The parcel somap measured from",
+        "The parcel tarrow measured from",
       ),
     );
   });
@@ -742,13 +742,13 @@ describe("a refusal and a result differ by more than a sentence (User Story 3, A
     );
   });
 
-  test("declined and could-not-locate say different things about what somap knows", () => {
+  test("declined and could-not-locate say different things about what tarrow knows", () => {
     const declined = shape("declined").body;
     const notFound = shape("could-not-locate").body;
-    assert.ok(declined.includes("Why somap stopped"));
-    assert.ok(declined.includes("somap knows where this is"));
-    assert.ok(!notFound.includes("Why somap stopped"));
-    assert.ok(notFound.includes("somap does not know where this address is"));
+    assert.ok(declined.includes("Why tarrow stopped"));
+    assert.ok(declined.includes("tarrow knows where this is"));
+    assert.ok(!notFound.includes("Why tarrow stopped"));
+    assert.ok(notFound.includes("tarrow does not know where this address is"));
     assert.ok(notFound.includes("Why this happens, and what to try"));
     assert.ok(!declined.includes("Why this happens, and what to try"));
   });
@@ -768,7 +768,7 @@ describe("none of it requires JavaScript (FR-015, SC-001, User Story 4 scenario 
       assert.doesNotMatch(
         shape(name).body,
         /<script/i,
-        `${name} ships script. somap ships none: the CSP is script-src 'self' ` +
+        `${name} ships script. tarrow ships none: the CSP is script-src 'self' ` +
           "with no nonce, so anything inline would be dead code, and a reader " +
           "verifying the page should find nothing to audit.",
       );

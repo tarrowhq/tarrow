@@ -11,7 +11,7 @@
 --
 -- The identifier stays non-unique as well (condominium and split records
 -- repeat a parcelid), which is why the primary key is a surrogate. Nothing in
--- somap keys on parcel_id.
+-- tarrow keys on parcel_id.
 
 ALTER TABLE parcels ALTER COLUMN parcel_id DROP NOT NULL;
 

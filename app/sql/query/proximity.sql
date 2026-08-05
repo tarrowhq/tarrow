@@ -44,7 +44,7 @@
 -- at a p95 campus extent of 1,575 m no defensible number exists -- an honest
 -- one flags most of a city and a convenient one under-restricts. The exclusion
 -- is doubly enforced: geom IS NOT NULL below, and
--- somap_premises_uncertainty_m() returning NULL for such a row so the
+-- tarrow_premises_uncertainty_m() returning NULL for such a row so the
 -- subtraction could not produce a distance even if this WHERE clause were lost.
 --
 -- Returns zero rows when nothing is within the buffer. The caller renders that
@@ -69,7 +69,7 @@ WITH residence AS (
 -- flags -- the failure this bound exists to make impossible.
 search_bound AS (
     SELECT coalesce(
-               max(somap_premises_uncertainty_m(match_basis, match_corroboration)),
+               max(tarrow_premises_uncertainty_m(match_basis, match_corroboration)),
                0.0
            ) AS max_r_b
       FROM school_premises
@@ -88,7 +88,7 @@ SELECT res.parcel_id,
        res.r_a                      AS residence_uncertainty_m,
        u.r_b                        AS premises_uncertainty_m,
        d.d_m - res.r_a - u.r_b      AS d_min_m,
-       somap_unverified_state_buffer_m() AS buffer_m
+       tarrow_unverified_state_buffer_m() AS buffer_m
   FROM residence res
   CROSS JOIN search_bound sb
   JOIN school_premises sp
@@ -96,14 +96,14 @@ SELECT res.parcel_id,
    AND ST_DWithin(
            res.geom,
            sp.geom,
-           somap_unverified_state_buffer_m() + res.r_a + sb.max_r_b
+           tarrow_unverified_state_buffer_m() + res.r_a + sb.max_r_b
        )
   CROSS JOIN LATERAL (
-        SELECT somap_premises_uncertainty_m(sp.match_basis, sp.match_corroboration) AS r_b
+        SELECT tarrow_premises_uncertainty_m(sp.match_basis, sp.match_corroboration) AS r_b
   ) u
   CROSS JOIN LATERAL (
         SELECT ST_Distance(res.geom, sp.geom) AS d_m
   ) d
  -- The pessimistic bound. Strictly less than the buffer, matching DECISION §3.
- WHERE d.d_m - res.r_a - u.r_b < somap_unverified_state_buffer_m()
+ WHERE d.d_m - res.r_a - u.r_b < tarrow_unverified_state_buffer_m()
  ORDER BY res.parcel_id, d_min_m, sp.name, sp.id;

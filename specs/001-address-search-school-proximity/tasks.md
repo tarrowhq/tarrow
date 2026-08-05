@@ -259,15 +259,15 @@ ledger Principle II requires. `address_points.normalized` and the `resolve_addre
 migrations are the expected way for Phase 2/3 to extend this, not edits to files already
 applied.
 
-**`somap_app` role and credentials**: `app/sql/schema/010_grants.sql` creates
-`somap_app LOGIN PASSWORD 'somap_app'` — a fixed local-dev credential matching the
-existing plaintext `somap`/`somap` convention already in `docker-compose.yml` (R3 rules
+**`tarrow_app` role and credentials**: `app/sql/schema/010_grants.sql` creates
+`tarrow_app LOGIN PASSWORD 'tarrow_app'` — a fixed local-dev credential matching the
+existing plaintext `tarrow`/`tarrow` convention already in `docker-compose.yml` (R3 rules
 out public deployment for this task). `server/migrate.ts` connects as the database owner
-(`POSTGRES_USER`/`POSTGRES_PASSWORD`, default `somap`/`somap`) and is the only thing
-permitted to run schema DDL; `server/db.ts`'s pool connects as `somap_app` and nothing in
+(`POSTGRES_USER`/`POSTGRES_PASSWORD`, default `tarrow`/`tarrow`) and is the only thing
+permitted to run schema DDL; `server/db.ts`'s pool connects as `tarrow_app` and nothing in
 `server/` ever holds owner credentials. ETL writers (Phase 2's `etl/load.ts`, via
 `etl/reload.ts`'s `truncateAndReload`) must connect as the owner too, for the same reason
-`somap_app` cannot `TRUNCATE`.
+`tarrow_app` cannot `TRUNCATE`.
 
 **`migrate` is a one-shot compose service**, not logic inside `app`'s startup:
 `docker compose up` only reaches a healthy `app` after `migrate` exits 0
@@ -423,7 +423,7 @@ parcel carries no identifier at all — kept, because its polygon is measurement
   `assertEveryNullGeomIsDeclared` fire: *"1 school premises rows have no geometry and no
   coverage_gaps row explaining it … An undeclared gap is exactly what Principle II
   forbids."* Fixture restored.
-- **Principle IV still holds on the new tables.** `psql -U somap_app -c "INSERT INTO
+- **Principle IV still holds on the new tables.** `psql -U tarrow_app -c "INSERT INTO
   municipalities …"` → `ERROR: permission denied for table municipalities`; `SELECT` works.
   `ALTER DEFAULT PRIVILEGES` from 010 covers tables created by later migrations.
 - `docker compose up -d` → `db` healthy, `app` healthy, `GET / → 200`.
@@ -443,7 +443,7 @@ parcel carries no identifier at all — kept, because its polygon is measurement
   whose boundary may understate the premises — surface it.
 - **`school_type` has a fourth value, `unclassified`**, on the 60 owner-name rows. The tax
   roll does not say whether the owner runs a nonpublic or a community school; claiming
-  either would be a receipt somap has not earned.
+  either would be a receipt tarrow has not earned.
 - **A school can appear as several premises rows** (one per parcel — Western Reserve Academy
   has seven). That is ORC 2925.01(S) working as written, not duplication to collapse. A
   result listing flagged premises should expect repeated names.
@@ -463,28 +463,28 @@ parcel carries no identifier at all — kept, because its polygon is measurement
 `docker compose run --rm test`. It builds from the Dockerfile's **`build` stage**, not the
 runtime stage, because that is the only stage carrying `tsc` — which the compile-failure
 fixture needs in order to prove a clearance does not type-check. The runtime image still
-has no dev dependencies. Tests connect as **`somap_app`**, the read-only role, so the
+has no dev dependencies. Tests connect as **`tarrow_app`**, the read-only role, so the
 query is exercised under the privileges it actually has. **43 tests, 13 suites, 0
 failures.**
 
 #### Where each thing lives, and why it is not where the box said
 
 - **`sql/schema/012_address_normalization.sql`** — the normalizer ported from the spike,
-  byte-faithful (four lookup tables + `somap_normalize_address`). The box said "port into
+  byte-faithful (four lookup tables + `tarrow_normalize_address`). The box said "port into
   `app/sql/query/resolve_address.sql`". It is a plpgsql function plus tables, and
-  `somap_app` has `CREATE` revoked (010) — the query loader physically cannot define it.
+  `tarrow_app` has `CREATE` revoked (010) — the query loader physically cannot define it.
   Authored content compiled into the database by a build step is also the exact shape
   Principle IV sets. `resolve_address.sql` is the query file that **calls** it, and is
   where a reviewer auditing resolution reads the logic. R4's requirement — the
   safety-critical statement is reviewed as a file diff — holds either way.
 - **`sql/schema/013_measurement_uncertainty.sql`** — three functions, and each
   safety-critical constant is written down **exactly once** anywhere in the repo:
-  `somap_unverified_state_buffer_m()` (304.8), `somap_residence_uncertainty_m(basis)`,
-  `somap_premises_uncertainty_m(basis, corroboration)`. Duplicating a radius or the buffer
+  `tarrow_unverified_state_buffer_m()` (304.8), `tarrow_residence_uncertainty_m(basis)`,
+  `tarrow_premises_uncertainty_m(basis, corroboration)`. Duplicating a radius or the buffer
   across two files is precisely how a sign or a value drifts, so
   `tests/no-fallback.test.ts` asserts `304.8` and `126` appear in **that one file and
   nowhere else** — including in the TypeScript.
-- **The function name `somap_unverified_state_buffer_m` is a load-bearing disclosure.**
+- **The function name `tarrow_unverified_state_buffer_m` is a load-bearing disclosure.**
   Do not rename it to drop `unverified` before TASK-0003 lands.
 
 #### The uncertainty radii, and the one judgement call in them
@@ -502,7 +502,7 @@ failures.**
 
 **The +126 m is a Phase-3 decision and the only value DECISION §3 did not already fix.**
 The 15 `uncorroborated` rows are schools whose geocoded point landed on a parcel the county
-does **not** record as tax-exempt — probably a neighbour's lot, so the boundary somap holds
+does **not** record as tax-exempt — probably a neighbour's lot, so the boundary tarrow holds
 probably **understates** the premises, which is the under-restricting direction. 126 m is
 DECISION §3's own measured p95 extent for a typical suburban lot, and the figure it already
 adopts as the assumed radius for a residential-lot facility. It is **not** an assumed
@@ -609,7 +609,7 @@ into the test output, and asserts them.
 - **`search()` takes an optional connection factory** (`search(raw, connect?)`), used only
   by tests to reach the failure variants. No production caller passes it.
 - The `test` compose service is where Phase 4's log-capture test can also live; it already
-  runs as `somap_app` against the real composition.
+  runs as `tarrow_app` against the real composition.
 - `docker compose exec db psql` currently logs nothing about statements, but that is the
   image default and not yet asserted — Phase 4's box.
 
@@ -659,9 +659,9 @@ into the test output, and asserts them.
 **Everything ran through `docker compose`.** Suite: `docker compose --profile test run
 --rm test` → **107 tests, 25 suites, 0 failures** (was 43 before this phase).
 
-#### The headline: the log-capture test found three real leaks, and none of them was in somap's code
+#### The headline: the log-capture test found three real leaks, and none of them was in tarrow's code
 
-Phase 3's note said the query path writes nothing, and it was right. somap's code was never
+Phase 3's note said the query path writes nothing, and it was right. tarrow's code was never
 the problem. Driving a probe address at the running composition and reading it back out of
 `docker logs` found the searched address printed by **dependencies**, from three places:
 
@@ -726,7 +726,7 @@ PostgreSQL's startup banner and the app's listen line are *present* before it gr
 single address, and asserts the search it ran actually resolved and flagged. (Same class of
 hazard as the zero-collection test run the orchestrator found.)
 
-#### CSP forced a decision: somap ships no client-side JavaScript
+#### CSP forced a decision: tarrow ships no client-side JavaScript
 
 `script-src 'self'` with no `'unsafe-inline'` and no nonce is incompatible with React
 Router's hydration bootstrap, which is **three inline `<script>` blocks**. The three ways
@@ -756,10 +756,10 @@ process answering for its own assets.
 #### Headers beyond the CSP, and why each is not decoration
 
 `Referrer-Policy: no-referrer` (Phase 5 adds sheriff guidance, guidance grows links, and a
-link would otherwise tell a county which somap page a reader was on).
+link would otherwise tell a county which tarrow page a reader was on).
 `Cache-Control: no-store` (a result page in a browser or proxy cache is a durable record of
 where somebody is trying to move — on a shared or library computer especially).
-`Permissions-Policy: geolocation=()` (somap asks where you want to live; it must never be
+`Permissions-Policy: geolocation=()` (tarrow asks where you want to live; it must never be
 able to ask where you are). Plus `nosniff`, `X-Frame-Options`, and the `Cross-Origin-*`
 isolation pair.
 
@@ -787,7 +787,7 @@ packages and asserted, and `connect-src 'self'` plus no client JS closes the cli
   length at the top of `app/app/root.tsx`.
 - **Submit the address by POST, never GET.** A GET puts it in the URL, and a URL reaches
   browser history, the `Referer` header, and any future proxy's access log — none of which
-  somap's controls reach. The form-action model does this naturally; do not "improve" it
+  tarrow's controls reach. The form-action model does this naturally; do not "improve" it
   into a query string.
 - **`app/app/root.tsx` has a placeholder `ErrorBoundary`.** It is the minimum that is safe,
   not finished copy: Phase 5 owns the words and must add the sheriff-confirmation guidance
@@ -802,7 +802,7 @@ packages and asserted, and `connect-src 'self'` plus no client JS closes the cli
 - **The `test` service now depends on `app: service_healthy`** and mounts
   `/var/run/docker.sock:ro` (test profile only — `docker compose up` never starts it).
   Container output only exists outside the container, so a suite that cannot reach the
-  engine could only re-assert that somap does not log, which is the claim rather than the
+  engine could only re-assert that tarrow does not log, which is the claim rather than the
   evidence. `captureLogs()` excludes exactly one stream — the `test` service's own
   containers, which print the probe address by name in every assertion message.
 - The suite is **107 tests**. If a run reports fewer, something was not collected.
@@ -836,7 +836,7 @@ unflagged result, a decline, two could-not-locates, the 404 error boundary, a GE
   spec SC-005's vocabulary as word-boundary stems, so `approval`, `clearance`, and
   `permitted` are caught by their roots.
 - **The one allowlisted phrase is a negation**, and it is `"never as a legal conclusion"` —
-  the last clause of somap's own unverified-rule disclosure, read from the coverage-gap
+  the last clause of tarrow's own unverified-rule disclosure, read from the coverage-gap
   ledger. A blanket ban on `legal` would have deleted the disclosure rather than the claim.
   It carries a written reason, and a test asserts the phrase still occurs, so a dead
   exemption cannot sit there quietly widening the gate. It is the **only** entry, and it is
@@ -852,12 +852,12 @@ unflagged result, a decline, two could-not-locates, the 404 error boundary, a GE
   mutually exclusive; the refusals render `answer--stopped` / `answer--broken`, whose CSS is
   a **dashed** border rather than a colour change, so the difference survives for a reader
   who cannot distinguish the accents; and **structurally**, no refusal renders *"The parcel
-  somap measured from"*, *"Distance somap measured"*, or a premises list — with the converse
+  tarrow measured from"*, *"Distance tarrow measured"*, or a premises list — with the converse
   asserted too, so the check is not vacuous. `declined` and `could-not-locate` are separated
-  on what somap knows: *"somap knows where this is"* vs *"somap does not know where this
+  on what tarrow knows: *"tarrow knows where this is"* vs *"tarrow does not know where this
   address is"*, under different section headings.
 - **The sheriff step is the recommended action.** It says what to ask, what to take with
-  you, and that if that office disagrees **it is right and somap is wrong**. Asserted on all
+  you, and that if that office disagrees **it is right and tarrow is wrong**. Asserted on all
   ten shapes on two independent tokens.
 
 #### What every result carries, and the shape of the manifest on the page
@@ -871,11 +871,11 @@ and the measurement-basis table are in the served document either way, which is 
 - **`verifiedAt` renders as `never human-verified`**, and the test counts it: exactly **7**
   occurrences, one per layer. Not a blank cell, not a dash, and never a fetch date wearing a
   verification's name.
-- **Data age is a visible sentence**, not a footer: *"This somap instance last fetched data
+- **Data age is a visible sentence**, not a footer: *"This tarrow instance last fetched data
   on 4 August 2026, and its oldest layer was fetched on…"* (Principle VII — an instance
   cannot hide its age).
 - **`ruleContent.statement` is rendered in full on every result**, in its own section headed
-  *"No person has checked the rule somap applied"*, followed by a plain-English restatement.
+  *"No person has checked the rule tarrow applied"*, followed by a plain-English restatement.
   Asserted on all five search-result shapes, including the withdrawn manifest, whose own
   statement also carries *"not verified rule data"*.
 - **The buffer is never a literal in the renderer.** `bufferMeters` comes from the result and
@@ -887,7 +887,7 @@ and the measurement-basis table are in the served document either way, which is 
 `/` is the form and reads **no database**, so it loads when the database is down.
 `/answer` answers **POST only**. The address travels in the request body: a GET would put it
 in the URL, and a URL reaches browser history, the address bar, the `Referer` header, and
-any future proxy's access log — none of which somap's controls reach. `copy.test.ts` asserts
+any future proxy's access log — none of which tarrow's controls reach. `copy.test.ts` asserts
 no served `href`, `action`, `src`, `content`, or `<title>` on any result carries a searched
 address.
 
@@ -908,14 +908,14 @@ a constraint worth knowing before someone tries. `search-failed` also cannot be 
 against a healthy composition, and the suite must not be able to take the composition down
 to try (`tests/docker.ts` is read-only by design).
 
-So `copy.test.ts` starts a **second somap server inside the test container**
+So `copy.test.ts` starts a **second tarrow server inside the test container**
 (`server/entry.ts`, `PGPORT` pointed at a closed port), and reads the document it serves.
 Same code, same renderer, same wire as every other shape.
 
 It was also seen for real: on the clean-clone run below, a search against a **never-loaded**
 database returned `search-failed`, because `server/manifest.ts`'s rule-disclosure gate fires
 before anything else — *"This instance's coverage-gap ledger is missing the row disclosing
-that its distance rule is not verified data. somap will not serve a result that could be
+that its distance rule is not verified data. tarrow will not serve a result that could be
 read as a verified legal conclusion, so it serves none."* That precedence is correct and
 worth recording: an empty database fails **loudly** rather than producing a confident-looking
 empty answer.
@@ -929,10 +929,10 @@ the suite has (`MINIMUM_TEST_FILES`), when `node --test` reports fewer tests tha
 
 ```
 $ docker compose run --rm app npm test
-somap: REFUSING TO REPORT A PASS.
+tarrow: REFUSING TO REPORT A PASS.
   There is no tests directory at /app/tests, so nothing could be collected.
   A run that collects nothing is not a run that passed.
-  The only sanctioned way to run somap's test suite is:
+  The only sanctioned way to run tarrow's test suite is:
       docker compose --profile test run --rm test
 EXIT=1
 ```
@@ -1003,12 +1003,12 @@ same bytes. Both verification projects were torn down with `down -v` afterwards.
 
 #### What is still open
 
-- **An `<a href>` to somap's own repository or issue tracker is deliberately absent.**
+- **An `<a href>` to tarrow's own repository or issue tracker is deliberately absent.**
   Reporting a wrong answer needs TASK-0009 (a report that carries no query context) first;
   the page says so in as many words rather than linking somewhere that would.
 - **`Referrer-Policy: no-referrer` is doing real work now** that the sheriff section exists:
   the moment anyone adds a link to a county website, that county would otherwise be told
-  which somap page the reader was on.
+  which tarrow page the reader was on.
 - **The 400-byte proximity assertion on the outside-every-buffer qualification is a proxy
   for "above the fold"**, which nothing in HTML can actually assert. If the banner is ever
   restructured, that number needs re-deriving rather than raising.

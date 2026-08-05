@@ -31,7 +31,7 @@ RUN npm run scan:external-origins
 # -----------------------------------------------------------------------------
 # The browser stage: the build stage plus a real browser.
 #
-# TASK-0015 exists because somap shipped an app that did not work in a browser
+# TASK-0015 exists because tarrow shipped an app that did not work in a browser
 # while 146 tests passed. Every one of them reached the app through fetch(),
 # and fetch is not a browser -- it does not implement referrer policy, so it
 # could not produce the `Origin: null` that broke the form, and no assertion
@@ -93,15 +93,15 @@ EXPOSE 3000
 #
 # Not a tuning knob -- a bug fix (TASK-0014). Browsers key the cookie jar on
 # hostname and ignore the port, so on a developer machine, where every project
-# shares `localhost`, somap receives the accumulated cookies of every other
+# shares `localhost`, tarrow receives the accumulated cookies of every other
 # application ever served from that hostname. Past 16 KB the parser rejects the
-# request before somap sees it, and a housing tool answers with an error for
-# something no part of somap did.
+# request before tarrow sees it, and a housing tool answers with an error for
+# something no part of tarrow did.
 #
 # 64 KB is headroom, not the fix on its own: server/entry.ts still answers an
 # actual overflow with an explanation rather than a bare failure, because a
 # limit large enough never to be hit is a limit nobody has tested.
 #
-# somap sets no cookies and reads no request header of consequence, so nothing
+# tarrow sets no cookies and reads no request header of consequence, so nothing
 # here is made more permissive in any sense that matters -- only more legible.
 CMD ["node", "--max-http-header-size=65536", "server/entry.ts"]

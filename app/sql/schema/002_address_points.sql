@@ -1,6 +1,6 @@
 -- Summit County Address Points -- the ground-truth address list
 -- (spikes/task-0001-geocoding/DECISION.md §1). A typed address resolves
--- against THIS layer; somap never matches against parcels.site_address.
+-- against THIS layer; tarrow never matches against parcels.site_address.
 --
 -- Geometry is stored in EPSG:6549 (NAD83(2011) Ohio North, metres), never
 -- geography -- DECISION §2 makes this load-bearing: geography casts defeat

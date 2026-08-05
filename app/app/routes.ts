@@ -9,7 +9,7 @@ import { type RouteConfig, index, route } from "@react-router/dev/routes";
 //            in the request BODY -- a GET would put it in the URL, and a URL
 //            reaches browser history, the address bar, the `Referer` header,
 //            and any future proxy's access log (Constitution Principle III).
-// `/faq`     what somap checks, what it misses, how to read an answer, and
+// `/faq`     what tarrow checks, what it misses, how to read an answer, and
 //            what happens to what you type. Reads no database either. It
 //            exists so the other two pages can be short (TASK-0017); it does
 //            NOT carry any obligation on their behalf -- Principle II's

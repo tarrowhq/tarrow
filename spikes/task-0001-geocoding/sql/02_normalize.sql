@@ -1,6 +1,6 @@
 -- Address normalization.
 --
--- This is the thing actually under test. The match rate somap can achieve is
+-- This is the thing actually under test. The match rate tarrow can achieve is
 -- almost entirely a function of how well this collapses two independently
 -- spelled renderings of the same address onto one string.
 --
@@ -128,9 +128,9 @@ SELECT p, array_length(string_to_array(p, ' '), 1) FROM (VALUES
 ) v(p);
 
 -- ---------------------------------------------------------------------------
--- somap_normalize_address(raw) -> canonical string
+-- tarrow_normalize_address(raw) -> canonical string
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION somap_normalize_address(raw text)
+CREATE OR REPLACE FUNCTION tarrow_normalize_address(raw text)
 RETURNS text
 LANGUAGE plpgsql
 IMMUTABLE

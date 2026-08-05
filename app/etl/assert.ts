@@ -63,7 +63,7 @@ export async function auditKey(
  *
  * `declaredNonUnique` is the ONLY exemption, and it is a per-layer list in
  * etl/sources.ts. A column named there is audited and ledgered instead of
- * aborting -- because somap keys on none of them, and preserving the rows is
+ * aborting -- because tarrow keys on none of them, and preserving the rows is
  * what keeps 30,426 duplicate ADDR_ID values from collapsing into 15,000
  * addresses that silently stop resolving (DECISION §7). Remove a column from
  * that list and this assertion fires on the real data, which is how it is

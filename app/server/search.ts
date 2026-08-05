@@ -20,7 +20,7 @@
 // Nothing here logs. Not the address, not a normalized form of it, not a
 // parcel id, not a timing. Principle III: the uniquely dangerous datum is
 // where somebody is TRYING to move, and it exists nowhere else in the world --
-// somap does not create it as a record. Error details below are drawn from
+// tarrow does not create it as a record. Error details below are drawn from
 // fixed strings and never interpolate anything the user typed.
 
 import type { PoolClient } from "pg";
@@ -149,7 +149,7 @@ function nearest(premises: readonly FlaggedPremises[]): number | null {
 
 /**
  * Rank candidates most-restrictive first (DECISION §4: where candidates
- * disagree, somap resolves to the most restrictive -- it never silently picks
+ * disagree, tarrow resolves to the most restrictive -- it never silently picks
  * one). More flags beats fewer; among equals, the nearer pessimistic distance
  * wins; parcel id breaks remaining ties so two identical searches cannot
  * disagree between runs.
@@ -208,12 +208,12 @@ export async function search(
     return {
       kind: "search-failed",
       manifest: unreadableManifest(
-        "somap could not reach its database, so no address was checked against anything.",
+        "tarrow could not reach its database, so no address was checked against anything.",
       ),
       reason: "database-unreachable",
       detail:
         "The database could not be reached. Nothing was checked. This is a " +
-        "fault in this somap instance, not an answer about the address.",
+        "fault in this tarrow instance, not an answer about the address.",
     };
   }
 
@@ -227,14 +227,14 @@ export async function search(
         kind: "search-failed",
         manifest: unreadableManifest(
           missingDisclosure
-            ? "somap's record of what it does and does not cover is missing its " +
+            ? "tarrow's record of what it does and does not cover is missing its " +
               "rule-content disclosure, so no result may be served."
-            : "somap could not read its coverage record, so nothing was checked.",
+            : "tarrow could not read its coverage record, so nothing was checked.",
         ),
         reason: missingDisclosure ? "query-failed" : "database-unreachable",
         detail: missingDisclosure
           ? "This instance's coverage-gap ledger is missing the row disclosing " +
-            "that its distance rule is not verified data. somap will not serve " +
+            "that its distance rule is not verified data. tarrow will not serve " +
             "a result that could be read as a verified legal conclusion, so it " +
             "serves none."
           : "The coverage record could not be read. Nothing was checked.",
@@ -252,7 +252,7 @@ export async function search(
         manifest,
         reason: "data-not-loaded",
         detail:
-          "This somap instance has no data loaded for one or more of the layers " +
+          "This tarrow instance has no data loaded for one or more of the layers " +
           "a search must read, so nothing could be checked. An empty database " +
           "cannot produce an answer about an address, only the appearance of " +
           "one. Run the documented ingest, and confirm with the registering " +
@@ -274,7 +274,7 @@ export async function search(
         manifest,
         reason: "query-failed",
         detail:
-          "The address lookup failed inside this somap instance. Nothing was " +
+          "The address lookup failed inside this tarrow instance. Nothing was " +
           "checked, and nothing about the address was recorded.",
       };
     }
@@ -286,8 +286,8 @@ export async function search(
         manifest,
         reason: "input-normalized-to-nothing",
         detail:
-          "What was entered did not reduce to an address somap can look up. " +
-          "somap does not guess at a nearby street, a ZIP code, or a city " +
+          "What was entered did not reduce to an address tarrow can look up. " +
+          "tarrow does not guess at a nearby street, a ZIP code, or a city " +
           "centre: it says it could not locate the address.",
       };
     }
@@ -300,7 +300,7 @@ export async function search(
         reason: "no-address-point-matched",
         detail:
           "No address point published by Summit County matches this address. " +
-          "somap does not fuzzy-match, and it returns no ZIP centroid, street " +
+          "tarrow does not fuzzy-match, and it returns no ZIP centroid, street " +
           "centroid, or nearby parcel in place of a match. A confident wrong " +
           "building is more dangerous than no answer. The address may be " +
           "outside Summit County, may be spelled differently in the county's " +
@@ -318,7 +318,7 @@ export async function search(
           "This address resolved to a point, but that point sits on no county " +
           "parcel and within 5 m of none either. Measuring from a bare point " +
           "would overstate the distance to every school, which risks calling an " +
-          "address outside the buffer when it is not. somap declines rather " +
+          "address outside the buffer when it is not. tarrow declines rather " +
           "than measure it. Confirm this address with the registering " +
           "sheriff's office.",
       };
@@ -330,9 +330,9 @@ export async function search(
         reason: "some-candidates-have-no-parcel",
         detail:
           "This address matches several county address points, and at least one " +
-          "of them sits on no parcel that somap can measure from. Answering for " +
+          "of them sits on no parcel that tarrow can measure from. Answering for " +
           "the rest would state a result while silently leaving one possible " +
-          "location unchecked. somap declines instead. Confirm this address " +
+          "location unchecked. tarrow declines instead. Confirm this address " +
           "with the registering sheriff's office.",
       };
     }
@@ -366,7 +366,7 @@ export async function search(
         manifest,
         reason: "query-failed",
         detail:
-          "The proximity measurement failed inside this somap instance. No " +
+          "The proximity measurement failed inside this tarrow instance. No " +
           "distance was computed, so no statement about this address is being " +
           "made either way.",
       };
@@ -384,7 +384,7 @@ export async function search(
     }
     const ambiguity = declareAmbiguity(candidates);
     // Never a literal. Both sources are the same SQL function
-    // (somap_unverified_state_buffer_m), so the number cannot disagree with
+    // (tarrow_unverified_state_buffer_m), so the number cannot disagree with
     // itself between the measurement and the disclosure of the measurement.
     const bufferMeters = chosen.premises[0]?.bufferMeters ?? manifest.bufferMeters;
 
@@ -410,11 +410,11 @@ export async function search(
     return {
       kind: "search-failed",
       manifest: unreadableManifest(
-        "somap failed while answering, so it is making no statement about this address.",
+        "tarrow failed while answering, so it is making no statement about this address.",
       ),
       reason: "query-failed",
       detail:
-        "This somap instance failed while answering. Nothing about the address " +
+        "This tarrow instance failed while answering. Nothing about the address " +
         "was recorded, and no statement about it is being made.",
     };
   } finally {

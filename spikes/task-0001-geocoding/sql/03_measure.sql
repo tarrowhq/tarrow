@@ -25,11 +25,11 @@
 ALTER TABLE parcel    ADD COLUMN IF NOT EXISTS norm_addr text;
 ALTER TABLE addrpoint ADD COLUMN IF NOT EXISTS norm_addr text;
 
-UPDATE parcel    SET norm_addr = somap_normalize_address(siteaddress);
+UPDATE parcel    SET norm_addr = tarrow_normalize_address(siteaddress);
 -- LSN is the addressing authority's own composed form ("4718 KRANCZ DR").
 -- Using it rather than re-composing from components keeps this a test of
 -- matching, not of our own string assembly.
-UPDATE addrpoint SET norm_addr = somap_normalize_address(lsn);
+UPDATE addrpoint SET norm_addr = tarrow_normalize_address(lsn);
 
 CREATE INDEX IF NOT EXISTS parcel_norm_idx    ON parcel (norm_addr);
 CREATE INDEX IF NOT EXISTS addrpoint_norm_idx ON addrpoint (norm_addr);

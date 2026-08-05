@@ -6,7 +6,7 @@
 //   docker compose run --rm etl --skip-fetch    load from the NDJSON already
 //                                               on the volume
 //
-// Connects as the database OWNER. `somap_app` -- the role the query surface
+// Connects as the database OWNER. `tarrow_app` -- the role the query surface
 // uses -- has every write privilege explicitly revoked (sql/schema/010_grants.sql),
 // which is Principle IV's enforcement point and is why the ETL cannot share
 // its credentials.
@@ -95,9 +95,9 @@ async function main(): Promise<void> {
   const pool = new pg.Pool({
     host: process.env.PGHOST ?? "db",
     port: Number(process.env.PGPORT ?? 5432),
-    user: process.env.POSTGRES_USER ?? "somap",
+    user: process.env.POSTGRES_USER ?? "tarrow",
     password: process.env.POSTGRES_PASSWORD,
-    database: process.env.POSTGRES_DB ?? "somap",
+    database: process.env.POSTGRES_DB ?? "tarrow",
   });
   const client = await pool.connect();
 
@@ -199,7 +199,7 @@ async function main(): Promise<void> {
           subjectRef: "parcels_outside_published_boundaries",
           description:
             `${unassigned} parcels fall outside every published jurisdiction boundary, so ` +
-            `somap cannot say which municipality they are in. Municipal ordinances are ` +
+            `tarrow cannot say which municipality they are in. Municipal ordinances are ` +
             `not yet applied at all, but this will limit them when they are (TASK-0007).`,
         });
       }
@@ -254,7 +254,7 @@ async function main(): Promise<void> {
         description:
           `The county address layer's ADDR_ID is not a key: ${audit.duplicated} of ` +
           `${audit.total} points share a duplicated value and ${audit.empty} carry none. ` +
-          `Every row is kept -- somap keys on none of them -- but a downstream consumer ` +
+          `Every row is kept -- tarrow keys on none of them -- but a downstream consumer ` +
           `treating ADDR_ID as an identifier would silently merge distinct addresses.`,
       });
       if (counts.droppedNoGeometry > 0) {

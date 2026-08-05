@@ -97,7 +97,7 @@ describe("the union's inhabitants", () => {
     // The strongest available answer, per Constitution Principle I.
     assert.ok(
       SEARCH_RESULT_KINDS.includes("outside-every-buffer-we-checked"),
-      "the strongest answer somap may give must exist as its own variant",
+      "the strongest answer tarrow may give must exist as its own variant",
     );
   });
 });

@@ -1,7 +1,7 @@
 // The four result shapes, and the arithmetic that decides between them.
 //
 // These run against the loaded Summit County database inside the composition,
-// as the read-only `somap_app` role. They are not unit tests over a mock: the
+// as the read-only `tarrow_app` role. They are not unit tests over a mock: the
 // thing under test is whether real county geometry, measured the way DECISION
 // §2 and §3 say, produces the answer Principle I requires.
 
@@ -75,7 +75,7 @@ describe("the four result shapes", () => {
     assert.equal(result.bufferMeters, BUFFER_METERS);
     assert.ok(result.residence.parcelId > 0);
 
-    // The strongest statement somap may make is still a statement about what it
+    // The strongest statement tarrow may make is still a statement about what it
     // checked -- so the manifest must be there to say what that was.
     assert.equal(result.manifest.availability, "read-from-data");
   });
@@ -87,7 +87,7 @@ describe("the four result shapes", () => {
     if (result.kind !== "declined") return;
 
     assert.equal(result.reason, "resolved-point-has-no-parcel");
-    // A decline is NOT a could-not-locate: somap found the address and refused
+    // A decline is NOT a could-not-locate: tarrow found the address and refused
     // to measure it, which is a different thing to tell the user.
     assert.notEqual(result.kind as string, "could-not-locate");
     assert.match(result.detail, /declines|decline/i);
@@ -128,7 +128,7 @@ describe("uncertainty is arithmetic, and it is subtracted", () => {
     assert.ok(
       hit,
       "the uncorroborated premises must be flagged; if it is not, the radii " +
-        "are no longer being subtracted and somap is under-restricting",
+        "are no longer being subtracted and tarrow is under-restricting",
     );
 
     assert.equal(hit.corroboration, "uncorroborated");
@@ -158,7 +158,7 @@ describe("uncertainty is arithmetic, and it is subtracted", () => {
     const { rows } = await pool.query<{ n: string }>(
       `SELECT count(*) AS n FROM school_premises
         WHERE geom IS NULL
-          AND somap_premises_uncertainty_m(match_basis, match_corroboration) IS NOT NULL`,
+          AND tarrow_premises_uncertainty_m(match_basis, match_corroboration) IS NOT NULL`,
     );
     assert.equal(
       Number(rows[0].n),
@@ -174,7 +174,7 @@ describe("uncertainty is arithmetic, and it is subtracted", () => {
     // d_min <= d always holds by construction.
     const { rows } = await pool.query<{ bad: string }>(
       `SELECT count(*) AS bad FROM school_premises
-        WHERE somap_premises_uncertainty_m(match_basis, match_corroboration) < 0`,
+        WHERE tarrow_premises_uncertainty_m(match_basis, match_corroboration) < 0`,
     );
     assert.equal(Number(rows[0].bad), 0, "a negative radius would ADD to the distance");
   });

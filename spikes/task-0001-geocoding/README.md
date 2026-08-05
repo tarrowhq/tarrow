@@ -21,10 +21,10 @@ docker compose exec tools python /work/spikes/task-0001-geocoding/fetch_summit.p
 
 # Load, normalize, measure
 docker compose exec tools python /work/spikes/task-0001-geocoding/load.py
-docker compose exec -T db psql -U somap -d somap -f - < spikes/task-0001-geocoding/sql/02_normalize.sql
-docker compose exec -T db psql -U somap -d somap -f - < spikes/task-0001-geocoding/sql/07_measure_final.sql
+docker compose exec -T db psql -U tarrow -d tarrow -f - < spikes/task-0001-geocoding/sql/02_normalize.sql
+docker compose exec -T db psql -U tarrow -d tarrow -f - < spikes/task-0001-geocoding/sql/07_measure_final.sql
 
-docker compose exec -T db psql -U somap -d somap -c "
+docker compose exec -T db psql -U tarrow -d tarrow -c "
 SELECT approach,
   round(100.0*sum(n) FILTER (WHERE outcome='UNIQUE_CORRECT')/sum(n),2) AS correct,
   round(100.0*sum(n) FILTER (WHERE outcome='UNIQUE_WRONG')/sum(n),2)   AS wrong,

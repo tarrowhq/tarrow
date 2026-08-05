@@ -1,4 +1,4 @@
-// Serving somap's own built assets, from somap's own origin.
+// Serving tarrow's own built assets, from tarrow's own origin.
 //
 // WHY THIS FILE EXISTS
 //

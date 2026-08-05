@@ -131,7 +131,7 @@ function demultiplex(buf: Buffer): string {
 }
 
 export interface CapturedStream {
-  /** The container's compose name, e.g. `somap-db-1`. */
+  /** The container's compose name, e.g. `tarrow-db-1`. */
   readonly container: string;
   /** stdout + stderr, de-framed. */
   readonly text: string;
@@ -148,7 +148,7 @@ export interface CapturedStream {
  * ONE STREAM IS EXCLUDED, AND THIS IS THE WHOLE OF IT: the `test` service's own
  * containers. The test harness prints the probe address by name in every
  * assertion message and in every test title -- it is the apparatus doing the
- * looking, not a somap log stream, and including it would mean the evidence
+ * looking, not a tarrow log stream, and including it would mean the evidence
  * fails itself for containing the evidence. The `test` service is a job behind
  * a compose profile; `docker compose up` never starts it, and it is not part of
  * the production composition. Nothing else is filtered: db, app, migrate, and

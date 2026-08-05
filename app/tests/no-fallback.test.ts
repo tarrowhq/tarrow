@@ -141,6 +141,6 @@ describe("the buffer and the radii are each written down exactly once", () => {
         "under-restricts -- the unrecoverable defect",
     );
     // The comparison is against the buffer function, never a literal.
-    assert.match(proximity.code, /somap_unverified_state_buffer_m\(\)/);
+    assert.match(proximity.code, /tarrow_unverified_state_buffer_m\(\)/);
   });
 });

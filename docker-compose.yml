@@ -1,4 +1,4 @@
-# somap runs in containers. Nothing is installed on a host.
+# tarrow runs in containers. Nothing is installed on a host.
 #
 # This is the whole environment. The production composition is `db` + `app`:
 # PostGIS, and the React Router 7 server that owns the HTTP port (plan.md
@@ -91,9 +91,9 @@ services:
       - -c
       - logging_collector=off
     environment:
-      POSTGRES_USER: somap
-      POSTGRES_PASSWORD: somap
-      POSTGRES_DB: somap
+      POSTGRES_USER: tarrow
+      POSTGRES_PASSWORD: tarrow
+      POSTGRES_DB: tarrow
       # Deterministic collation. Address matching is string comparison, and
       # locale-dependent ordering would make results differ by host.
       LANG: C
@@ -116,7 +116,7 @@ services:
       # in the pipeline depends on this being published.
       - "127.0.0.1:55432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U somap -d somap"]
+      test: ["CMD-SHELL", "pg_isready -U tarrow -d tarrow"]
       interval: 3s
       timeout: 5s
       retries: 30
@@ -124,7 +124,7 @@ services:
 
   # One-shot: applies app/sql/schema/*.sql in filename order (see
   # app/server/migrate.ts), then exits 0. Connects as the database owner --
-  # it creates the `somap_app` role and revokes its write privileges, so it
+  # it creates the `tarrow_app` role and revokes its write privileges, so it
   # cannot run as that role itself.
   migrate:
     build:
@@ -134,9 +134,9 @@ services:
     environment:
       PGHOST: db
       PGPORT: "5432"
-      POSTGRES_USER: somap
-      POSTGRES_PASSWORD: somap
-      POSTGRES_DB: somap
+      POSTGRES_USER: tarrow
+      POSTGRES_PASSWORD: tarrow
+      POSTGRES_DB: tarrow
     depends_on:
       db:
         condition: service_healthy
@@ -172,10 +172,10 @@ services:
       PGHOST: db
       PGPORT: "5432"
       # The read-only role sql/schema/010_grants.sql grants and then
-      # revokes write privileges from. The app never connects as `somap`.
-      PGUSER: somap_app
-      PGPASSWORD: somap_app
-      PGDATABASE: somap
+      # revokes write privileges from. The app never connects as `tarrow`.
+      PGUSER: tarrow_app
+      PGPASSWORD: tarrow_app
+      PGDATABASE: tarrow
       PORT: "3000"
     ports:
       - "127.0.0.1:3000:3000"
@@ -197,7 +197,7 @@ services:
   #   docker compose run --rm etl --skip-fetch   reload from the NDJSON already
   #                                              on the volume
   #
-  # Connects as the database OWNER, not as `somap_app`: sql/schema/010_grants.sql
+  # Connects as the database OWNER, not as `tarrow_app`: sql/schema/010_grants.sql
   # revokes INSERT/UPDATE/DELETE/TRUNCATE from that role by design, which is
   # Principle IV's enforcement point and the reason the ETL needs its own
   # credentials.
@@ -210,9 +210,9 @@ services:
     environment:
       PGHOST: db
       PGPORT: "5432"
-      POSTGRES_USER: somap
-      POSTGRES_PASSWORD: somap
-      POSTGRES_DB: somap
+      POSTGRES_USER: tarrow
+      POSTGRES_PASSWORD: tarrow
+      POSTGRES_DB: tarrow
       ETL_DATA_DIR: /data
     volumes:
       - etldata:/data
@@ -230,7 +230,7 @@ services:
   # constructing a result meaning "clear" does not type-check. The runtime image
   # deliberately still has none of them.
   #
-  # Connects as `somap_app`, the same read-only role the request path uses
+  # Connects as `tarrow_app`, the same read-only role the request path uses
   # (sql/schema/010_grants.sql), so the tests exercise the query under the
   # privileges the query actually has -- not the owner's.
   #
@@ -261,12 +261,12 @@ services:
     environment:
       PGHOST: db
       PGPORT: "5432"
-      PGUSER: somap_app
-      PGPASSWORD: somap_app
-      PGDATABASE: somap
+      PGUSER: tarrow_app
+      PGPASSWORD: tarrow_app
+      PGDATABASE: tarrow
       # The running app, reached over the internal network by service name --
       # the same server a browser talks to through the published port.
-      SOMAP_APP_ORIGIN: http://app:3000
+      TARROW_APP_ORIGIN: http://app:3000
       DOCKER_SOCKET: /var/run/docker.sock
     depends_on:
       migrate:
@@ -276,7 +276,7 @@ services:
 
   # The browser suite, and why it is a separate service.
   #
-  # TASK-0015: somap shipped an app that did not work in a browser while 146
+  # TASK-0015: tarrow shipped an app that did not work in a browser while 146
   # tests passed, because every one of them reached it through fetch() -- which
   # does not implement referrer policy and so could not produce the
   # `Origin: null` that broke the form. A suite with no browser in it cannot
@@ -300,7 +300,7 @@ services:
     # That hostname is the point, not a convenience. Chromium silently rewrites
     # http:// to https:// for any host it does not consider trustworthy, and
     # `app:3000` is not one -- the suite failed with ERR_SSL_PROTOCOL_ERROR and
-    # said nothing whatever about somap. `localhost` is exempt from that
+    # said nothing whatever about tarrow. `localhost` is exempt from that
     # upgrade by definition, which makes this the one hostname that tests the
     # application instead of testing Chromium's opinion about TLS.
     #
@@ -309,7 +309,7 @@ services:
     # not relied on.)
     network_mode: "service:app"
     environment:
-      SOMAP_APP_ORIGIN: http://localhost:3000
+      TARROW_APP_ORIGIN: http://localhost:3000
       CHROMIUM_PATH: /usr/bin/chromium
     # Chromium's renderer processes exchange data through shared memory, and
     # Docker's 64MB default /dev/shm is not enough -- the same lesson docker/db
@@ -332,9 +332,9 @@ services:
     environment:
       PGHOST: db
       PGPORT: "5432"
-      PGUSER: somap
-      PGPASSWORD: somap
-      PGDATABASE: somap
+      PGUSER: tarrow
+      PGPASSWORD: tarrow
+      PGDATABASE: tarrow
     volumes:
       # Bind-mounted rather than a named volume so downloaded source data and
       # generated results are inspectable from the host without docker cp.

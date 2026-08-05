@@ -48,7 +48,7 @@ async function rawExchange(payload: Buffer | string): Promise<string> {
   });
 }
 
-const ORIGIN = process.env.SOMAP_APP_ORIGIN ?? "http://app:3000";
+const ORIGIN = process.env.TARROW_APP_ORIGIN ?? "http://app:3000";
 
 /**
  * The policy, written out again here as a literal.
@@ -173,7 +173,7 @@ describe("every response from the running server carries it", () => {
     );
     assert.ok(raw.includes("Referrer-Policy: same-origin"));
     // The generic body is the RIGHT answer here: a bad request line is a
-    // failure somap genuinely cannot explain. The two it can are below, and
+    // failure tarrow genuinely cannot explain. The two it can are below, and
     // this assertion is what stops them being applied to everything.
     assert.ok(
       raw.includes(FAILURE_BODY),
@@ -181,7 +181,7 @@ describe("every response from the running server carries it", () => {
     );
   });
 
-  // TASK-0014. Both of the failures somap CAN explain. Neither is reachable
+  // TASK-0014. Both of the failures tarrow CAN explain. Neither is reachable
   // through fetch() -- the parser rejects them before a response object exists
   // -- which is why they are raw-socket exchanges and why they went unnoticed.
   test("a TLS handshake on the plain-HTTP port is explained", async () => {
@@ -189,7 +189,7 @@ describe("every response from the running server carries it", () => {
     // version 0x03 0x01. This is what a browser sends after silently
     // upgrading http:// to https://, which it does for every hostname it does
     // not consider trustworthy -- so this is the self-hoster's failure, not an
-    // exotic one. somap's own browser suite hit it.
+    // exotic one. tarrow's own browser suite hit it.
     const raw = await rawExchange(
       Buffer.from([0x16, 0x03, 0x01, 0x02, 0x00, 0x01, 0x00, 0x01, 0xfc, 0x03, 0x03]),
     );
@@ -249,7 +249,7 @@ describe("every response from the running server carries it", () => {
 
   // TASK-0015, the half that serves the hardened client. `Origin: null` is what
   // a sandboxed frame, a data: document, or a privacy extension that strips the
-  // header sends. Principle III takes it as given that somap's users are
+  // header sends. Principle III takes it as given that tarrow's users are
   // paranoid for good reason; answering the ones who act on it with a 400 is
   // the wrong trade. A genuine cross-site origin is still refused -- that case
   // is asserted below, so this test cannot pass by disabling the check.
@@ -267,7 +267,7 @@ describe("every response from the running server carries it", () => {
     assert.equal(
       opaque.status,
       200,
-      "Origin: null must be served. A hardened browser sends it, and somap " +
+      "Origin: null must be served. A hardened browser sends it, and tarrow " +
         "has no cookies, no session, and no writable table to protect.",
     );
     await opaque.text();
@@ -385,7 +385,7 @@ describe("the served document loads nothing from anywhere else", () => {
     const html = await (await fetch(`${ORIGIN}/`)).text();
     // `script-src 'self'` blocks inline script, so an inline <script> in the
     // document would be dead code that a browser refuses and a reader cannot
-    // account for. somap ships none: see app/app/root.tsx for why <Scripts />
+    // account for. tarrow ships none: see app/app/root.tsx for why <Scripts />
     // is not rendered.
     assert.doesNotMatch(
       html,

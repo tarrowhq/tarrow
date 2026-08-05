@@ -14,7 +14,7 @@ found geometrically.**
 typed address → normalize → Address Points match → that point's parcel polygon
 ```
 
-somap does **not** match typed addresses against `parcel.siteaddress`. Measured on 151,904
+tarrow does **not** match typed addresses against `parcel.siteaddress`. Measured on 151,904
 probes over real Summit County addresses:
 
 | Approach | Correct | **Wrong** | Ambiguous | No match |
@@ -35,7 +35,7 @@ wrong answers.
 
 **No commercial geocoder is used, ever.** Disqualified twice over: it would send the searched
 address to a third party (Principle III), and its index cannot be redistributed, which would
-make somap un-self-hostable (Principle VII).
+make tarrow un-self-hostable (Principle VII).
 
 **libpostal is not adopted.** Rule-based normalization reached 96.8% alone. If libpostal is
 proposed later, RESULTS.md is the bar it must beat.
@@ -88,7 +88,7 @@ Making it safe would mean subtracting an assumed parcel reach, and that reach is
 p95 is 1,575 m for large parcels. Subtracting that would flag everything within ~1.9 km of any
 facility, which is not an answer.
 
-**So: if a resolved address has no parcel within 5 m, somap declines.** This affects **2.15%**
+**So: if a resolved address has no parcel within 5 m, tarrow declines.** This affects **2.15%**
 of address points and is consistent with the decline-only fallback (§4).
 
 ### Premises side — inflate, generously
@@ -137,7 +137,7 @@ different building. Any future proposal to relax matching must show it does not 
 wrong-match rate.
 
 **Ambiguity is declared, not guessed.** One normalized address maps to as many as 505 parcels
-(condominiums); `2200 HIGH ST` appears 218 times. Where candidates disagree, somap resolves to
+(condominiums); `2200 HIGH ST` appears 218 times. Where candidates disagree, tarrow resolves to
 the most restrictive or asks — it never silently picks one.
 
 With Approach B, declining costs **~1.3%** of searches rather than ~22%. That is what makes

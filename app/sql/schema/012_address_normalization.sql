@@ -11,7 +11,7 @@
 -- Why the normalizer lives in a migration rather than in sql/query/:
 --
 --   * It is a plpgsql function plus four lookup tables. The runtime role
---     `somap_app` has every write privilege revoked (010_grants.sql), so it
+--     `tarrow_app` has every write privilege revoked (010_grants.sql), so it
 --     cannot CREATE anything at startup -- Principle IV's enforcement point
 --     forecloses defining this from the query loader.
 --   * It is authored content, reviewed as a file diff, compiled into the
@@ -114,7 +114,7 @@ INSERT INTO ordinal_norm (variant, canonical) VALUES
 --
 -- NOTE: stripping the city discards information we would rather keep. It is
 -- exactly what would disambiguate "100 MAIN ST" between two municipalities.
--- somap does not guess past that: candidates that disagree are declared as an
+-- tarrow does not guess past that: candidates that disagree are declared as an
 -- ambiguity and resolved to the MOST RESTRICTIVE candidate (DECISION §4), so
 -- the discarded city can only ever cost precision, never safety.
 -- ---------------------------------------------------------------------------
@@ -133,14 +133,14 @@ SELECT p, array_length(string_to_array(p, ' '), 1) FROM (VALUES
 ) v(p);
 
 -- ---------------------------------------------------------------------------
--- somap_normalize_address(raw) -> canonical string
+-- tarrow_normalize_address(raw) -> canonical string
 --
 -- Byte-faithful port of the spike's function body. IMMUTABLE is carried across
 -- from the spike unchanged (it reads only the four lookup tables above, which
 -- are authored constants written once by this migration and never updated at
--- runtime -- somap_app cannot write them at all).
+-- runtime -- tarrow_app cannot write them at all).
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION somap_normalize_address(raw text)
+CREATE OR REPLACE FUNCTION tarrow_normalize_address(raw text)
 RETURNS text
 LANGUAGE plpgsql
 IMMUTABLE
@@ -257,7 +257,7 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION somap_normalize_address(text) IS
+COMMENT ON FUNCTION tarrow_normalize_address(text) IS
     'Rule-based address normalizer ported unchanged from TASK-0001''s spike '
     '(96.79% correct, 0.20% wrong over 151,904 probes). Applied to BOTH sides '
     'of every match: address_points.normalized is this function over LSN, and '

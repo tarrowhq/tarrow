@@ -259,7 +259,7 @@ TASK-0002 must have produced. **No PR opens until each line below checks true.**
   another session holds TASK-0002 or spec number 001, STOP and surface it to the operator.
   On an unrelated rejection with the task and number still free, merge `origin/main` into
   the claim branch and re-push a plain push.
-- Verify the PR merged (`gh api repos/evanstern/somap/pulls/<n> --jq .merged`) **before**
+- Verify the PR merged (`gh api repos/evanstern/tarrow/pulls/<n> --jq .merged`) **before**
   deleting the branch or worktree. Never delete-and-recreate a closed PR's head branch.
 
 ## Operator checkpoints (do not proceed silently past)
@@ -322,7 +322,7 @@ Three follow-ups carded from findings this sweep made, all on `main`:
 | Card | Why it exists |
 |---|---|
 | **TASK-0005.04** | A named missing school. The nonpublic source is a voluntary biennial federal survey; St. Vincent–St. Mary is absent from it. Wired as an explicit dependency of TASK-0011, the launch gate. |
-| **TASK-0008.01** | Whether somap keeps shipping zero client-side JavaScript, or amends the CSP for a hydration nonce. Deferred here on purpose: TASK-0008 is the first work with a real interaction that could argue for it. |
+| **TASK-0008.01** | Whether tarrow keeps shipping zero client-side JavaScript, or amends the CSP for a hydration nonce. Deferred here on purpose: TASK-0008 is the first work with a real interaction that could argue for it. |
 | **TASK-0013** | The TASK-0001 spike's README does not reproduce its own published numbers without undocumented steps. Frozen by R2 during this sweep. |
 
 **The lesson worth carrying to the next sweep:** every one of those three came from a
@@ -384,7 +384,7 @@ boxes described. The findings that mattered most were not in any box.
   the number; dangerous the moment it is wired into CI or into the README's command
   sequence. **Handed to P5** as a box: the documented command must be the `test` profile,
   and the suite should fail rather than pass when it collects nothing.
-- **2026-08-04, P4 found three real leaks of the searched address — none in somap's code.**
+- **2026-08-04, P4 found three real leaks of the searched address — none in tarrow's code.**
   All three were in dependencies, on the *error* path, which is exactly where nobody looks:
   React Router's default `handleError` `console.error`s the full request URL; its default
   root error boundary does it again while server-rendering the 404; and

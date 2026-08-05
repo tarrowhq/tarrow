@@ -7,13 +7,13 @@
 // Who is reading this. Somebody on a sex offender registry, looking for
 // somewhere to live, sometimes against a thirty-day order to move. They are
 // not a lawyer. They may be reading on a phone, on a library computer, at the
-// end of a long day, frightened. Copy written to cover somap rather than to be
+// end of a long day, frightened. Copy written to cover tarrow rather than to be
 // understood by that person has failed, however defensible it would look in a
 // disclaimer.
 //
 // FIVE RULES THIS FILE IS WRITTEN UNDER
 //
-//   1. NEVER STATE OR IMPLY PERMISSION. Constitution Principle I: somap never
+//   1. NEVER STATE OR IMPLY PERMISSION. Constitution Principle I: tarrow never
 //      says approved, legal, permitted, or clear. The strongest sentence
 //      available is "outside every buffer we checked", and it is only honest
 //      when the reader can see, on the same page, what was not checked.
@@ -35,7 +35,7 @@
 //
 //   4. THE SHERIFF STEP IS THE RECOMMENDED ACTION, NOT A DISCLAIMER. It is
 //      written as the next thing to do and as what to take with you, on every
-//      shape including the ones where somap failed.
+//      shape including the ones where tarrow failed.
 //
 //   5. LENGTH IS A SAFETY PROPERTY, NOT A STYLE PREFERENCE (TASK-0017). This
 //      page used to run the answer, then six full-length sections of
@@ -45,7 +45,7 @@
 //      in the head -- which is the only place it matters.
 //
 //      The rule that came out of that, and that a future editor should apply
-//      rather than reverse: WHAT SOMAP DID NOT CHECK STAYS VISIBLE; HOW SOMAP
+//      rather than reverse: WHAT TARROW DID NOT CHECK STAYS VISIBLE; HOW TARROW
 //      KNOWS WHAT IT CHECKED COLLAPSES. The gap list, the staleness statement,
 //      and the flagged premises with their distances are on the page, unfolded,
 //      always. The provenance tables, the per-premises arithmetic, and the
@@ -95,7 +95,7 @@ const PREMISES_BASIS: Record<PremisesMeasurementBasis, string> = {
     "A surveyed boundary and the county's own record of who owns it.",
   named_exempt_parcel:
     "A tax-exempt county parcel whose owner of record reads like a school. " +
-    "The boundary is surveyed; the reason somap treats it as a school is a " +
+    "The boundary is surveyed; the reason tarrow treats it as a school is a " +
     "match on the owner's name, which is a rule of thumb rather than a record.",
   point_in_parcel:
     "A published school location was turned into a map point from its mailing " +
@@ -103,10 +103,10 @@ const PREMISES_BASIS: Record<PremisesMeasurementBasis, string> = {
     "measured is the parcel's surveyed boundary.",
   point_near_parcel:
     "A published school location was turned into a map point that falls " +
-    "inside no parcel at all. somap measured to the nearest parcel within " +
+    "inside no parcel at all. tarrow measured to the nearest parcel within " +
     "5 m of it and widened the uncertainty to match.",
   none:
-    "No boundary. somap holds a name for this premises and no shape for it, " +
+    "No boundary. tarrow holds a name for this premises and no shape for it, " +
     "so it was never measured and was never given a made-up radius.",
 };
 
@@ -115,7 +115,7 @@ const RESIDENCE_BASIS: Record<ResidenceMeasurementBasis, string> = {
     "The county's address point for this address falls inside this parcel.",
   point_near_parcel:
     "The county's address point for this address falls inside no parcel. This " +
-    "is the parcel within 5 m of it, and somap widened the uncertainty to match.",
+    "is the parcel within 5 m of it, and tarrow widened the uncertainty to match.",
 };
 
 const SCHOOL_TYPE: Record<string, string> = {
@@ -123,7 +123,7 @@ const SCHOOL_TYPE: Record<string, string> = {
   nonpublic: "Nonpublic school",
   unclassified:
     "Not classified: the tax roll does not say whether the owner runs a " +
-    "nonpublic school or a community school, and somap will not guess",
+    "nonpublic school or a community school, and tarrow will not guess",
 };
 
 function schoolType(value: string): string {
@@ -144,7 +144,7 @@ function schoolType(value: string): string {
  * carry into it so it is a specific question about a specific parcel.
  *
  * TASK-0017 cut it from four paragraphs to one plus a rule. What went was the
- * restatement that somap is not a court or a lawyer, which /faq now carries in
+ * restatement that tarrow is not a court or a lawyer, which /faq now carries in
  * full and which the last line here still delivers as something to act on.
  */
 export function SheriffNextStep() {
@@ -155,19 +155,19 @@ export function SheriffNextStep() {
       </h2>
       <div className="prose">
         <p>
-          That office enforces the distance rule and knows the local rules somap
+          That office enforces the distance rule and knows the local rules tarrow
           has not loaded. Ask it about this exact address, and take three things
           so that it is one specific question: the address as you typed it here;
           the name of every school premises listed above, if any, with the
-          distance somap measured to each; and the fact that somap checked
+          distance tarrow measured to each; and the fact that tarrow checked
           school premises only, and no city or village rule at all.
         </p>
         <p>
           <strong>
-            If that office and somap disagree, that office is right and somap is
+            If that office and tarrow disagree, that office is right and tarrow is
             wrong.
           </strong>{" "}
-          <a href="/faq">What somap is, and what it is not</a>.
+          <a href="/faq">What tarrow is, and what it is not</a>.
         </p>
       </div>
     </section>
@@ -193,18 +193,18 @@ export function RuleNotVerified({ rule }: { rule: ManifestRuleContent }) {
   return (
     <section className="section">
       <h2 className="section__title">
-        No person has checked the rule somap applied
+        No person has checked the rule tarrow applied
       </h2>
       <div className="prose">
         <p>
-          somap read the statute and applied a number. Nobody has signed their
-          name to that reading inside somap, no citation or verification date is
+          tarrow read the statute and applied a number. Nobody has signed their
+          name to that reading inside tarrow, no citation or verification date is
           attached to it as data, and no court has been asked whether the way
-          somap measures is the way the state measures.
+          tarrow measures is the way the state measures.
         </p>
       </div>
       <details className="disclosure">
-        <summary>somap&rsquo;s own record of that gap, in full</summary>
+        <summary>tarrow&rsquo;s own record of that gap, in full</summary>
         <blockquote className="prose">
           <p>{rule.statement}</p>
         </blockquote>
@@ -222,7 +222,7 @@ export function RuleNotVerified({ rule }: { rule: ManifestRuleContent }) {
  * they are read out of the coverage-gap ledger rather than written down here,
  * so a limitation somebody records at ingest reaches this page without anyone
  * remembering to edit a list. TASK-0017 moved them to the TOP of this section,
- * ahead of what somap did check: they are the part a reader must not miss, and
+ * ahead of what tarrow did check: they are the part a reader must not miss, and
  * they were previously the third paragraph.
  *
  * The long enumerations below them are collapsed, and collapsed only:
@@ -242,7 +242,7 @@ export function WhatWasNotChecked({
 
   return (
     <section className="section">
-      <h2 className="section__title">What somap did not check</h2>
+      <h2 className="section__title">What tarrow did not check</h2>
       <div className="prose">
         <ul>
           {headline.map((gap) => (
@@ -252,7 +252,7 @@ export function WhatWasNotChecked({
         <p>
           <strong>What it did check:</strong> school premises in Summit County,
           Ohio. {count(manifest.premises.measurable)} of the{" "}
-          {count(manifest.premises.total)} premises somap holds have a real
+          {count(manifest.premises.total)} premises tarrow holds have a real
           parcel boundary and were measured against, using a buffer of{" "}
           {metresAndFeet(manifest.bufferMeters)} from the nearest point of one
           parcel to the nearest point of the other.{" "}
@@ -266,29 +266,29 @@ export function WhatWasNotChecked({
                 "was not measured at all",
                 "were not measured at all",
               )}
-              ; somap does not invent a circle around a school it cannot draw.
+              ; tarrow does not invent a circle around a school it cannot draw.
             </>
           ) : (
             <>
-              Every premises somap holds has a real boundary; none was
+              Every premises tarrow holds has a real boundary; none was
               approximated by a circle.
             </>
           )}
         </p>
         <p>
-          <strong>How old this is.</strong> This copy of somap last fetched data
+          <strong>How old this is.</strong> This copy of tarrow last fetched data
           on {newest ?? "a date it cannot report"}, and its oldest layer was
           fetched on {oldest ?? "a date it cannot report"}. No layer has been
           checked by a person: every one reads{" "}
           <span className="never">never human-verified</span> in the table
-          below. If you are looking at somebody else&rsquo;s copy of somap,
+          below. If you are looking at somebody else&rsquo;s copy of tarrow,
           those dates are how you tell whether it has been left to go stale.
         </p>
       </div>
 
       <details className="disclosure">
         <summary>
-          Every limitation somap knows about ({count(manifest.gaps.length)}),
+          Every limitation tarrow knows about ({count(manifest.gaps.length)}),
           including {count(headline.length)} listed above
         </summary>
         <div className="scroller">
@@ -377,7 +377,7 @@ export function WhatWasNotChecked({
       <details className="disclosure">
         <summary>
           How each school premises boundary was established, and how much slack
-          somap gave for it
+          tarrow gave for it
         </summary>
         <div className="scroller">
           <table className="grid-table">
@@ -418,8 +418,8 @@ export function WhatWasNotChecked({
           Slack is subtracted from every measured distance before it is
           compared against the buffer, never added. That makes a flag more
           likely, not less. It is the direction Principle I requires: a school
-          somap flags that turns out not to count costs you a house you could
-          have had; a school somap misses could cost you your liberty.
+          tarrow flags that turns out not to count costs you a house you could
+          have had; a school tarrow misses could cost you your liberty.
         </p>
       </details>
     </section>
@@ -429,22 +429,22 @@ export function WhatWasNotChecked({
 /**
  * The manifest when the database could not be read at all. Still mandatory,
  * still on the page, and it says the only true thing available: nothing was
- * checked, and somap cannot even tell you what it would have checked.
+ * checked, and tarrow cannot even tell you what it would have checked.
  */
 function CoverageWithdrawn({ statement }: { statement: string }) {
   return (
     <section className="section">
       <h2 className="section__title">
-        somap cannot tell you what it checked, because it checked nothing
+        tarrow cannot tell you what it checked, because it checked nothing
       </h2>
       <div className="prose">
         <p>{statement}</p>
         <p>
-          Every working somap answer carries a list of which data layers were
+          Every working tarrow answer carries a list of which data layers were
           searched, which kinds of place were not searched at all, and how old
-          each layer is. This page carries none of that, because somap could not
+          each layer is. This page carries none of that, because tarrow could not
           read its own record of it. Do not read the absence of a warning here
-          as the absence of a problem. Read it as somap being unable to speak.
+          as the absence of a problem. Read it as tarrow being unable to speak.
         </p>
       </div>
     </section>
@@ -465,7 +465,7 @@ export function CoverageManifestView({ manifest }: { manifest: CoverageManifest 
 
 /**
  * Which parcel the distances were measured from. Collapsed, because it answers
- * "how does somap know" rather than "what did somap find" -- but the one fact
+ * "how does tarrow know" rather than "what did tarrow find" -- but the one fact
  * that can invalidate the entire page (this may not be your parcel) rides in
  * the summary, where it is read without opening anything.
  */
@@ -473,7 +473,7 @@ function Residence({ residence }: { residence: ResolvedResidence }) {
   return (
     <details className="disclosure">
       <summary>
-        The parcel somap measured from: #{residence.parcelId}
+        The parcel tarrow measured from: #{residence.parcelId}
         {residence.siteAddress === null ? null : <>, {residence.siteAddress}</>}.
         If that is not yours, nothing on this page applies to you.
       </summary>
@@ -492,7 +492,7 @@ function Residence({ residence }: { residence: ResolvedResidence }) {
         <dd>{metresAndFeet(residence.uncertaintyMeters)}</dd>
       </dl>
       <p className="prose">
-        somap resolved what you typed against the county&rsquo;s list of
+        tarrow resolved what you typed against the county&rsquo;s list of
         addresses and then found the parcel that address point sits on. If the
         parcel above is not yours, check the address and search again.
       </p>
@@ -502,7 +502,7 @@ function Residence({ residence }: { residence: ResolvedResidence }) {
 
 /**
  * DECISION §4: one typed address can mean several parcels -- up to 505 for a
- * condominium. somap never silently picks one. The ambiguity is declared and
+ * condominium. tarrow never silently picks one. The ambiguity is declared and
  * the answer shown is the most restrictive candidate.
  *
  * The declaration stays visible; the candidate table collapses. Which parcel
@@ -518,7 +518,7 @@ function Ambiguity({ ambiguity }: { ambiguity: AmbiguityDeclaration }) {
             parcels.
           </strong>{" "}
           Apartment buildings, condominiums, and the same street address
-          existing in two places all do this. somap does not pick one quietly:
+          existing in two places all do this. tarrow does not pick one quietly:
           the answer above is the <strong>most restrictive</strong> of them,
           the one with the most school premises inside the buffer, and among
           ties, the one closest to a school. Ask the sheriff&rsquo;s office
@@ -528,7 +528,7 @@ function Ambiguity({ ambiguity }: { ambiguity: AmbiguityDeclaration }) {
       </div>
       <details className="disclosure">
         <summary>
-          All {count(ambiguity.candidateCount)} parcels somap considered
+          All {count(ambiguity.candidateCount)} parcels tarrow considered
         </summary>
         <div className="scroller">
           <table className="grid-table">
@@ -550,7 +550,7 @@ function Ambiguity({ ambiguity }: { ambiguity: AmbiguityDeclaration }) {
                   <td>{count(candidate.flaggedPremisesCount)}</td>
                   <td>
                     {candidate.nearestPessimisticDistanceMeters === null
-                      ? "nothing somap checked was inside the buffer"
+                      ? "nothing tarrow checked was inside the buffer"
                       : metresAndFeet(candidate.nearestPessimisticDistanceMeters)}
                   </td>
                 </tr>
@@ -598,7 +598,7 @@ function Premises({ premises }: { premises: FlaggedPremises }) {
             premises was located by turning a mailing address into a map point,
             and the point landed on a parcel the county does <em>not</em> record
             as tax-exempt, which a school premises almost always is. The
-            boundary somap measured to may belong to a neighbour, and the real
+            boundary tarrow measured to may belong to a neighbour, and the real
             school property may reach further than it. Ask the sheriff&rsquo;s
             office about this one by name.
           </p>
@@ -606,13 +606,13 @@ function Premises({ premises }: { premises: FlaggedPremises }) {
       ) : null}
 
       <details className="disclosure">
-        <summary>How somap arrived at that distance</summary>
+        <summary>How tarrow arrived at that distance</summary>
         <dl className="facts">
           <dt>Kind of school</dt>
           <dd>{schoolType(premises.schoolType)}</dd>
           <dt>Address in the source</dt>
           <dd>{where === "" ? "not published" : where}</dd>
-          <dt>Distance somap measured</dt>
+          <dt>Distance tarrow measured</dt>
           <dd>
             <strong>{metresAndFeet(premises.distanceMeters)}</strong>, from the
             nearest point of your parcel&rsquo;s boundary to the nearest point of
@@ -674,7 +674,7 @@ function WithinBuffer({
     <>
       <Banner
         tone="flagged"
-        label="Result: inside a buffer somap checked"
+        label="Result: inside a buffer tarrow checked"
         headline={`${count(n)} school ${plural(
           n,
           "premises is",
@@ -691,7 +691,7 @@ function WithinBuffer({
 
       <section className="section">
         <h2 className="section__title">
-          What somap found inside the buffer ({count(n)})
+          What tarrow found inside the buffer ({count(n)})
         </h2>
         {result.premises.map((p) => (
           <Premises key={p.premisesId} premises={p} />
@@ -707,7 +707,7 @@ function WithinBuffer({
 }
 
 /**
- * Shape 2: the strongest statement somap is permitted to make.
+ * Shape 2: the strongest statement tarrow is permitted to make.
  *
  * The single most dangerous page in this application. "No results found" reads
  * as good news to a frightened person, so the headline is not that, and the
@@ -728,10 +728,10 @@ function OutsideEveryBuffer({
       >
         <p>
           <strong>That is smaller than it sounds.</strong> No school premises{" "}
-          <em>that somap holds a boundary for</em> is within{" "}
+          <em>that tarrow holds a boundary for</em> is within{" "}
           {metresAndFeet(result.bufferMeters)} of the parcel at this address.
           That is the whole of the finding: a measurement, not a decision. What
-          somap did not look at is listed below. Read it before you rely on
+          tarrow did not look at is listed below. Read it before you rely on
           anything here, and then make the phone call.
         </p>
       </Banner>
@@ -748,9 +748,9 @@ function OutsideEveryBuffer({
 }
 
 /**
- * Shape 3: somap found the address and refused to measure it.
+ * Shape 3: tarrow found the address and refused to measure it.
  *
- * Structurally distinct from shape 4 on purpose: this page has a "why somap
+ * Structurally distinct from shape 4 on purpose: this page has a "why tarrow
  * stopped" section, no residence, no distance, and a dashed banner. Spec User
  * Story 3 scenario 4 requires the difference to be more than wording.
  */
@@ -763,8 +763,8 @@ function Declined({
     <>
       <Banner
         tone="stopped"
-        label="No result: somap stopped instead of measuring"
-        headline="somap will not give an answer for this address."
+        label="No result: tarrow stopped instead of measuring"
+        headline="tarrow will not give an answer for this address."
       >
         <p>
           It measured no distances at all, so nothing here is a finding about
@@ -774,11 +774,11 @@ function Declined({
       </Banner>
 
       <section className="section">
-        <h2 className="section__title">Why somap stopped</h2>
+        <h2 className="section__title">Why tarrow stopped</h2>
         <div className="prose">
           <p>{result.detail}</p>
           <p>
-            somap could have produced a number here. It refused because the
+            tarrow could have produced a number here. It refused because the
             number would have been wrong in the dangerous direction: it would
             tend to come out <em>too large</em>, and a distance that is too
             large is exactly how an address gets treated as being outside a
@@ -786,13 +786,13 @@ function Declined({
             that way is not.
           </p>
           <p>
-            somap knows where this is; it stopped after that, on purpose. That
+            tarrow knows where this is; it stopped after that, on purpose. That
             is not a reason to give up on the address. The sheriff&rsquo;s
-            office can answer for one somap will not measure.
+            office can answer for one tarrow will not measure.
           </p>
           <p>
             <small>
-              somap records the reason for this as{" "}
+              tarrow records the reason for this as{" "}
               <code>{result.reason}</code>.
             </small>
           </p>
@@ -803,12 +803,12 @@ function Declined({
 }
 
 /**
- * Shape 4: somap could not resolve the address at all.
+ * Shape 4: tarrow could not resolve the address at all.
  *
  * Never a ZIP centroid, never a street centroid, never a fuzzy match, never a
  * nearby-parcel consolation -- there is no code path that could produce one
  * (spec FR-007). This page says so, because a reader who does not know that
- * will assume somap tried its best and found nothing near.
+ * will assume tarrow tried its best and found nothing near.
  */
 function CouldNotLocate({
   result,
@@ -819,11 +819,11 @@ function CouldNotLocate({
     <>
       <Banner
         tone="stopped"
-        label="No result: somap could not find this address"
-        headline="somap could not find this address, so it checked nothing."
+        label="No result: tarrow could not find this address"
+        headline="tarrow could not find this address, so it checked nothing."
       >
         <p>
-          This is not an answer. somap does not know where this address is, so
+          This is not an answer. tarrow does not know where this address is, so
           it measured no distances and found nothing, neither near nor far.
         </p>
       </Banner>
@@ -834,7 +834,7 @@ function CouldNotLocate({
           <p>{result.detail}</p>
           <ul>
             <li>
-              <strong>The address is not in Summit County, Ohio.</strong> somap
+              <strong>The address is not in Summit County, Ohio.</strong> tarrow
               holds no data for anywhere else, and it cannot tell an
               out-of-county address apart from a misspelled one, so both land
               on this page.
@@ -848,11 +848,11 @@ function CouldNotLocate({
             <li>
               <strong>The county has not published a point for it.</strong> New
               addresses, and some municipalities generally, are thinly covered.
-              somap says so rather than filling the hole in.
+              tarrow says so rather than filling the hole in.
             </li>
           </ul>
           <p>
-            somap will not guess: it does not correct spelling, it does not fall
+            tarrow will not guess: it does not correct spelling, it does not fall
             back to the middle of the street or the centre of the ZIP code, and
             it does not offer the nearest parcel it happened to find instead. A
             confident answer about the wrong building is more dangerous to you
@@ -860,7 +860,7 @@ function CouldNotLocate({
           </p>
           <p>
             <small>
-              somap records the reason for this as{" "}
+              tarrow records the reason for this as{" "}
               <code>{result.reason}</code>.
             </small>
           </p>
@@ -870,7 +870,7 @@ function CouldNotLocate({
   );
 }
 
-/** Shape 5: somap broke. */
+/** Shape 5: tarrow broke. */
 function SearchFailed({
   result,
 }: {
@@ -880,11 +880,11 @@ function SearchFailed({
     <>
       <Banner
         tone="broken"
-        label="No result: somap failed"
-        headline="somap broke before it could check anything."
+        label="No result: tarrow failed"
+        headline="tarrow broke before it could check anything."
       >
         <p>
-          This is a fault in this copy of somap, not a finding about your
+          This is a fault in this copy of tarrow, not a finding about your
           address. Nothing was measured and nothing was found. A broken page is
           not a quiet address.
         </p>
@@ -896,11 +896,11 @@ function SearchFailed({
           <p>{result.detail}</p>
           <p>
             Try again in a few minutes. If it keeps happening, this instance of
-            somap is broken and whoever runs it needs to look at it; until then
+            tarrow is broken and whoever runs it needs to look at it; until then
             it can tell you nothing.
           </p>
           <p>
-            somap deliberately keeps no error report that could carry what you
+            tarrow deliberately keeps no error report that could carry what you
             typed, so there is no record of this failure holding your address
             anywhere: not in a log, not in a crash report, not on the screen.
             That is the trade it makes: a fault here is harder for its
@@ -908,7 +908,7 @@ function SearchFailed({
           </p>
           <p>
             <small>
-              somap records the reason for this as{" "}
+              tarrow records the reason for this as{" "}
               <code>{result.reason}</code>.
             </small>
           </p>
@@ -926,7 +926,7 @@ export function Masthead() {
   return (
     <header className="masthead">
       <p className="masthead__name">
-        <a href="/">somap</a>
+        <a href="/">tarrow</a>
       </p>
       <p className="masthead__where">
         School-premises distances for Summit County, Ohio. A helper, not an
@@ -940,7 +940,7 @@ export function PrivacyFootnote() {
   return (
     <footer className="footnote">
       <p>
-        somap did not write down the address you typed: not in a log, not in
+        tarrow did not write down the address you typed: not in a log, not in
         this page&rsquo;s web address, not in a database, and not on its way
         anywhere else. This page is also marked never to be stored by your
         browser, which matters on a shared or library computer. You are not

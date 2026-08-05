@@ -44,7 +44,7 @@ export function meta() {
   // Static. A title carrying the searched address would put it in the browser
   // tab, in the window title, and in the history entry -- the three places
   // this route exists to keep it out of.
-  return [{ title: "somap: what was checked, and what was not" }];
+  return [{ title: "tarrow: what was checked, and what was not" }];
 }
 
 export async function action({
@@ -65,12 +65,12 @@ function NothingWasSubmitted() {
       <div className="answer answer--broken">
         <p className="answer__label">No result: nothing was submitted</p>
         <h1 className="answer__headline">
-          No address reached somap, so nothing was checked.
+          No address reached tarrow, so nothing was checked.
         </h1>
         <div className="prose">
           <p>
             You have arrived at the answer page without an address, usually
-            from a bookmark, a refresh, or a back button. somap measured nothing
+            from a bookmark, a refresh, or a back button. tarrow measured nothing
             and is saying nothing about any address.{" "}
             <a href="/">Start a search</a>.
           </p>

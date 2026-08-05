@@ -154,7 +154,7 @@ produces and find neither the address nor the client IP.
 - **Mineral-rights parcels** (`usecd` 200-series, 1,128 records) overlap surface parcels
   and must be excluded from measurement geometry.
 - **An address outside Summit County.** Out of claimed coverage entirely: decline with the
-  reason, per Principle VI — somap declines rather than guesses where it has no verified
+  reason, per Principle VI — tarrow declines rather than guesses where it has no verified
   rules.
 - **The database has never been loaded.** The system must say its data is absent rather
   than return an empty, confident-looking result.

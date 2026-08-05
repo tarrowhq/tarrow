@@ -3,7 +3,7 @@
 // WHY THIS IS BLUNT INSTEAD OF CAREFUL
 //
 // Phase 3 left server/search.ts writing nothing, and Phase 4 audited the rest
-// of server/ the same way. That is an argument about somap's code, and somap's
+// of server/ the same way. That is an argument about tarrow's code, and tarrow's
 // code was never the problem. The log-capture test drove a probe address at the
 // running composition and read it straight back out of `docker logs`, printed
 // by dependencies:
@@ -24,7 +24,7 @@
 // control anybody will keep performing, and Principle III's whole demand is
 // that privacy be verifiable rather than promised.
 //
-// So the process is sealed instead. Nothing loaded into it -- somap's code, a
+// So the process is sealed instead. Nothing loaded into it -- tarrow's code, a
 // framework, a driver, a future dependency nobody has chosen yet -- can put a
 // byte on stdout or stderr, because the functions that do that have been
 // replaced. "No searched address appears in any log stream" stops being a

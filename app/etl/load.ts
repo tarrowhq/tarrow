@@ -177,7 +177,7 @@ export async function normalizeAddressPoints(
   client: PoolClient,
 ): Promise<NormalizationReport> {
   await client.query(
-    "UPDATE address_points SET normalized = somap_normalize_address(full_address)",
+    "UPDATE address_points SET normalized = tarrow_normalize_address(full_address)",
   );
   await client.query("ANALYZE address_points");
   const { rows } = await client.query<{ ok: string; bad: string }>(
@@ -394,7 +394,7 @@ export async function loadSchoolPremises(
 
   // The county's own enumeration: parcels the tax roll says a board of
   // education owns. Real surveyed geometry, no geocoding step, and the only
-  // reach somap has into ORC 2925.01(S)(b). Skipped where a named school has
+  // reach tarrow has into ORC 2925.01(S)(b). Skipped where a named school has
   // already claimed the parcel, so the same premises is not listed twice.
   const { rowCount: fromBoardParcels } = await client.query(
     `INSERT INTO school_premises (
@@ -506,7 +506,7 @@ export async function collectSchoolGaps(client: PoolClient): Promise<DeclaredGap
       subjectRef: `${row.layer_id}:${row.source_ref}`,
       description:
         `${row.name}${row.street ? ` (${row.street}${row.city ? `, ${row.city}` : ""})` : ""} ` +
-        `could not be matched to a tax parcel, so somap holds no premises boundary ` +
+        `could not be matched to a tax parcel, so tarrow holds no premises boundary ` +
         `for it and does not measure distance to it at all. It is NOT given an ` +
         `assumed radius: a school campus's extent can exceed the entire 1,000-foot ` +
         `buffer, so any assumed value would be either useless or dangerous. ` +
@@ -522,7 +522,7 @@ export async function collectSchoolGaps(client: PoolClient): Promise<DeclaredGap
         `${row.name} was matched to a tax parcel that is not tax-exempt, which a ` +
         `school premises almost always is. The match came from a mailing-address ` +
         `geocode (${row.match_basis}) and has not been verified by a human, so the ` +
-        `boundary somap measures from may be a neighbouring property and may be ` +
+        `boundary tarrow measures from may be a neighbouring property and may be ` +
         `smaller than the real premises.`,
     });
   }

@@ -1,6 +1,6 @@
-# somap Constitution
+# tarrow Constitution
 
-somap answers one question for one person: *"Am I allowed to live here?"*
+tarrow answers one question for one person: *"Am I allowed to live here?"*
 
 Its users are people on a sex offender registry looking for housing. They are subject to a
 patchwork of state statutes and municipal ordinances that no single authority publishes, that
@@ -8,7 +8,7 @@ frequently contradict each other, and that they are nonetheless required to obey
 of injunction, re-arrest, or homelessness. Today the only way to get an answer is to call a
 sheriff's office and ask about one address at a time.
 
-somap is a helper, not an authority. It is not legal advice. Its purpose is to turn three days
+tarrow is a helper, not an authority. It is not legal advice. Its purpose is to turn three days
 of guessing into an hour of searching plus one confirming phone call.
 
 Every principle below exists because of that user and that stake.
@@ -29,7 +29,7 @@ design decision, data-quality tradeoff, and ambiguous statutory reading.
 
 Consequences that bind:
 
-- **somap never says "approved," "legal," or "clear."** The strongest available answer is
+- **tarrow never says "approved," "legal," or "clear."** The strongest available answer is
   *"outside every buffer we checked."*
 - **Data completeness outranks data precision.** A missing daycare is a safety defect. A
   daycare we flagged that turns out not to legally qualify is a disclosure item.
@@ -38,7 +38,7 @@ Consequences that bind:
 
 ### II. Coverage Is Part of the Answer
 
-Because incomplete data is dangerous (Principle I), somap may never let coverage be inferred
+Because incomplete data is dangerous (Principle I), tarrow may never let coverage be inferred
 from silence.
 
 Every result states what was checked and what was not — which rule sources are loaded for that
@@ -49,15 +49,15 @@ This is also what makes incremental release safe: a build covering three of five
 facility classes is honestly shippable *because it says so on every answer*. Coverage is data
 rendered to the user, never an assumption baked into the code.
 
-Where somap has no verified rules for a jurisdiction, it declines rather than guesses.
+Where tarrow has no verified rules for a jurisdiction, it declines rather than guesses.
 
 ### III. Privacy Is a Stance, Not a Risk Calculation
 
-Registry data is already public. That fact does not license somap to be careless with
+Registry data is already public. That fact does not license tarrow to be careless with
 anything, and it will never be used as an argument to store more.
 
 The reasoning is deliberate: "it's already exposed" is the same logic that justifies the public
-registries themselves. somap declines that logic and holds the stricter line on the data it
+registries themselves. tarrow declines that logic and holds the stricter line on the data it
 controls, as a matter of principle and as a model for others.
 
 Two premises about our users are assumed true and not re-litigated:
@@ -72,11 +72,11 @@ Rules that follow:
   of these.
 - **Coarse attributes are still identifying.** County plus tier plus offense class can be
   reverse-joined against a public registry to name a person. "Anonymized" is not a category
-  somap recognizes for user attributes.
+  tarrow recognizes for user attributes.
 - **User attributes live on the user's device.** Saved profiles are browser-local. The server
   is never told who is asking or what they are asking about.
 - **The uniquely dangerous datum is future intent** — where someone is *trying* to move. It
-  exists nowhere else in the world. somap does not create it as a record.
+  exists nowhere else in the world. tarrow does not create it as a record.
 - **Encryption at rest is not a substitute for absence.** It defends against a stolen disk and
   nothing else — not subpoena, not application compromise, not insider access. The control is
   not holding the data.
@@ -108,7 +108,7 @@ step. Both halves are permanent architecture, not a stage to be migrated away fr
 
 ### V. Every Answer Carries Its Receipts
 
-A result the user cannot verify is a result they must simply trust, and somap has not earned
+A result the user cannot verify is a result they must simply trust, and tarrow has not earned
 and does not want that kind of trust.
 
 Every rule record carries, as data: the citation, a resolvable source URL, the effective date,
@@ -127,7 +127,7 @@ in commits — statutes change on their own schedule.
 
 ### VI. Complete a Jurisdiction Before Claiming It
 
-somap expands by whole jurisdictions, smallest complete unit first: a county's municipalities,
+tarrow expands by whole jurisdictions, smallest complete unit first: a county's municipalities,
 then the next county.
 
 A jurisdiction is *claimed* only when its state rules and its municipal layer are both loaded
@@ -141,9 +141,9 @@ First jurisdiction: **Summit County, Ohio.**
 
 Principle III says privacy must be verifiable rather than asserted. The strongest available
 form of that is not a policy a user reads, an audit they must trust, or a promise we could
-quietly stop keeping. It is somap running on a machine we do not control.
+quietly stop keeping. It is tarrow running on a machine we do not control.
 
-**somap must remain deployable, in full, by someone who has never spoken to us**, from
+**tarrow must remain deployable, in full, by someone who has never spoken to us**, from
 publicly available inputs. Not as an export, a stripped community edition, or a courtesy — the
 whole system, producing the same answers.
 
@@ -157,7 +157,7 @@ Rules that follow:
 - **Packaging is a deliverable, not documentation.** An instance someone else can actually
   stand up is the artifact that proves this principle; a README describing how one might is
   not.
-- **The container *is* the environment — for everyone, including us.** somap is defined by its
+- **The container *is* the environment — for everyone, including us.** tarrow is defined by its
   container composition, and that composition is the only supported way to run it. Nothing is
   installed on a host: not a database, not a language runtime, not a geospatial library. A
   contributor needs a container runtime and this repository, and needs nothing else, because
@@ -241,7 +241,7 @@ Milestones are release tiers grouping several TASKs into a coherent capability s
 
 ### Partners
 
-somap is built for a population that has been failed by systems claiming to help it. Advocacy
+tarrow is built for a population that has been failed by systems claiming to help it. Advocacy
 organizations and reentry programs are the credibility path, and their review is treated as a
 gate on public launch, not as marketing. Work here carries `x:partnership`.
 

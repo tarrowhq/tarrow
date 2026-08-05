@@ -1,7 +1,7 @@
-/* somap's only stylesheet, served from somap's own origin.
+/* tarrow's only stylesheet, served from tarrow's own origin.
  *
  * THE ONE RULE THIS FILE EXISTS UNDER: nothing here may cause the reader's
- * browser to contact anybody but somap.
+ * browser to contact anybody but tarrow.
  *
  * There is no @font-face, no url(), and no runtime @import. The single
  * `@import "tailwindcss"` below is resolved by the Tailwind Vite plugin at
@@ -27,7 +27,7 @@
  * `style-src 'self'` in the Content-Security-Policy is the runtime
  * enforcement. This file is the reason it never has to fire.
  *
- * THE SECOND RULE: nothing here may depend on JavaScript. somap ships none
+ * THE SECOND RULE: nothing here may depend on JavaScript. tarrow ships none
  * (app/app/root.tsx). Progressive disclosure is <details>/<summary>, which
  * every browser opens natively, and the result shapes are told apart by
  * structure and text as well as by colour -- never by colour alone.
@@ -107,7 +107,7 @@
      inherit` on anchors, which resolves to none -- so with `color: inherit`
      as well, a link is drawn exactly like body text and is invisible as a
      link. That was survivable while the interface had almost no links; after
-     TASK-0017 the route to everything somap does not check is a link, and a
+     TASK-0017 the route to everything tarrow does not check is a link, and a
      reader who cannot see it does not follow it. Colour is not used to carry
      it, here or anywhere else in this file. */
   a {

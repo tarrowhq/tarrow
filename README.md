@@ -1,13 +1,13 @@
-# somap
+# tarrow
 
-somap answers one question for one person: **"Am I allowed to live here?"**
+tarrow answers one question for one person: **"Am I allowed to live here?"**
 
 Its users are people on a sex offender registry looking for housing. They are subject to a
 patchwork of state statutes and municipal ordinances that no single authority publishes, and
 today the only way to get an answer is to call a sheriff's office about one address at a
 time.
 
-**somap is a helper, not an authority. It is not legal advice.** Its purpose is to turn three
+**tarrow is a helper, not an authority. It is not legal advice.** Its purpose is to turn three
 days of guessing into an hour of searching plus one confirming phone call. The strongest
 thing it will ever say about an address is *"outside every buffer we checked"* — stated
 together with everything it did not check.
@@ -68,19 +68,19 @@ The steps above build from this source tree, publish the database on loopback fo
 inspection, and use fixed development credentials that are in this repository — right for a
 laptop, wrong for a machine on a network.
 
-For a real deployment there are published images — `ghcr.io/evanstern/somap-app` and
-`ghcr.io/evanstern/somap-db`, both `linux/amd64` and `linux/arm64`, pinned by immutable tag
+For a real deployment there are published images — `ghcr.io/evanstern/tarrow-app` and
+`ghcr.io/evanstern/tarrow-db`, both `linux/amd64` and `linux/arm64`, pinned by immutable tag
 and never `:latest` — and a separate composition, `docker-compose.deploy.yml`, that needs no
 source checkout and refuses to start on a defaulted credential.
 
 **[`docs/deploy/self-hosting.md`](docs/deploy/self-hosting.md) is the procedure.** Read its
-*What your reverse proxy can see* section before exposing anything: somap keeps the searched
-address out of every log, but anything in front of somap that terminates TLS holds that
-address in plaintext, and that is the operator's disclosure to make rather than somap's.
+*What your reverse proxy can see* section before exposing anything: tarrow keeps the searched
+address out of every log, but anything in front of tarrow that terminates TLS holds that
+address in plaintext, and that is the operator's disclosure to make rather than tarrow's.
 
 ### It works with JavaScript switched off
 
-somap ships **no client-side JavaScript at all**. View source and count the `<script>` tags:
+tarrow ships **no client-side JavaScript at all**. View source and count the `<script>` tags:
 there are none. The form is a real `<form>` that your browser submits itself, and the
 address travels in the request body rather than in the URL, so it never reaches your
 browser's history, the address bar, a `Referer` header, or any proxy's access log. See
@@ -102,7 +102,7 @@ A check run on a host is not a check (Principle VII), so there is no host comman
 
 ## Verifying the privacy claims yourself
 
-somap records nothing about what you search — not the address, not your IP address, not the
+tarrow records nothing about what you search — not the address, not your IP address, not the
 fact that you searched. You are not asked to believe that.
 [`docs/privacy/verification.md`](docs/privacy/verification.md) is the procedure: watch the
 network from a browser, submit a search, read every log stream the composition produces, and
@@ -121,7 +121,7 @@ app/sql/query/                the spatial queries, authored as files so they dif
 app/etl/                      the ingest pipeline (a job, never in the request path)
 app/tests/                    the suite; runs only via the `test` compose profile
 specs/                        the specifications work is planned from
-docs/privacy/verification.md  how an outsider checks somap's privacy claims
+docs/privacy/verification.md  how an outsider checks tarrow's privacy claims
 docs/design/                  runbooks and decision records
 spikes/                       frozen investigations and their published evidence
 backlog/                      the board; moved only through the `backlog` CLI

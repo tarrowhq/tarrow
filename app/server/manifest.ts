@@ -7,7 +7,7 @@
 //
 // The one thing this module does add is a GATE: it refuses to produce a
 // manifest at all unless the coverage-gap ledger carries a `rule_content` row.
-// That row is the disclosure that somap's 304.8 m buffer is not verified rule
+// That row is the disclosure that tarrow's 304.8 m buffer is not verified rule
 // data (Principle V is only partially satisfied in this release -- plan.md
 // Complexity Tracking). Deleting it does not quietly remove a paragraph from a
 // page; it fails every search loudly. That is the difference between honesty
@@ -26,7 +26,7 @@ import type {
   UnreadableCoverageManifest,
 } from "./result.ts";
 
-/** The gap-ledger subject type carrying somap's own rule-content disclosure. */
+/** The gap-ledger subject type carrying tarrow's own rule-content disclosure. */
 export const RULE_CONTENT_SUBJECT_TYPE = "rule_content";
 
 export class MissingRuleDisclosureError extends Error {}
@@ -106,7 +106,7 @@ export async function readManifest(
   if (ruleGap === undefined) {
     throw new MissingRuleDisclosureError(
       `The coverage-gap ledger carries no '${RULE_CONTENT_SUBJECT_TYPE}' row. ` +
-        `That row is how every answer discloses that somap's buffer is applied ` +
+        `That row is how every answer discloses that tarrow's buffer is applied ` +
         `without the file-authored, human-verified rule record Constitution ` +
         `Principle V requires (TASK-0003 builds it). Serving results without ` +
         `the disclosure would let the interface imply a verification that never ` +
@@ -166,7 +166,7 @@ export async function readManifest(
 /**
  * The manifest when the ledger itself could not be read. Still mandatory on
  * the result, and it says the only thing that is true in that state: nothing
- * was checked, and somap cannot even tell you what it would have checked.
+ * was checked, and tarrow cannot even tell you what it would have checked.
  *
  * The rule-content statement here is not read from data because there is no
  * data to read. It claims no coverage -- it withdraws every claim -- which is
@@ -182,7 +182,7 @@ export function unreadableManifest(
       verified: false,
       source: "could-not-be-read",
       statement:
-        "somap could not read its own coverage record, so it cannot say which " +
+        "tarrow could not read its own coverage record, so it cannot say which " +
         "layers were loaded, which are absent, or how old any of them are. " +
         "Nothing was checked. Its buffer is in any case not verified rule data: " +
         "no file-authored, human-verified rule record exists yet (TASK-0003).",

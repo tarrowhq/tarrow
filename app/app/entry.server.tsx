@@ -13,13 +13,13 @@
 //     Error: No route matches URL "/search/8675309%20ZZYZX%20..."
 //
 // That is the searched address, in the container log, written by the framework
-// rather than by any line of somap's code -- which is exactly why the
+// rather than by any line of tarrow's code -- which is exactly why the
 // no-logging test captures container streams instead of auditing source. It
 // was found that way: app/tests/no-logging.test.ts drove a probe address at a
 // nonexistent path and read it straight back out of `docker logs`.
 //
 // Spec FR-023 and FR-027. Constitution Principle III: the uniquely dangerous
-// datum is where somebody is TRYING to move, and somap does not create it as a
+// datum is where somebody is TRYING to move, and tarrow does not create it as a
 // record -- including a record made on its behalf by a dependency.
 //
 // Everything else in this file is React Router 7.18.2's default entry,
