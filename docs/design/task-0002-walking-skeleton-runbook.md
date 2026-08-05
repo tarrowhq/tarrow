@@ -307,7 +307,7 @@ replaces or absorbs it.
 | date | task | PR | merge | tokens/cost (best-effort) | notes |
 |------|------|----|-------|---------------------------|-------|
 | 2026-08-04 | Lane 0 (runbook + tier pins) | #5 | `1907068` | — | merged; operator signed off on lanes |
-| 2026-08-04 | TASK-0002 | — | — | P1 214k/117 · P2 252k/92 · P3 277k/88 · P4 245k/112 calls | in flight. **phases: 1-4 done, 5 pending operator checkpoint.** Claim `629fb4c`, spec `ab7dd9b`, P1 `ec12cea`, P2 `35ee23b`+`4a221c1`, P3 `85f1d97`+`71db958`, P4 `ee011db`. Models served: P1 `claude-sonnet-5`, P2–P4 `claude-opus-5[1m]`. |
+| 2026-08-04 | TASK-0002 | #6 | pending | P1 214k/117 · P2 252k/92 · P3 277k/88 · P4 245k/112 · P5 328k/108 · **1.32M subagent tokens / 517 tool calls / ~3h20m** | **phases 1-5 done.** Claim `629fb4c`, spec `ab7dd9b`, P1 `ec12cea`, P2 `35ee23b`+`4a221c1`, P3 `85f1d97`+`71db958`, P4 `ee011db`, P5 `813ca2c`+`abf529d`+`6804e22`. Models: P1 `claude-sonnet-5`, P2–P5 `claude-opus-5[1m]`. 146 tests green; all 8 card ACs ticked against artifacts. |
 
 ### Notes from execution
 
@@ -391,6 +391,25 @@ replaces or absorbs it.
   find it reaches for a CDN). An independent canary address, submitted by POST, appears
   **0 times** across all 3,062 bytes of captured container log, with the capture proven
   non-empty rather than merely empty.
+- **2026-08-04, the zero-JS question, and where it actually came from.** P4's CSP and RR7's
+  hydration bootstrap are incompatible, because the bootstrap emits *inline* `<script>` tags
+  carrying serialized loader context and `script-src 'self'` does not admit inline. P4 kept
+  the CSP and dropped the client bundle — correct, since softening an operator-signed gate
+  inside a phase is exactly what this runbook forbids. But the provenance deserves recording
+  honestly: **zero-JS was required by no principle.** AC #6 governs third-party *origins* and
+  permits first-party JavaScript entirely. It fell out of the CSP string *this runbook*
+  specified in Lane 0. Hashes cannot rescue it either — the context script's content varies
+  per request, so no `sha256-` source expression can match; a nonce is the only route.
+  Operator ruling: **keep zero JS for this slice**, and reopen the question at TASK-0008
+  where a concrete disclosure design can justify it. Carded as **TASK-0008.01** (`5e31b7c`).
+- **2026-08-04, orchestrator re-verification of P5.** 146/146 through the sanctioned
+  profile, before and after the merge-in. All four result shapes fetched from the running
+  container and checked on raw HTML: **0 `<script>` tags, 0 off-origin `src`/`href`,
+  sheriff guidance present on every shape, `never human-verified` present 8× on every
+  shape, and 0 hits for the permission vocabulary** (`approved|permitted|you may live|is
+  legal|is clear|no results found`). The zero-collection hazard this runbook logged at P3
+  is closed: `docker compose run --rm app npm test` now exits **1** with an explanatory
+  refusal instead of a false pass.
 - **2026-08-04, pre-existing defect found, not fixed.**
   `spikes/task-0001-geocoding/README.md`'s documented command sequence is incomplete —
   `07_measure_final.sql` depends on columns built by `03_measure.sql`/`04_measure_v2.sql`,
