@@ -145,6 +145,11 @@ Submit it through the form at `http://127.0.0.1:3000/`, and — because a leak i
 on an error path — also throw it at paths that do not exist:
 
 ```
+# The real submit path: this is how an address actually arrives, and it runs
+# the whole query against PostgreSQL.
+curl -sS -o /dev/null -X POST http://127.0.0.1:3000/answer --data-urlencode "address=$ADDR"
+
+# And the ugly ways, because a leak is most likely on a path nobody designed.
 curl -sS -o /dev/null "http://127.0.0.1:3000/?address=$(printf %s "$ADDR" | jq -sRr @uri)"
 curl -sS -o /dev/null "http://127.0.0.1:3000/search/$(printf %s "$ADDR" | jq -sRr @uri)"
 curl -sS -o /dev/null -X POST http://127.0.0.1:3000/ --data-urlencode "address=$ADDR"
@@ -422,10 +427,22 @@ premises, because the absence of an address that never reached the database prov
 docker compose --profile test run --rm test
 ```
 
-**107 tests, 0 failures.** The `test` compose profile is the only sanctioned way to run it.
-`docker compose run --rm app npm test` exits 0 having collected **zero** tests, because the
-runtime image deliberately excludes `tests/` — a wrong invocation reads as "everything
-passes". Watch the count.
+**146 tests, 0 failures.** The `test` compose profile is the only sanctioned way to run it.
+
+`docker compose run --rm app npm test` cannot work, because the runtime image deliberately
+carries no `tests/`. It used to exit 0 having collected **zero** tests, so a wrong invocation
+read as "everything passes". It now refuses:
+
+```
+somap: REFUSING TO REPORT A PASS.
+
+  There is no tests directory at /app/tests, so nothing could be collected.
+  A run that collects nothing is not a run that passed.
+```
+
+`app/scripts/run-tests.mjs` also fails if fewer test files are present than the suite has, or
+if `node --test` reports fewer tests than it should — so a partial collection is a failure
+rather than a smaller green number.
 
 The tests that back this page:
 
@@ -434,6 +451,7 @@ The tests that back this page:
 | `app/tests/no-logging.test.ts` | 1, 2 — the end-to-end capture, plus every PostgreSQL setting and the running process's argv |
 | `app/tests/http-headers.test.ts` | 3, 4, 5 — the policy on 200/404/405/400/500 and on assets, the error body, no inline script, no off-origin reference |
 | `app/tests/no-outbound.test.ts` | 5, 6 — the source scan, the pinned dependency set, the build-output scan and a proof it bites |
+| `app/tests/copy.test.ts` | 5 — no `<script>` and no off-origin `src`/`href` on any of the ten served shapes; and that no searched address reaches a link, a form action, or the page title |
 
 `app/tests/no-logging.test.ts` reads container logs through the Docker engine API, which is
 why the `test` service mounts `/var/run/docker.sock`. Container output only exists *outside*
