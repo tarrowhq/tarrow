@@ -1,10 +1,10 @@
 ---
 id: TASK-0014
 title: A large header block fails as an unexplained 400
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-08-05 13:20'
-updated_date: '2026-08-05 14:54'
+updated_date: '2026-08-05 15:19'
 labels:
   - 'area:web'
   - 'kind:bug'
@@ -57,3 +57,9 @@ Returned to To Do 2026-08-05: TASK-0015 (somap unusable in every Chromium browse
 
 Scope amended 2026-08-05 with operator sign-off. The card was written believing a polluted localhost cookie jar was breaking the operator's browser; it was not -- Brave sent 632 bytes, and the real cause was TASK-0015. That removed the motivating scenario but revealed a better one in the same handler: a TLS ClientHello delivered to the plain-HTTP port produces the identical opaque failure, and that IS likely, because Chromium silently upgrades http:// to https:// for every hostname it does not consider trustworthy. localhost is exempt, a LAN hostname is not. So the Principle VII self-hoster -- someone who stands somap up on their own network over plain HTTP and opens a browser -- gets 'somap failed while handling this request' for a browser policy, on a housing tool, with no reason to suspect TLS. somap's own browser suite hit exactly this and failed with ERR_SSL_PROTOCOL_ERROR saying nothing about somap at all. The TLS case is now the headline; header overflow is the second case.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Merged in PR #9. The clientError handler now explains the two failures somap can explain, and only those two. A TLS ClientHello on the plain-HTTP port names the browser's silent HTTPS upgrade and offers localhost or putting TLS in front; an oversized header block names cookies and offers a private window; a merely-malformed request still gets the generic body, asserted by test so the specific messages cannot spread. --max-http-header-size raised to 64 KB, so a 32 KB cookie jar that used to 400 now returns 200. The card's original premise was wrong -- a polluted localhost cookie jar was not what broke the operator's browser, TASK-0015 was -- but the same handler turned out to carry a likelier failure belonging to exactly the person Principle VII is about: a self-hoster serving plain HTTP on a LAN hostname, whose browser upgrades the request out from under them. bodyForClientError reads the parser's verdict where the rest of that file refuses to read the error at all, so the boundary is stated in full: err.code plus two protocol-constant bytes of rawPacket, nothing reaching the socket, one of three fixed constants returned. Neither new path is reachable through fetch(), which is why both are raw-socket exchanges and why they went unnoticed. 150 tests plus 3 browser tests green.
+<!-- SECTION:FINAL_SUMMARY:END -->
