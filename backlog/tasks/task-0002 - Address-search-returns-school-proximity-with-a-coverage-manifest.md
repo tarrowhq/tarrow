@@ -4,7 +4,7 @@ title: Address search returns school proximity with a coverage manifest
 status: Done
 assignee: []
 created_date: '2026-08-04 15:58'
-updated_date: '2026-08-05 02:43'
+updated_date: '2026-08-05 13:39'
 labels:
   - 'area:web'
   - 'kind:feature'
@@ -32,7 +32,7 @@ Spec: specs/001-address-search-school-proximity
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [x] #1 A user can enter an address and receive school proximity results for Summit County
+- [ ] #1 A user can enter an address and receive school proximity results for Summit County
 - [x] #2 Every result carries a coverage manifest naming layers queried, layers absent, and verification dates
 - [x] #3 No rendered copy states or implies permission, verified by a test over result strings
 - [x] #4 A could-not-locate address is distinguishable from a located address with no nearby facilities
@@ -127,6 +127,8 @@ Headline decisions and findings:
 - Pre-existing defect fixed: server/db.ts resolved sql/query by a fixed ../sql/query from import.meta.url. This phase's route pulls server/search.ts into the SSR bundle two directories deeper, where that path does not exist and the process would have died at startup. It now walks up to find the one sql/query in the image, or throws.
 
 spec-bridge sync: PostGIS baseline and deploy pipeline: 11/11 · Summit County school premises ingest: 12/12 · Proximity query and coverage manifest: 17/17 · No-log privacy architecture, CSP, and verification: 10/10 · Web surface and end to end: 13/13 — status In Progress → Done
+
+AC #1 un-ticked 2026-08-05. It was ticked against a curl, not against a user. TASK-0015 records the defect: Referrer-Policy: no-referrer makes Chromium send Origin: null on the form POST, and React Router 7's origin check rejects that with a bare 400 before any somap code runs. The landing page renders and the one interaction somap has does not work, in every Chromium browser. Nothing in the 146-test suite could catch it -- every test reaches the app through fetch()/undici, which does not implement referrer policy, so the test client always sends a proper Origin or none, which are the two cases that pass. The clean-clone end-to-end check used curl, and the orchestrator's independent verification also used curl and read the rendered HTML of all four result shapes by fetching them directly rather than by submitting the form. The bodies were verified exhaustively; the interaction never was. AC #1 re-ticks when TASK-0015 lands, against a browser.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
