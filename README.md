@@ -62,6 +62,22 @@ anywhere in the codebase, on purpose (Principle IV).
 To start over completely: `docker compose down -v` removes both volumes, and step 1 rebuilds
 from empty.
 
+### Running an instance for other people
+
+The steps above build from this source tree, publish the database on loopback for
+inspection, and use fixed development credentials that are in this repository — right for a
+laptop, wrong for a machine on a network.
+
+For a real deployment there are published images — `ghcr.io/evanstern/somap-app` and
+`ghcr.io/evanstern/somap-db`, both `linux/amd64` and `linux/arm64`, pinned by immutable tag
+and never `:latest` — and a separate composition, `docker-compose.deploy.yml`, that needs no
+source checkout and refuses to start on a defaulted credential.
+
+**[`docs/deploy/self-hosting.md`](docs/deploy/self-hosting.md) is the procedure.** Read its
+*What your reverse proxy can see* section before exposing anything: somap keeps the searched
+address out of every log, but anything in front of somap that terminates TLS holds that
+address in plaintext, and that is the operator's disclosure to make rather than somap's.
+
 ### It works with JavaScript switched off
 
 somap ships **no client-side JavaScript at all**. View source and count the `<script>` tags:

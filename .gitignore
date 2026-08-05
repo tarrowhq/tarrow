@@ -1,5 +1,12 @@
 .handoff/
 .worktrees/
 
+# A deployment's .env holds the database credentials that replace the
+# published development ones (docker-compose.deploy.yml). Committing one
+# would put back exactly the problem that file exists to remove.
+# .env.deploy.example is the template and carries no secret.
+.env
+!.env.deploy.example
+
 # Spike working data — large, re-fetchable, never committed
 spikes/*/data/
