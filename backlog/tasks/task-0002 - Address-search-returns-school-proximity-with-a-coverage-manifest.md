@@ -4,7 +4,7 @@ title: Address search returns school proximity with a coverage manifest
 status: In Progress
 assignee: []
 created_date: '2026-08-04 15:58'
-updated_date: '2026-08-05 00:12'
+updated_date: '2026-08-05 00:44'
 labels:
   - 'area:web'
   - 'kind:feature'
@@ -73,4 +73,24 @@ P2 (TASK-0002.02) complete 2026-08-04. Model that actually served: claude-opus-5
 P2 complete and independently verified by the orchestrator (2026-08-04). Model that actually served: claude-opus-5[1m] -- note this equals the orchestrator's own session model, so unlike P1 it cannot distinguish a honoured model parameter from silent inheritance. Intended tier was claude-opus-5 either way, so nothing was mis-tiered. Verification: 619 school premises across four sources, ZERO with null geometry; 1,128 mineral-rights parcels flagged out of 261,154; 258,862 address points; 29 coverage-gap rows written in prose a user can read rather than developer shorthand; docker/tools and spikes/ byte-identical to origin/main. P2 raised the runbook's named P2 checkpoint: St. Vincent-St. Mary High School is confirmed absent, because the nonpublic source is a voluntary biennial federal survey rather than an authoritative register. P2 correctly declined to widen its owner-name heuristic to catch the one miss it already knew about.
 
 Operator checkpoint resolved 2026-08-04: proceed to P3, with the ODEW chartered nonpublic school directory carded as TASK-0005.04 and wired as an explicit dependency of TASK-0011 (the advocacy-review launch gate). Rationale on record: m-0 states this release is not promoted to real users, TASK-0005 is explicitly the release that becomes promotable, and the gap is declared by name in the coverage ledger rather than left silent. Board card landed direct on main at 804bb18 per two-track landing. P3 (Proximity query and coverage manifest, subtask .03) dispatched at the default tier: model claude-opus-5, fallback claude-opus-4-8. Rubric justification: x:safety -- this phase is Principle I expressed as arithmetic, and a sign error in the uncertainty bound is the unrecoverable failure mode the whole project is organised against.
+
+Phase 3 (TASK-0002.03) complete — commit 85f1d97, branch task-0002-walking-skeleton. All 17 boxes in tasks.md Phase 3 ticked. Full detail in specs/001-address-search-school-proximity/tasks.md Notes.
+
+Delivered: sql/schema/012 (normalizer ported from the TASK-0001 spike, byte-faithful), sql/schema/013 (buffer + uncertainty radii, each constant defined exactly once anywhere in the repo), sql/query/{resolve_address,proximity,manifest}.sql, server/{result,manifest,search}.ts, and a docker-compose 'test' profile. 43 tests, 13 suites, 0 failures, run inside the composition as the read-only somap_app role.
+
+Safety-critical decisions made here:
+- d_min = d - r_a - r_b, both radii SUBTRACTED. Asserted three ways: a source-level check that proximity.sql adds neither radius, a runtime sign check that fails the search rather than answering, and a data fixture (1563 Akers Ave, Lakemore) whose exact distance to an uncorroborated premises is 310 m — outside the buffer — and which flags only because 126 m is subtracted. If the sign ever inverts, that fixture stops flagging and the test fails.
+- +126 m uncertainty on the 15 'uncorroborated' premises (school point landed on a non-exempt parcel, so the boundary may be a neighbour's and may understate the premises). Value is DECISION §3's own measured p95 suburban-lot extent. This is the only radius Phase 3 chose rather than inherited, and it is recorded in tasks.md Notes with its reasoning.
+- A premises with no geometry returns NULL from the radius function, so it cannot be measured even if a WHERE clause were lost. DECISION §3's prohibition on assumed school radii is enforced in arithmetic, not only in a filter.
+- Decline when ANY candidate address point lacks a parcel, not just when all do. Measured cost: 61 of 232,728 distinct normalized addresses (0.026%). The alternative would state a result while leaving one possible location unchecked.
+
+FR-010 (clearance structurally inexpressible): result.ts carries compile-time assertions rejecting any kind, reason, basis, or FIELD NAME in the result or manifest that reads as permission. Adding kind:'clear' or permitted:boolean breaks the build in result.ts, in code the author never opened. Proved by tests/types/clearance.compile-failure.ts (tsc must refuse it; 5 cases, 5 diagnostics, including one that widens the union) and by the same cases behind @ts-expect-error inside the ordinary npm run typecheck.
+
+Principle V honesty is a gate, not a paragraph: the manifest will not build at all unless the coverage-gap ledger carries a 'rule_content' row stating the 304.8 m buffer and the nearest-boundary method are applied without a file-authored, human-verified rule record (TASK-0003). Deleting that row fails every search loudly.
+
+EXPLAIN: resolve_address uses address_points_normalized_idx then parcels_measurable_geom_idx; proximity uses parcels_pkey then school_premises_geom_idx. No geography cast in either plan, no geography column in the schema at all, every geometry column SRID 6549.
+
+Pre-existing defects fixed on the way (all outside Phase 3's surface, each recorded in tasks.md Notes): app/tsconfig.json had a deprecated baseUrl that made 'npm run typecheck' abort before checking anything (it had never been green), and lacked allowImportingTsExtensions which the .ts import specifiers Node 22 requires; app/package.json's test script ('node --test tests/') does not work on Node 22; one @ts-ignore added in server/entry.ts for the generated RR7 bundle.
+
+Open, not carded: (1) the normalizer discards the municipality, so one street address in two municipalities becomes an ambiguity resolved to the most restrictive candidate — safe but imprecise, and address_points.city is loaded and unused; (2) an out-of-county address is indistinguishable from a misspelt one (both could-not-locate) — the gap ledger names it, but a dedicated variant would be a better answer.
 <!-- SECTION:NOTES:END -->
