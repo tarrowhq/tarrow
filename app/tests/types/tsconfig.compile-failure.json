@@ -1,0 +1,21 @@
+{
+  "//": [
+    "Compiles ONLY the compile-failure fixture. tests/result-type.test.ts runs",
+    "`tsc -p` against this file and asserts a non-zero exit with one error per",
+    "case -- the executable proof that a result meaning 'clear' cannot be",
+    "written down (spec FR-010).",
+    "",
+    "Kept out of the main app/tsconfig.json (which excludes the fixture) so",
+    "that `npm run typecheck` still passes on a healthy tree. The other half of",
+    "the proof, tests/types/clearance-guard.ts, IS in the main tsconfig and",
+    "uses @ts-expect-error, so the normal typecheck fails if any of these",
+    "constructions ever starts compiling."
+  ],
+  "extends": "../../tsconfig.json",
+  "include": ["clearance.compile-failure.ts"],
+  "exclude": [],
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"]
+  }
+}

@@ -1,0 +1,401 @@
+/* somap's only stylesheet, served from somap's own origin.
+ *
+ * THE ONE RULE THIS FILE EXISTS UNDER: nothing here may cause the reader's
+ * browser to contact anybody but somap.
+ *
+ * There is no @font-face, no url(), and no runtime @import. The single
+ * `@import "tailwindcss"` below is resolved by the Tailwind Vite plugin at
+ * BUILD time and does not survive into the served file -- which is asserted
+ * rather than assumed: app/tests/http-headers.test.ts fetches the built
+ * stylesheet over HTTP and fails on any `@import` or off-origin `url()` in it,
+ * and app/scripts/scan-external-origins.mjs fails the IMAGE BUILD on an
+ * external origin anywhere in build output.
+ *
+ * Every family named below is a font already on the reader's device -- a
+ * system stack, which is the option the runbook names beside self-hosting.
+ * Tailwind's own default families are overridden with it in `@theme` so that
+ * no utility class can reintroduce one.
+ *
+ * This is not a style preference. A webfont pulled from a third-party origin
+ * is the single most likely accidental violation of the "no third-party
+ * origin" rule (spec FR-026), and it is worse than it looks: a font request
+ * carries the reader's IP address and the referring page to whoever serves
+ * it, on every page view, without a script and without consent. For a
+ * population that is on a public registry, that is a record of who read a
+ * page about where they are allowed to live, held by somebody else.
+ *
+ * `style-src 'self'` in the Content-Security-Policy is the runtime
+ * enforcement. This file is the reason it never has to fire.
+ *
+ * THE SECOND RULE: nothing here may depend on JavaScript. somap ships none
+ * (app/app/root.tsx). Progressive disclosure is <details>/<summary>, which
+ * every browser opens natively, and the result shapes are told apart by
+ * structure and text as well as by colour -- never by colour alone.
+ */
+
+@import "tailwindcss";
+
+@theme {
+  --font-sans:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", "Liberation Sans", sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+}
+
+@layer base {
+  :root {
+    --ink: #16181d;
+    --ink-soft: #4a505c;
+    --paper: #ffffff;
+    --paper-sunk: #f4f5f7;
+    --rule: #d3d7de;
+    --rule-strong: #9aa1ad;
+    /* The four accents. Each is paired with a written label and a distinct
+       border weight, because a reader who cannot distinguish them must still
+       be able to tell a flagged answer from a refusal. */
+    --flagged: #8d2b1f;
+    --flagged-sunk: #fbf0ee;
+    --measured: #1f4d3a;
+    --measured-sunk: #eef4f1;
+    --stopped: #6b4a12;
+    --stopped-sunk: #fbf5e9;
+    --broken: #3d3f46;
+    --broken-sunk: #f1f2f4;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #e9ebef;
+      --ink-soft: #a8aebb;
+      --paper: #14161a;
+      --paper-sunk: #1c1f25;
+      --rule: #343941;
+      --rule-strong: #5d646f;
+      --flagged: #f0a196;
+      --flagged-sunk: #2a1a17;
+      --measured: #97d2b6;
+      --measured-sunk: #16241d;
+      --stopped: #e8c483;
+      --stopped-sunk: #26200f;
+      --broken: #c2c6cd;
+      --broken-sunk: #1e2025;
+    }
+  }
+
+  html {
+    font-family: var(--font-sans);
+    color: var(--ink);
+    background: var(--paper);
+    line-height: 1.6;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+  }
+
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--font-mono);
+  }
+
+  a {
+    color: inherit;
+    text-underline-offset: 0.2em;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--rule-strong);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .page {
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 5rem;
+  }
+
+  .masthead {
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .masthead__name {
+    font-size: 1.375rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+
+  .masthead__where {
+    color: var(--ink-soft);
+    font-size: 0.9375rem;
+    margin: 0.125rem 0 0;
+  }
+
+  .section {
+    margin-top: 2.5rem;
+  }
+
+  .section__title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+    margin: 0 0 0.75rem;
+    padding-bottom: 0.375rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .prose p {
+    margin: 0 0 0.875rem;
+  }
+
+  .prose ul {
+    margin: 0 0 0.875rem;
+    padding-left: 1.25rem;
+  }
+
+  .prose li {
+    margin-bottom: 0.4375rem;
+  }
+
+  .prose > :last-child {
+    margin-bottom: 0;
+  }
+
+  /* ---------------------------------------------------------------------
+     The answer banner. Its MODIFIER is the whole point: the five result
+     shapes differ in border weight, background, label wording, and which
+     sections follow -- not in one changed sentence.
+     --------------------------------------------------------------------- */
+
+  .answer {
+    border: 1px solid var(--rule-strong);
+    border-left-width: 10px;
+    border-radius: 3px;
+    padding: 1.25rem 1.25rem 1.375rem;
+    background: var(--paper-sunk);
+  }
+
+  .answer__label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    margin: 0 0 0.5rem;
+  }
+
+  .answer__headline {
+    font-size: 1.625rem;
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.75rem;
+  }
+
+  .answer--flagged {
+    border-color: var(--flagged);
+    background: var(--flagged-sunk);
+  }
+  .answer--flagged .answer__label,
+  .answer--flagged .answer__headline {
+    color: var(--flagged);
+  }
+
+  .answer--measured {
+    border-color: var(--measured);
+    background: var(--measured-sunk);
+  }
+  .answer--measured .answer__label,
+  .answer--measured .answer__headline {
+    color: var(--measured);
+  }
+
+  /* Both no-answer shapes are drawn as an INTERRUPTION: dashed, not solid,
+     so a reader skimming sees at a glance that the page is not a result. */
+  .answer--stopped {
+    border-style: dashed;
+    border-left-style: solid;
+    border-color: var(--stopped);
+    background: var(--stopped-sunk);
+  }
+  .answer--stopped .answer__label,
+  .answer--stopped .answer__headline {
+    color: var(--stopped);
+  }
+
+  .answer--broken {
+    border-style: dashed;
+    border-left-style: solid;
+    border-color: var(--broken);
+    background: var(--broken-sunk);
+  }
+  .answer--broken .answer__label,
+  .answer--broken .answer__headline {
+    color: var(--broken);
+  }
+
+  .callout {
+    border: 1px solid var(--rule);
+    border-left: 5px solid var(--rule-strong);
+    border-radius: 3px;
+    background: var(--paper-sunk);
+    padding: 1rem 1.125rem;
+    margin: 1.25rem 0 0;
+  }
+
+  .callout__title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+  }
+
+  .premises {
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 1rem 1.125rem;
+    margin-bottom: 0.875rem;
+    background: var(--paper);
+  }
+
+  .premises__name {
+    font-size: 1.0625rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+  }
+
+  .facts {
+    margin: 0;
+    display: grid;
+    grid-template-columns: minmax(11rem, auto) 1fr;
+    gap: 0.3125rem 1rem;
+    font-size: 0.9375rem;
+  }
+
+  .facts dt {
+    color: var(--ink-soft);
+  }
+
+  .facts dd {
+    margin: 0;
+  }
+
+  @media (max-width: 34rem) {
+    .facts {
+      grid-template-columns: 1fr;
+      gap: 0 0;
+    }
+    .facts dt {
+      margin-top: 0.5rem;
+      font-size: 0.8125rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+  }
+
+  .disclosure {
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    background: var(--paper);
+  }
+
+  .disclosure > summary {
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.9375rem;
+  }
+
+  .disclosure > summary + * {
+    margin-top: 0.875rem;
+  }
+
+  .scroller {
+    overflow-x: auto;
+  }
+
+  .grid-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    text-align: left;
+  }
+
+  .grid-table th,
+  .grid-table td {
+    border-bottom: 1px solid var(--rule);
+    padding: 0.5rem 0.625rem 0.5rem 0;
+    vertical-align: top;
+  }
+
+  .grid-table th {
+    color: var(--ink-soft);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .never {
+    color: var(--flagged);
+    font-weight: 700;
+  }
+
+  .field {
+    display: block;
+    margin-top: 1.5rem;
+  }
+
+  .field__label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+  }
+
+  .field__hint {
+    display: block;
+    color: var(--ink-soft);
+    font-size: 0.9375rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .field__input {
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
+    font-size: 1.0625rem;
+    padding: 0.6875rem 0.75rem;
+    border: 2px solid var(--rule-strong);
+    border-radius: 3px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  .button {
+    font: inherit;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    margin-top: 1rem;
+    padding: 0.75rem 1.5rem;
+    border: 2px solid var(--ink);
+    border-radius: 3px;
+    background: var(--ink);
+    color: var(--paper);
+    cursor: pointer;
+  }
+
+  .footnote {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--rule);
+    color: var(--ink-soft);
+    font-size: 0.875rem;
+  }
+}

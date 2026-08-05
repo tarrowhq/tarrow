@@ -306,4 +306,115 @@ replaces or absorbs it.
 
 | date | task | PR | merge | tokens/cost (best-effort) | notes |
 |------|------|----|-------|---------------------------|-------|
-| 2026-08-04 | Lane 0 (runbook + tier pins) | — | — | — | authored; PR pending |
+| 2026-08-04 | Lane 0 (runbook + tier pins) | #5 | `1907068` | — | merged; operator signed off on lanes |
+| 2026-08-04 | TASK-0002 | #6 | pending | P1 214k/117 · P2 252k/92 · P3 277k/88 · P4 245k/112 · P5 328k/108 · **1.32M subagent tokens / 517 tool calls / ~3h20m** | **phases 1-5 done.** Claim `629fb4c`, spec `ab7dd9b`, P1 `ec12cea`, P2 `35ee23b`+`4a221c1`, P3 `85f1d97`+`71db958`, P4 `ee011db`, P5 `813ca2c`+`abf529d`+`6804e22`. Models: P1 `claude-sonnet-5`, P2–P5 `claude-opus-5[1m]`. 146 tests green; all 8 card ACs ticked against artifacts. |
+
+### Notes from execution
+
+- **2026-08-04, dispatch mechanism.** `subagent_type: mechanical-implementer` did not
+  resolve: this harness registers `.claude/agents/` at session start, and the definitions
+  landed on main mid-session. Dispatched to the generic agent type with `model` on the
+  call and the tier definition's instructions carried inline. **The call-level `model`
+  parameter was honoured** — P1 reported running as Sonnet 5 — which is worth recording
+  because CLAUDE.md documents it being silently ignored on 2026-07-31. Any session started
+  after PR #5 gets the frontmatter pin normally and needs neither workaround.
+- **2026-08-04, janitor.** Two containers from the merged TASK-0001 worktree
+  (`task-0001-db-1`, `task-0001-tools-1`) were still up after that worktree was removed,
+  holding host port 55432 and colliding with this task's `db` publish. P1 worked around it
+  with a throwaway compose override, which meant the committed `docker-compose.yml` had
+  **not** actually been verified. The orchestrator stopped both containers (stop, not
+  remove — the `pgdata` volume is untouched) and re-ran the verification against the
+  committed file: clean bring-up from an empty volume, all six migrations applied, app
+  healthy and serving 200.
+- **2026-08-04, the model-pin evidence is weaker than it looks for P2.** P1 served
+  `claude-sonnet-5`, which differs from this orchestrator's session model, so the
+  call-level `model` parameter demonstrably worked there. P2 served
+  `claude-opus-5[1m]` — which *is* the orchestrator's session model, so it is impossible
+  to tell whether the parameter was honoured or silently ignored and inherited. The
+  intended tier was `claude-opus-5` either way, so nothing was mis-tiered; but only the
+  P1 observation is real evidence about the mechanism. CLAUDE.md's frontmatter-pin
+  doctrine stands.
+- **2026-08-04, P2 hit the operator checkpoint this runbook names.** See
+  "Operator checkpoints", third bullet. A confirmed missing school
+  (St. Vincent–St. Mary High School, Akron) proves the nonpublic enumeration is
+  incomplete, because the federal Private School Universe Survey it draws from is a
+  *voluntary biennial survey* rather than an authoritative register. P2 added a fourth
+  source from the county tax roll, which recovered several nonpublic campuses but not
+  STVM, whose property is held as `SVSM FOUNDATION PROPERTIES LLC`. P2 declined to widen
+  the owner-name pattern to catch it — correctly: tuning a heuristic until it catches the
+  one miss you already know about produces a source that looks complete and is not.
+  The gap is declared by name in the ledger. **Resolution recorded below the log.**
+- **2026-08-04, P3 verified against its own strongest claims.** The orchestrator did not
+  take the phase report at face value. Confirmed independently: 43/43 tests pass through
+  the sanctioned `docker compose --profile test run --rm test` path; no `geography` column
+  exists anywhere in the schema and all four geometry columns are SRID 6549; and the
+  clearance fixture genuinely fails to compile with the five diagnostics reported, exit 2.
+  The load-bearing check was the **sign fixture**: `1563 AKERS AVE` sits **310.26 m** from
+  an uncorroborated premises — *outside* the 304.8 m buffer — and flags only because the
+  126 m assumed radius is subtracted. Inverting the sign therefore breaks a test against
+  real county data rather than against a mock, which is the only version of that test
+  worth having.
+- **2026-08-04, hazard found by the orchestrator: a zero-collection test run reports
+  success.** `docker compose run --rm app npm test` exits 0 having collected **0 tests**,
+  because the runtime image deliberately excludes `tests/` — only the `build` stage carries
+  them, which is what the `test` compose profile targets. A wrong invocation therefore
+  reads as "everything passes" rather than as an error. Harmless while a human is reading
+  the number; dangerous the moment it is wired into CI or into the README's command
+  sequence. **Handed to P5** as a box: the documented command must be the `test` profile,
+  and the suite should fail rather than pass when it collects nothing.
+- **2026-08-04, P4 found three real leaks of the searched address — none in somap's code.**
+  All three were in dependencies, on the *error* path, which is exactly where nobody looks:
+  React Router's default `handleError` `console.error`s the full request URL; its default
+  root error boundary does it again while server-rendering the 404; and
+  `@mjackson/node-fetch-server`'s `defaultErrorHandler`, reached through
+  `@react-router/node`'s `createRequestListener`, which does not expose the `onError`
+  option that would replace it. Each was closed at source, and then — correctly — the
+  process was made to seal its own stdout/stderr, on the reasoning that three leak sites in
+  one 7.x minor means a fourth arrives with the next dependency bump. The accepted cost is
+  stated in every file it touches: a running-server fault is not diagnosable from its
+  output. **This is the phase justifying its tier.** No box named these; they were found by
+  going to look.
+- **2026-08-04, P4's `log_statement=none` finding is worth generalising.** The three
+  settings the box named were already the image defaults, which is not a control — a
+  default is something you inherit, not something you enforce. The actual hazards were two
+  *non-default* settings: `log_min_error_statement` (defaults to logging the full text of
+  any failing statement) and `log_parameter_max_length` (defaults to logging bind
+  parameters in full). The searched address travels as a bind parameter. Both are now set
+  as command-line flags so `ALTER SYSTEM SET log_statement='all'` cannot override them —
+  verified by trying it: with the override, 11 tests fail and the log reads
+  `DETAIL: Parameters: $1 = '1464 Garman Rd, Akron, OH 44313'` verbatim.
+- **2026-08-04, orchestrator re-verification of P4.** 107/107 tests through the sanctioned
+  profile; CSP byte-identical to the runbook's on both 200 and 404; **zero `<script>` tags
+  and zero off-origin `src`/`href` in the served document**; the stylesheet returns 200
+  (P4 also fixed a Phase-1 defect where `build/client` was never served, so `/assets/*` had
+  404'd since Phase 1 — an unstyled page is a privacy defect, because the next person to
+  find it reaches for a CDN). An independent canary address, submitted by POST, appears
+  **0 times** across all 3,062 bytes of captured container log, with the capture proven
+  non-empty rather than merely empty.
+- **2026-08-04, the zero-JS question, and where it actually came from.** P4's CSP and RR7's
+  hydration bootstrap are incompatible, because the bootstrap emits *inline* `<script>` tags
+  carrying serialized loader context and `script-src 'self'` does not admit inline. P4 kept
+  the CSP and dropped the client bundle — correct, since softening an operator-signed gate
+  inside a phase is exactly what this runbook forbids. But the provenance deserves recording
+  honestly: **zero-JS was required by no principle.** AC #6 governs third-party *origins* and
+  permits first-party JavaScript entirely. It fell out of the CSP string *this runbook*
+  specified in Lane 0. Hashes cannot rescue it either — the context script's content varies
+  per request, so no `sha256-` source expression can match; a nonce is the only route.
+  Operator ruling: **keep zero JS for this slice**, and reopen the question at TASK-0008
+  where a concrete disclosure design can justify it. Carded as **TASK-0008.01** (`5e31b7c`).
+- **2026-08-04, orchestrator re-verification of P5.** 146/146 through the sanctioned
+  profile, before and after the merge-in. All four result shapes fetched from the running
+  container and checked on raw HTML: **0 `<script>` tags, 0 off-origin `src`/`href`,
+  sheriff guidance present on every shape, `never human-verified` present 8× on every
+  shape, and 0 hits for the permission vocabulary** (`approved|permitted|you may live|is
+  legal|is clear|no results found`). The zero-collection hazard this runbook logged at P3
+  is closed: `docker compose run --rm app npm test` now exits **1** with an explanatory
+  refusal instead of a false pass.
+- **2026-08-04, pre-existing defect found, not fixed.**
+  `spikes/task-0001-geocoding/README.md`'s documented command sequence is incomplete —
+  `07_measure_final.sql` depends on columns built by `03_measure.sql`/`04_measure_v2.sql`,
+  which the README never tells the reader to run, despite 07 describing itself as
+  self-contained. The measurement engine reproduces `RESULTS.md`'s numbers (96.79 / 0.21 /
+  1.75 / 1.24 against a published 96.79 / 0.20 / 1.75 / 1.26); the *instructions* do not
+  stand alone. Untouched here because ruling R2 freezes `spikes/`. **Card it after this
+  sweep** — it weakens Principle VII's reproducibility claim for anyone but us.
