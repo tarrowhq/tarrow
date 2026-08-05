@@ -1,10 +1,10 @@
 ---
 id: TASK-0017
 title: Strip the interface to a search box and an answer
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-08-05 19:39'
-updated_date: '2026-08-05 20:06'
+updated_date: '2026-08-05 20:27'
 labels:
   - 'x:safety'
 dependencies: []
@@ -52,3 +52,19 @@ Verified in the container: 216/216 and 3/3 browser tests.
 
 Open: TASK-0008.01 (nonce vs zero-JS) is untouched and still open -- this work stayed at zero JS and used <details> throughout, which is evidence for that decision rather than a pre-empting of it. AC #2 (non-technical reader) and AC #5 (advocacy review) of TASK-0008 remain the real tests of this copy; nothing here substitutes for them.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Search page cut to a wordmark, one question, the field, a called-out do-not-guess notice, and a blurb linking /faq. New /faq route carries what somap measures, what it is not, what it does not check, how to read each of the three answer kinds, what happens to the typed address, and data age; no database and no JavaScript, so it loads when the database is down. Answers lead with the finding and the flagged premises.
+
+Rule recorded in result-view.tsx so a future editor applies rather than reverses it: WHAT SOMAP DID NOT CHECK STAYS VISIBLE; HOW SOMAP KNOWS WHAT IT CHECKED COLLAPSES. A test fails if a ledger gap ends up inside a <details>. Principle II's list still renders on every result from the coverage-gap ledger and did not move to /faq -- a link is not a statement.
+
+Found along the way: four suites in copy.test.ts were registering ZERO tests, because their loops iterated the array before() fills and node:test runs describe callbacks at collection time. Dead gates were the sheriff step (FR-013), the per-shape coverage manifest (Principle II), never-human-verified per layer (Principle V), and no-script/no-off-origin (FR-026). Two of those assertions were also independently unsatisfiable: the layer check counted the whole document rather than the registry table's rows, and the staleness regex spanned an interpolation boundary React SSR splits with an HTML comment. Repaired by declaring the shape roster as data. 150 -> 216 tests, only ~10 genuinely new.
+
+Also fixed a real defect: Tailwind preflight sets text-decoration:inherit on anchors, so with color:inherit every link rendered as body text. Scope decision recorded: the sheriff step is required on every result and on the three pages a reader lands on instead of one, not on the search page or /faq, matching FR-013's wording, with a test asserting /faq carries the sentence the search page gave up. Final commit humanized every rendered string against the Signs of AI writing patterns.
+
+Verified in the container: 216/216 and 3/3 browser tests. PR #12, merged as 909fb06.
+
+Open and not addressed here: TASK-0008.01 (nonce vs zero JS) stays open -- this work stayed at zero JS throughout, which is evidence for that decision rather than a pre-empting of it. TASK-0008 AC #2 (tested with a non-technical reader) and AC #5 (advocacy organization review) remain the real tests of this copy.
+<!-- SECTION:FINAL_SUMMARY:END -->
