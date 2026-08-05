@@ -103,8 +103,16 @@
     font-family: var(--font-mono);
   }
 
+  /* UNDERLINED, EXPLICITLY. Tailwind's preflight sets `text-decoration:
+     inherit` on anchors, which resolves to none -- so with `color: inherit`
+     as well, a link is drawn exactly like body text and is invisible as a
+     link. That was survivable while the interface had almost no links; after
+     TASK-0017 the route to everything somap does not check is a link, and a
+     reader who cannot see it does not follow it. Colour is not used to carry
+     it, here or anywhere else in this file. */
   a {
     color: inherit;
+    text-decoration: underline;
     text-underline-offset: 0.2em;
   }
 
@@ -121,10 +129,30 @@
     padding: 2rem 1.25rem 5rem;
   }
 
+  /* The search page. One question, one box, and nothing competing with them.
+     Narrower than an answer and vertically centred on larger screens, so the
+     field is where the eye lands rather than the end of a wall of text. */
+  .page--ask {
+    max-width: 34rem;
+    padding-top: 3rem;
+  }
+
+  @media (min-height: 44rem) {
+    .page--ask {
+      padding-top: 12vh;
+    }
+  }
+
   .masthead {
     border-bottom: 1px solid var(--rule);
     padding-bottom: 1rem;
     margin-bottom: 2rem;
+  }
+
+  .masthead--ask {
+    border-bottom: 0;
+    padding-bottom: 0;
+    margin-bottom: 1.75rem;
   }
 
   .masthead__name {
@@ -134,10 +162,75 @@
     margin: 0;
   }
 
+  .masthead--ask .masthead__name {
+    font-size: 2.25rem;
+    letter-spacing: -0.03em;
+  }
+
+  /* The wordmark links home from every page but the home page. It is not
+     drawn as a link: an underline on the masthead reads as navigation
+     furniture and competes with the one link on the page that matters. */
+  .masthead__name a {
+    text-decoration: none;
+  }
+
   .masthead__where {
     color: var(--ink-soft);
     font-size: 0.9375rem;
     margin: 0.125rem 0 0;
+  }
+
+  .ask__question {
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.5rem;
+  }
+
+  /* The don't-guess notice. Drawn at full text colour with a heavy rule, so
+     it reads as part of the instrument rather than as fine print -- it is the
+     only thing on the search page competing with the field, deliberately. */
+  .notice {
+    margin-top: 1.75rem;
+    padding: 0.9375rem 1.125rem;
+    border: 1px solid var(--rule);
+    border-left: 5px solid var(--stopped);
+    border-radius: 3px;
+    background: var(--stopped-sunk);
+  }
+
+  .notice p {
+    margin: 0;
+  }
+
+  /* Compound selector, not !important: `.notice p` above already sets the
+     margin, and a bare `.notice__example` loses to it on specificity. */
+  .notice .notice__example {
+    margin-top: 0.5rem;
+    color: var(--ink-soft);
+    font-size: 0.875rem;
+  }
+
+  .ask__blurb {
+    margin: 1.75rem 0 0;
+    color: var(--ink-soft);
+    font-size: 0.9375rem;
+  }
+
+  /* Available to a screen reader, absent from the layout. Used for the
+     address field's label, which the question above it duplicates visually.
+     No `display: none` -- that would take it from assistive technology too. */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
   }
 
   .section {
@@ -252,12 +345,6 @@
     margin: 1.25rem 0 0;
   }
 
-  .callout__title {
-    font-size: 1rem;
-    font-weight: 700;
-    margin: 0 0 0.5rem;
-  }
-
   .premises {
     border: 1px solid var(--rule);
     border-radius: 3px;
@@ -269,7 +356,25 @@
   .premises__name {
     font-size: 1.0625rem;
     font-weight: 700;
-    margin: 0 0 0.5rem;
+    margin: 0 0 0.25rem;
+  }
+
+  /* The number the reader came for, and the number they will read down the
+     phone. It is the pessimistic distance -- the one actually compared
+     against the buffer -- never the raw measurement. */
+  .premises__distance {
+    font-size: 1.0625rem;
+    margin: 0 0 0.125rem;
+  }
+
+  .premises__where {
+    color: var(--ink-soft);
+    font-size: 0.9375rem;
+    margin: 0 0 0.75rem;
+  }
+
+  .premises > .disclosure {
+    margin-bottom: 0;
   }
 
   .facts {
@@ -357,13 +462,6 @@
     display: block;
     font-weight: 700;
     margin-bottom: 0.25rem;
-  }
-
-  .field__hint {
-    display: block;
-    color: var(--ink-soft);
-    font-size: 0.9375rem;
-    margin-bottom: 0.5rem;
   }
 
   .field__input {

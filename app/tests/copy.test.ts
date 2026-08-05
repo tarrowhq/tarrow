@@ -142,6 +142,48 @@ const MANIFEST_TOKENS = [
   "St. Vincent-St. Mary High School",
 ] as const;
 
+/**
+ * The subset of the above that must be VISIBLE -- rendered outside every
+ * <details> -- rather than merely present (TASK-0017).
+ *
+ * FR-015 permits the manifest to be collapsed, and TASK-0017 collapsed a great
+ * deal of this page on the argument that disclosure a reader scrolls past was
+ * never delivered. That argument cuts both ways: disclosure a reader never
+ * opens was not delivered either. The line drawn, and the line this gate
+ * holds, is that WHAT SOMAP DID NOT CHECK stays on the page unfolded, while
+ * HOW SOMAP KNOWS WHAT IT CHECKED may fold away.
+ *
+ * These three are the facility-class and jurisdiction gaps -- the ones that
+ * make an unflagged answer honest. "St. Vincent-St. Mary High School" is
+ * deliberately NOT here: it is a premises-level entry in the full ledger, and
+ * the test below uses it to prove the collapsed part really is collapsed.
+ */
+const VISIBLE_GAP_TOKENS = [
+  "ORC 2950.034 protects preschools",
+  "Summit County municipalities impose their own residency ordinances",
+  "Coverage is Summit County, Ohio only",
+] as const;
+
+/** Everything inside a <details>, removed. somap nests none, so this is exact. */
+function withoutCollapsedContent(body: string): string {
+  return body.replace(/<details[\s\S]*?<\/details>/g, " ");
+}
+
+/**
+ * React's server renderer emits `<!-- -->` wherever static text abuts an
+ * interpolated value, so `data on {newest}` reaches the wire as
+ * `data on <!-- -->5 August 2026`. Any assertion whose phrase spans that
+ * boundary must strip them first or it can never match.
+ *
+ * This is not hypothetical tidiness: the staleness assertion below was written
+ * as one regex across that boundary and was unsatisfiable from the day it was
+ * written. Nobody found out, because the loop that would have run it
+ * registered no tests (see ROSTER). Both halves of that are fixed here.
+ */
+function withoutSsrSeparators(body: string): string {
+  return body.split("<!-- -->").join("");
+}
+
 /** Principle V again: a fetch date may never stand in for a verification date. */
 const NEVER_VERIFIED = "never human-verified";
 
@@ -158,6 +200,84 @@ interface Shape {
   /** ...and one whose coverage manifest was read from data rather than withdrawn. */
   readonly hasLoadedManifest: boolean;
 }
+
+/**
+ * THE ROSTER IS STATIC, AND THAT IS THE WHOLE POINT (TASK-0017).
+ *
+ * This used to be derived by iterating the `shapes` array that `before()`
+ * fills. It does not work, and it fails SILENTLY: node:test runs every
+ * `describe` callback at COLLECTION time, before any `before()` hook. So every
+ * `for (const s of shapes)` loop iterated an empty array and registered ZERO
+ * tests, and the suite reported all-green having checked nothing.
+ *
+ * Four gates were dead that way, all of them constitutional:
+ *
+ *   - the sheriff step on every shape (FR-013, AC #7)
+ *   - the coverage manifest on every result (Principle II, FR-009/FR-015)
+ *   - every layer reporting as never-human-verified (Principle V)
+ *   - no shape shipping a <script> or an off-origin asset (FR-026, SC-001)
+ *
+ * It was found because the live page rendered "never human-verified" eight
+ * times against an assertion of seven and nothing complained. So the roster is
+ * declared here, up front, as data: the loops below iterate THIS, the bodies
+ * look the shape up at run time, and a suite that fails to capture one fails
+ * loudly in `shape()` rather than quietly running one test less.
+ *
+ * `expectedBytes` is the anti-vacuity floor -- a scan over an empty page finds
+ * no forbidden word and proves nothing. It is per-shape because the pages are
+ * legitimately different sizes: TASK-0017 cut the form to a question, a field,
+ * and two footnotes, and a 2 KB floor written for the old wall of prose would
+ * now fail on a page that is short on purpose.
+ */
+const ROSTER: ReadonlyArray<{
+  readonly name: string;
+  readonly isSearchResult: boolean;
+  readonly hasLoadedManifest: boolean;
+  readonly expectedBytes: number;
+}> = [
+  // Deliberately short (TASK-0017). Still far larger than an empty document,
+  // and `each shape really is the shape it is named after` below is the check
+  // that actually proves this page is the form.
+  { name: "form", isSearchResult: false, hasLoadedManifest: false, expectedBytes: 1200 },
+  { name: "faq", isSearchResult: false, hasLoadedManifest: false, expectedBytes: 2000 },
+  { name: "premises-within-buffer", isSearchResult: true, hasLoadedManifest: true, expectedBytes: 2000 },
+  { name: "premises-within-buffer-by-uncertainty", isSearchResult: true, hasLoadedManifest: true, expectedBytes: 2000 },
+  { name: "outside-every-buffer-we-checked", isSearchResult: true, hasLoadedManifest: true, expectedBytes: 2000 },
+  { name: "declined", isSearchResult: true, hasLoadedManifest: true, expectedBytes: 2000 },
+  { name: "could-not-locate", isSearchResult: true, hasLoadedManifest: true, expectedBytes: 2000 },
+  { name: "could-not-locate-empty-input", isSearchResult: true, hasLoadedManifest: true, expectedBytes: 2000 },
+  { name: "error-boundary", isSearchResult: false, hasLoadedManifest: false, expectedBytes: 2000 },
+  { name: "nothing-submitted", isSearchResult: false, hasLoadedManifest: false, expectedBytes: 2000 },
+  { name: "search-failed", isSearchResult: true, hasLoadedManifest: false, expectedBytes: 2000 },
+];
+
+const EVERY_SHAPE = ROSTER.map((r) => r.name);
+const SEARCH_RESULTS = ROSTER.filter((r) => r.isSearchResult).map((r) => r.name);
+const LOADED_MANIFESTS = ROSTER.filter((r) => r.hasLoadedManifest).map((r) => r.name);
+
+/**
+ * Where the sheriff step is REQUIRED: every page that answers, or that stands
+ * where an answer would have been.
+ *
+ * FR-013 and AC #7 say "every result", and that is what this list is -- the
+ * five result shapes plus the three pages a reader lands on instead of one
+ * (the error boundary, a bare GET of /answer, and a failed search). Those
+ * three are included precisely because they are the shapes most easily read as
+ * "nothing found": a page where somap could not answer must still point at the
+ * office that can.
+ *
+ * `form` and `faq` are NOT on it. Neither is a result and neither says
+ * anything about any address, and TASK-0017 took the sheriff sentence off the
+ * search page to leave one instruction there instead of three. /faq carries
+ * the guidance in full for anyone who follows the link.
+ *
+ * The old suite appeared to require it on all ten shapes. It did not require
+ * it anywhere -- the loop it used registered no tests at all (see ROSTER), so
+ * this is the first time the rule is written down as something that runs.
+ */
+const NEEDS_SHERIFF_STEP = ROSTER.map((r) => r.name).filter(
+  (name) => name !== "form" && name !== "faq",
+);
 
 const shapes: Shape[] = [];
 
@@ -231,6 +351,10 @@ before(async () => {
   const NOT_A_RESULT = { isSearchResult: false, hasLoadedManifest: false };
 
   await capture("form", await fetch(`${ORIGIN}/`), NOT_A_RESULT);
+  // /faq is not a result and states nothing about any address -- but a reader
+  // arrives on it from an answer and reads it as part of that answer, so the
+  // permission vocabulary is forbidden here exactly as it is everywhere else.
+  await capture("faq", await fetch(`${ORIGIN}/faq`), NOT_A_RESULT);
   await capture(
     "premises-within-buffer",
     await submit(ORIGIN, NEAR_A_SCHOOL.typed),
@@ -279,13 +403,17 @@ before(async () => {
 // ---------------------------------------------------------------------------
 
 describe("every shape was actually captured before anything is concluded", () => {
-  test("all ten shapes came back, and none is an empty body", () => {
-    assert.equal(shapes.length, 10, `captured ${shapes.map((s) => s.name).join(", ")}`);
-    for (const s of shapes) {
+  test("every shape on the roster came back, and none is an empty body", () => {
+    assert.deepEqual(
+      shapes.map((s) => s.name).sort(),
+      [...EVERY_SHAPE].sort(),
+      "the captured set does not match the roster the gates below iterate",
+    );
+    for (const { name, expectedBytes } of ROSTER) {
       assert.ok(
-        s.body.length > 2000,
-        `${s.name}: ${s.body.length} bytes. A scan over an empty page finds no ` +
-          "forbidden word and proves nothing.",
+        shape(name).body.length > expectedBytes,
+        `${name}: ${shape(name).body.length} bytes, floor ${expectedBytes}. A ` +
+          "scan over an empty page finds no forbidden word and proves nothing.",
       );
     }
   });
@@ -293,15 +421,16 @@ describe("every shape was actually captured before anything is concluded", () =>
   test("each shape really is the shape it is named after", () => {
     const marker: Record<string, string> = {
       form: "A street address in Summit County, Ohio",
-      "premises-within-buffer": "Result — inside a buffer somap checked",
-      "premises-within-buffer-by-uncertainty": "Result — inside a buffer somap checked",
-      "outside-every-buffer-we-checked": "Result — outside every buffer we checked",
-      declined: "No result — somap stopped instead of measuring",
-      "could-not-locate": "No result — somap could not find this address",
-      "could-not-locate-empty-input": "No result — somap could not find this address",
-      "error-boundary": "No result — somap could not answer",
-      "nothing-submitted": "No result — nothing was submitted",
-      "search-failed": "No result — somap failed",
+      faq: "What somap is",
+      "premises-within-buffer": "Result: inside a buffer somap checked",
+      "premises-within-buffer-by-uncertainty": "Result: inside a buffer somap checked",
+      "outside-every-buffer-we-checked": "Result: outside every buffer we checked",
+      declined: "No result: somap stopped instead of measuring",
+      "could-not-locate": "No result: somap could not find this address",
+      "could-not-locate-empty-input": "No result: somap could not find this address",
+      "error-boundary": "No result: somap could not answer",
+      "nothing-submitted": "No result: nothing was submitted",
+      "search-failed": "No result: somap failed",
     };
     for (const [name, text] of Object.entries(marker)) {
       assert.ok(
@@ -334,18 +463,7 @@ describe("every shape was actually captured before anything is concluded", () =>
 });
 
 describe("no rendered copy states or implies permission (FR-014, AC #3)", () => {
-  for (const name of [
-    "form",
-    "premises-within-buffer",
-    "premises-within-buffer-by-uncertainty",
-    "outside-every-buffer-we-checked",
-    "declined",
-    "could-not-locate",
-    "could-not-locate-empty-input",
-    "error-boundary",
-    "nothing-submitted",
-    "search-failed",
-  ]) {
+  for (const name of EVERY_SHAPE) {
     test(`${name}: none of the hard-denied constructions, at all`, () => {
       const body = shape(name).body;
       for (const [pattern, why] of HARD_DENY) {
@@ -385,11 +503,11 @@ describe("no rendered copy states or implies permission (FR-014, AC #3)", () => 
   });
 
   test('the words "no results" never appear -- they read as good news', () => {
-    for (const s of shapes) {
+    for (const name of EVERY_SHAPE) {
       assert.doesNotMatch(
-        s.body,
+        shape(name).body,
         /no results? (?:found|for)/i,
-        `${s.name}: an absence of flags is not a finding of nothing. ` +
+        `${name}: an absence of flags is not a finding of nothing. ` +
           "Principle II: absence is meaningful only against a stated list of " +
           "what was searched.",
       );
@@ -421,47 +539,88 @@ describe("the strongest available answer is phrased as Principle I requires", ()
 });
 
 describe("the sheriff step is on every result, including declines and errors (FR-013, AC #7)", () => {
-  for (const s of shapes) {
-    test(`${s.name} carries it`, () => {
+  for (const name of NEEDS_SHERIFF_STEP) {
+    test(`${name} carries it`, () => {
       for (const token of SHERIFF_TOKENS) {
         assert.ok(
-          s.body.toLowerCase().includes(token),
-          `${s.name} does not tell the reader to confirm with the sheriff's ` +
+          shape(name).body.toLowerCase().includes(token),
+          `${name} does not tell the reader to confirm with the sheriff's ` +
             `office (missing "${token}")`,
         );
       }
     });
   }
+
+  // ...and /faq carries it too, because that is where the search page's
+  // sheriff sentence went. If this fails, the guidance was not relocated --
+  // it was deleted.
+  test("faq carries it, since the search page now links here instead", () => {
+    for (const token of SHERIFF_TOKENS) {
+      assert.ok(
+        shape("faq").body.toLowerCase().includes(token),
+        `/faq is missing "${token}". The search page dropped its sheriff line ` +
+          "on the understanding that this page carries it.",
+      );
+    }
+  });
 });
 
 describe("the coverage manifest is on every result (FR-009, FR-015, AC #2)", () => {
-  for (const s of shapes.filter((x) => x.hasLoadedManifest)) {
-    test(`${s.name} names what was not checked, from the ledger`, () => {
+  for (const name of LOADED_MANIFESTS) {
+    test(`${name} names what was not checked, from the ledger`, () => {
       for (const token of MANIFEST_TOKENS) {
         assert.ok(
-          s.body.includes(token),
-          `${s.name} does not render the coverage-gap ledger entry "${token}". ` +
+          shape(name).body.includes(token),
+          `${name} does not render the coverage-gap ledger entry "${token}". ` +
             "Principle II: absence of a flag is meaningful only against a " +
             "stated list of what was searched.",
         );
       }
     });
 
-    test(`${s.name} reports every layer as never human-verified`, () => {
-      const occurrences = s.body.split(NEVER_VERIFIED).length - 1;
-      assert.equal(
-        occurrences,
-        7,
-        `${s.name} renders "${NEVER_VERIFIED}" ${occurrences} times and there ` +
-          "are 7 layers. A null verification date must render as NEVER -- not " +
-          "as a blank cell, not as a dash, and never as a fetch date wearing a " +
-          "verification's name (Principle V).",
+    /**
+     * Principle V, checked against the LAYERS TABLE rather than the document.
+     *
+     * The old assertion counted `never human-verified` over the whole body and
+     * expected exactly 7. That is wrong in both directions: the prose above the
+     * table says the phrase too, so the real count was 8 and the gate would
+     * have failed had it ever run (it did not -- see ROSTER). And counting the
+     * document means a table that quietly lost a row still passes as long as
+     * some sentence elsewhere makes the total come out right.
+     *
+     * So: find the table somap marks as the layer registry, and require that
+     * every row of it -- all 7 -- renders the marker. A null verification date
+     * must read NEVER, not a blank cell, not a dash, and never a fetch date
+     * wearing a verification's name.
+     */
+    test(`${name} reports every layer in the registry as never human-verified`, () => {
+      const table = shape(name).body.match(
+        /<table[^>]*data-table="layers"[^>]*>([\s\S]*?)<\/table>/,
       );
+      assert.ok(table, `${name} renders no layer registry table at all`);
+      const rows = [...table[1]!.matchAll(/<tr>([\s\S]*?)<\/tr>/g)]
+        .map((m) => m[1] ?? "")
+        // The header row carries <th>, not <td>.
+        .filter((r) => r.includes("<td"));
+      assert.equal(
+        rows.length,
+        7,
+        `${name}'s layer registry renders ${rows.length} rows; there are 7 ` +
+          "layers. A layer missing from this table is a layer whose staleness " +
+          "the reader was never told about.",
+      );
+      for (const row of rows) {
+        assert.ok(
+          row.includes(NEVER_VERIFIED),
+          `${name} has a layer row whose verification date is not rendered as ` +
+            `"${NEVER_VERIFIED}": ${row.slice(0, 200)}`,
+        );
+      }
     });
 
-    test(`${s.name} states how old this instance's data is`, () => {
+    test(`${name} states how old this instance's data is`, () => {
       assert.match(
-        s.body,
+        withoutSsrSeparators(shape(name).body),
         /last fetched data on \d+ \w+ \d{4}/,
         "Principle VII: an instance running old data is a hazard unless it " +
           "announces itself as one",
@@ -469,13 +628,36 @@ describe("the coverage manifest is on every result (FR-009, FR-015, AC #2)", () 
     });
   }
 
-  for (const s of shapes.filter((x) => x.isSearchResult)) {
-    test(`${s.name} says the rule somap applied is not verified data`, () => {
+  for (const name of SEARCH_RESULTS) {
+    test(`${name} says the rule somap applied is not verified data`, () => {
       assert.ok(
-        s.body.toLowerCase().includes(RULE_NOT_VERIFIED),
-        `${s.name} omits the Principle V disclosure. The 304.8 m buffer is ` +
+        shape(name).body.toLowerCase().includes(RULE_NOT_VERIFIED),
+        `${name} omits the Principle V disclosure. The 304.8 m buffer is ` +
           "applied without a file-authored, human-verified rule record, and " +
           "the interface must not let a reader think otherwise.",
+      );
+    });
+  }
+
+  for (const name of LOADED_MANIFESTS) {
+    test(`${name} leaves what was NOT checked visible, not folded away`, () => {
+      const visible = withoutCollapsedContent(shape(name).body);
+      for (const token of VISIBLE_GAP_TOKENS) {
+        assert.ok(
+          visible.includes(token),
+          `${name} renders the ledger entry "${token}" only inside a <details>. ` +
+            "Principle II: an absence of flags is meaningful only against a " +
+            "STATED list of what was searched, and a reader who never opens " +
+            "the disclosure was never given that list. Collapse the provenance, " +
+            "not the gaps.",
+        );
+      }
+      assert.ok(
+        !visible.includes("St. Vincent-St. Mary High School"),
+        `${name}: the full gap ledger is not collapsed after all, so the check ` +
+          "above proves nothing about what is visible. Either the <details> " +
+          "stripper stopped working or the page stopped folding the long " +
+          "enumerations.",
       );
     });
   }
@@ -581,23 +763,23 @@ describe("a refusal and a result differ by more than a sentence (User Story 3, A
 });
 
 describe("none of it requires JavaScript (FR-015, SC-001, User Story 4 scenario 4)", () => {
-  for (const s of shapes) {
-    test(`${s.name} contains no script element of any kind`, () => {
+  for (const name of EVERY_SHAPE) {
+    test(`${name} contains no script element of any kind`, () => {
       assert.doesNotMatch(
-        s.body,
+        shape(name).body,
         /<script/i,
-        `${s.name} ships script. somap ships none: the CSP is script-src 'self' ` +
+        `${name} ships script. somap ships none: the CSP is script-src 'self' ` +
           "with no nonce, so anything inline would be dead code, and a reader " +
           "verifying the page should find nothing to audit.",
       );
     });
 
-    test(`${s.name} references no off-origin asset`, () => {
-      const refs = [...s.body.matchAll(/\b(?:src|href|srcset|action)="([^"]*)"/g)].map(
-        (m) => m[1] ?? "",
-      );
+    test(`${name} references no off-origin asset`, () => {
+      const refs = [
+        ...shape(name).body.matchAll(/\b(?:src|href|srcset|action)="([^"]*)"/g),
+      ].map((m) => m[1] ?? "");
       for (const ref of refs) {
-        assert.doesNotMatch(ref, /^(?:https?:)?\/\//, `${s.name} references ${ref}`);
+        assert.doesNotMatch(ref, /^(?:https?:)?\/\//, `${name} references ${ref}`);
       }
     });
   }
