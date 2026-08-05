@@ -79,6 +79,40 @@ async function main(): Promise<void> {
       }
     }
 
+    // The runtime role's password, re-set on every migrate.
+    //
+    // 010_grants.sql creates `somap_app` with the literal password
+    // `somap_app` and says so in its own comment: it was written when
+    // plan.md R3 ruled public deployment out of scope, so "secret management
+    // for a real deployment" was explicitly deferred. TASK-0016 puts an
+    // instance on the public internet, which brings that deferral due.
+    //
+    // This runs here rather than as an edit to 010_grants.sql because that
+    // file has already been applied everywhere it is going to be applied.
+    // schema_migrations makes a changed migration a no-op on every existing
+    // database, so editing it would silently fix nothing for precisely the
+    // long-lived deployments where a published credential matters most. An
+    // ALTER ROLE on every migrate is idempotent, reaches fresh and existing
+    // clusters alike, and is checkable from outside by connecting with the
+    // old password and being refused.
+    //
+    // Unset means unchanged. The development composition supplies no
+    // PGAPPPASSWORD and keeps the credential 010_grants.sql wrote, which is
+    // correct for a database bound to loopback holding public county data --
+    // and it keeps `docker-compose.yml` working with no secret to invent,
+    // which Principle VII requires of the path a stranger takes first.
+    //
+    // The value is escaped as a literal rather than bound as a parameter
+    // because ALTER ROLE takes no bind parameters. It is never logged: the
+    // line below names the variable, not its contents.
+    const appPassword = process.env.PGAPPPASSWORD;
+    if (appPassword) {
+      await client.query(
+        `ALTER ROLE somap_app WITH PASSWORD ${client.escapeLiteral(appPassword)}`,
+      );
+      console.log("somap_app password set from PGAPPPASSWORD");
+    }
+
     console.log("migrations complete");
   } finally {
     await client.end();

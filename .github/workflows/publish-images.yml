@@ -1,0 +1,293 @@
+# Publishes somap's two images so that an instance can be stood up by someone
+# who has never spoken to us and has no source checkout.
+#
+# Constitution Principle VII: "Packaging is a deliverable, not documentation.
+# An instance someone else can actually stand up is the artifact that proves
+# this principle; a README describing how one might is not." Until this
+# workflow existed, somap had the README and not the artifact.
+#
+# It also enforces the two consequences the 1.2.0 amendment recorded and the
+# repository had never met:
+#
+#   PINNED     -- every build publishes an immutable `sha-<short>` tag, and
+#                 docker-compose.deploy.yml refuses to start without an
+#                 explicit tag. There is no `:latest` to drift onto.
+#   MULTI-ARCH -- linux/amd64 and linux/arm64, because an amd64-only image
+#                 narrows "anyone" to "anyone with the right laptop", which
+#                 is the opposite of what the principle says.
+#
+# arm64 is built under QEMU emulation rather than on a native ARM runner.
+# GitHub's free `ubuntu-24.04-arm` runners are public-repository-only and this
+# repository is private; emulation is slow but correct. If that ever changes,
+# the fix is to split the matrix by runner and drop the QEMU step -- nothing
+# else here depends on emulation.
+
+name: publish images
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths:
+      - "app/**"
+      - "docker/**"
+      - "docker-compose.yml"
+      - "docker-compose.deploy.yml"
+      - ".github/workflows/publish-images.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # The tag every job agrees on. Computed once so that `publish` and `smoke`
+  # cannot disagree about which image was just built -- a smoke test that
+  # silently pulls a different tag than the one published is worse than none.
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - id: tag
+        run: echo "tag=sha-$(echo ${{ github.sha }} | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
+  # THE DEPLOYED DATABASE MUST LOG EXACTLY AS LITTLE AS THE DEVELOPMENT ONE.
+  #
+  # docker-compose.deploy.yml stands alone rather than overriding
+  # docker-compose.yml (its header explains why), which means the database's
+  # logging flags are written twice. Those flags are the enforcement of
+  # docs/privacy/verification.md claim 1 -- the searched address is recorded in
+  # no log stream. If the two files drift, a deployed instance starts logging
+  # the addresses the project says it does not record, and every test in the
+  # repository still passes, because they all run against the development
+  # composition.
+  #
+  # So the duplication is checked rather than trusted. Both files are resolved
+  # by Compose itself -- not parsed by hand, not compared as text -- and the
+  # `db` service's command must come out identical.
+  parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve both compositions
+        run: |
+          docker compose -f docker-compose.yml config --format json \
+            | jq -S '.services.db.command' > /tmp/dev-db-command.json
+          SOMAP_IMAGE_TAG=parity-check \
+          POSTGRES_PASSWORD=parity-check \
+          PGAPPPASSWORD=parity-check \
+          docker compose -f docker-compose.deploy.yml config --format json \
+            | jq -S '.services.db.command' > /tmp/deploy-db-command.json
+
+      - name: Compare
+        run: |
+          if diff -u /tmp/dev-db-command.json /tmp/deploy-db-command.json; then
+            echo "db command blocks agree."
+            exit 0
+          fi
+          cat <<'MSG'
+
+          The database's command block differs between docker-compose.yml and
+          docker-compose.deploy.yml.
+
+          These flags are what make "the searched address is recorded in no log
+          stream" true (docs/privacy/verification.md, claim 1). A difference
+          here means a deployed instance does not get the guarantee a developer
+          gets, and no test in this repository would notice, because they all
+          run against the development composition.
+
+          Reconcile the two blocks. If a flag genuinely should differ between
+          development and deployment, that is a real decision -- record it in
+          docs/privacy/verification.md and narrow this check deliberately,
+          rather than deleting it.
+          MSG
+          exit 1
+
+  publish:
+    needs: [prepare, parity]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The application image, which is also the ETL image and the
+          # migration image -- one artifact, three entrypoints, exactly as in
+          # the development composition.
+          - image: somap-app
+            context: ./app
+            dockerfile: ./docker/app/Dockerfile
+            target: runtime
+          # PostGIS built on the official postgres image rather than pulled
+          # from postgis/postgis, which publishes amd64 only. See
+          # docker/db/Dockerfile -- that choice is the reason this workflow
+          # can offer arm64 at all.
+          - image: somap-db
+            context: ./docker/db
+            dockerfile: ./docker/db/Dockerfile
+            target: ""
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+          tags: |
+            type=raw,value=${{ needs.prepare.outputs.tag }}
+            type=raw,value=main,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      # The application build runs `npm run scan:external-origins` as a
+      # Dockerfile step (see docker/app/Dockerfile), so a third-party origin
+      # reaching the shipped assets fails this job before an image exists.
+      # That gate is inherited here rather than re-implemented.
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          target: ${{ matrix.target }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  # Stands the DEPLOY composition up from the images that were just published
+  # and checks the two things that would make a deployment quietly wrong.
+  #
+  # This is not the test suite -- that runs in the composition against loaded
+  # data (`docker compose --profile test run --rm test`) and is not reproduced
+  # here. This job answers a narrower question: does the artifact a stranger
+  # pulls actually start, and does its database carry the privacy flags?
+  #
+  # Only the amd64 image is exercised, because that is what the runner is. The
+  # arm64 image is built and published but not smoke-tested; standing it up
+  # under emulation would test QEMU more than it tests somap.
+  smoke:
+    needs: [prepare, publish]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Required even for our own images: a package created by this workflow
+      # inherits the repository's visibility, and this repository is private.
+      # An operator who makes the packages public (see
+      # docs/deploy/self-hosting.md) does not change anything here.
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure the deployment
+        run: |
+          {
+            echo "SOMAP_REGISTRY=ghcr.io/${{ github.repository_owner }}"
+            echo "SOMAP_IMAGE_TAG=${{ needs.prepare.outputs.tag }}"
+            echo "POSTGRES_PASSWORD=$(openssl rand -base64 32)"
+            echo "PGAPPPASSWORD=$(openssl rand -base64 32)"
+          } > .env
+
+      # `--wait` is not used: this composition contains a one-shot service
+      # (`migrate`) that exits 0, and Compose's wait treats a service that is
+      # no longer running as a failure to become healthy. Polling the
+      # application's own healthcheck asks the question that actually matters.
+      - name: Start it
+        run: |
+          docker compose -f docker-compose.deploy.yml up -d
+          for _ in $(seq 1 60); do
+            state=$(docker inspect --format '{{.State.Health.Status}}' somap-app-1 2>/dev/null || echo starting)
+            [ "$state" = "healthy" ] && echo "app healthy" && exit 0
+            sleep 3
+          done
+          echo "app did not become healthy within 180s"
+          docker compose -f docker-compose.deploy.yml ps
+          docker compose -f docker-compose.deploy.yml logs --no-color
+          exit 1
+
+      # The claim being checked is the one in docs/privacy/verification.md
+      # step 4: these settings are argv flags precisely so they can be read
+      # from outside the container. This reads them the same way a stranger
+      # auditing the instance would.
+      - name: The database logs nothing about what was asked
+        run: |
+          cmd=$(docker inspect --format '{{json .Config.Cmd}}' somap-db-1)
+          echo "$cmd"
+          fail=0
+          for flag in \
+            log_statement=none \
+            log_connections=off \
+            log_disconnections=off \
+            log_min_error_statement=panic \
+            log_parameter_max_length=0 \
+            log_parameter_max_length_on_error=0 \
+            log_min_duration_statement=-1 \
+            log_duration=off \
+            log_hostname=off \
+            logging_collector=off
+          do
+            case "$cmd" in
+              *"$flag"*) ;;
+              *) echo "MISSING: $flag"; fail=1 ;;
+            esac
+          done
+          exit $fail
+
+      # The runtime role must no longer answer to the password published in
+      # app/sql/schema/010_grants.sql. This is the check that PGAPPPASSWORD
+      # actually took effect, rather than migrate.ts having quietly skipped it.
+      #
+      # THE CONNECTION MUST COME FROM ANOTHER CONTAINER, and this is not a
+      # detail. `initdb` writes `host all all 127.0.0.1/32 trust` into pg_hba,
+      # so a psql run inside the database container reaches PostgreSQL over
+      # loopback and is authenticated by *address*, never by password. The
+      # first version of this check did exactly that: it connected with the
+      # published credential, was let in by trust, and would have reported the
+      # rotation broken while it was working -- and, had the polarity been the
+      # other way, would have reported it working while it was broken.
+      #
+      # Running from a separate container gives the connection a container IP,
+      # which falls through to the image's `host all all all scram-sha-256`
+      # rule, i.e. the rule a real client actually meets. `-w` makes psql fail
+      # rather than prompt.
+      #
+      # Both directions are checked. A negative test alone passes for any
+      # reason a connection might fail -- wrong host, database not up, typo in
+      # the role name -- so the positive control is what makes the negative one
+      # mean what it says.
+      - name: The published development credential is refused
+        run: |
+          if docker compose -f docker-compose.deploy.yml run --rm --no-deps \
+               -e PGPASSWORD=somap_app db \
+               psql -w -h db -U somap_app -d somap -c 'select 1'; then
+            echo "somap_app still accepts the credential published in this repository."
+            exit 1
+          fi
+          echo "Refused, as it must be."
+
+      - name: ...and the configured one is accepted
+        run: |
+          docker compose -f docker-compose.deploy.yml run --rm --no-deps \
+            -e PGPASSWORD="$(grep '^PGAPPPASSWORD=' .env | cut -d= -f2-)" db \
+            psql -w -h db -U somap_app -d somap -c 'select current_user'
+
+      - name: It serves
+        run: |
+          curl -fsS http://127.0.0.1:3000/ > /dev/null
+          echo "The application answered on the published port."
+
+      - if: always()
+        run: docker compose -f docker-compose.deploy.yml down -v

@@ -35,6 +35,34 @@ supported way to run somap (Principle VII), so it is also the only thing worth c
 And one claim this document makes about itself: **§3 and §7 tell you how to make each check
 fail.** A check that cannot fail is not a check, and you should not accept one from us.
 
+### What these claims are about, and what they are not about
+
+Every claim above is a claim about **the composition** — the containers `docker compose`
+starts, and those only. Each check below reads them from outside, which is what makes the
+answers trustworthy, and it is also what bounds them.
+
+They are not claims about anything you put in front of the composition. If you reach somap
+through a reverse proxy, a tunnel, or a CDN, that thing is in the request path and this
+document has said nothing whatever about it.
+
+That distinction is easy to under-read, so here it is at its sharpest. somap sends the
+searched address in the **request body** rather than the URL, deliberately, so that it never
+reaches browser history, the address bar, a `Referer`, or a proxy's access log — access logs
+record request lines, and somap's request line says only `POST /answer`. What that defeats is
+*logging*. What it does not defeat, and never could, is *interception*: **any proxy that
+terminates TLS holds the decrypted body, and can therefore read the searched address itself.**
+
+So if you are auditing somebody's hosted instance rather than one you started yourself, the
+checks below are necessary and not sufficient. They tell you the instance is not recording
+what was searched. They tell you nothing about how many parties held the plaintext on its way
+in, which is a question only the operator can answer, and which
+[`docs/deploy/self-hosting.md`](../deploy/self-hosting.md) requires them to answer in public.
+That document also records what the maintainers' own instance does, so that we are held to
+the same standard.
+
+The strongest position remains the one Principle VII describes: run it yourself, on your own
+machine, and there is no path and no operator to take anyone's word about.
+
 ---
 
 ## 0. Stand it up
