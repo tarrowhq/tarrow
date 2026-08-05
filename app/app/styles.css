@@ -1,0 +1,43 @@
+/* somap's only stylesheet, served from somap's own origin.
+ *
+ * There is no @font-face and no url() in this file, and there is no @import
+ * of any kind. Every family named below is a font that is already on the
+ * reader's device -- a system font stack, which is the option the runbook
+ * names beside self-hosting.
+ *
+ * This is not a style preference. A webfont pulled from a third-party origin
+ * is the single most likely accidental violation of the "no third-party
+ * origin" rule (spec FR-026), and it is worse than it looks: a font request
+ * carries the reader's IP address and the referring page to whoever serves
+ * it, on every page view, without a script and without consent. For a
+ * population that is on a public registry, that is a record of who read a
+ * page about where they are allowed to live, held by somebody else.
+ *
+ * `style-src 'self'` in the Content-Security-Policy is the runtime
+ * enforcement; app/scripts/scan-external-origins.mjs is the build-time scan
+ * behind it. This file is the reason neither of them ever has to fire.
+ *
+ * Phase 5 wires Tailwind on top of this. Its font stack must stay a system
+ * stack or become genuinely self-hosted files under app/public/ -- there is
+ * no third option that passes the scan.
+ */
+
+:root {
+  --somap-font-sans: system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  --somap-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+}
+
+html {
+  font-family: var(--somap-font-sans);
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: var(--somap-font-mono);
+}

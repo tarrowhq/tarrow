@@ -5,12 +5,26 @@
 // nothing else sits between the socket and the router.
 //
 // Request logging is off by construction: nothing here writes access logs.
-// This comment is the greppable statement plan.md and the runbook ask for;
-// CSP headers and the rest of Principle III's enforcement surface (error
-// handling, no query context in output) land in Phase 4 (TASK-0002.04).
+// The greppable statement is `REQUEST_LOGGING` in server/http.ts, which also
+// holds the Content-Security-Policy and the error path that carries no query
+// context. This file is the composition root -- it is the only module that
+// imports the generated bundle, and therefore the only one a test cannot
+// import, which is exactly why nothing verifiable lives in it.
+//
+// See docs/privacy/verification.md for how an outsider checks all of it.
 
 import { createServer } from "node:http";
+import type { Socket } from "node:net";
 import { createRequestListener } from "@react-router/node";
+
+import {
+  CONTENT_SECURITY_POLICY,
+  FAILURE_BODY,
+  respondWithoutQueryContext,
+  withSecurityEnvelope,
+} from "./http.ts";
+import { sealProcessOutput, writeSealedLine } from "./silence.ts";
+import { serveStaticAsset } from "./static.ts";
 
 const PORT = Number(process.env.PORT ?? 3000);
 
@@ -27,10 +41,80 @@ const listener = createRequestListener({
   build: () => import("../build/server/index.js"),
 });
 
-const server = createServer(listener);
+// The client build is served by this same process (see server/static.ts for
+// why that is not an adapter and why a 404 stylesheet was a privacy defect).
+// Assets first, React Router for everything else.
+const server = createServer(
+  withSecurityEnvelope((req, res) => {
+    if (serveStaticAsset(req, res)) return;
+    return listener(req, res);
+  }),
+);
+
+// A request malformed enough that Node rejects it before a ServerResponse
+// exists at all -- a bad request line, an oversized header block, an invalid
+// chunked body. Node's default handler answers `400 Bad Request` with no
+// headers, which would be the one response in this process without a policy on
+// it. It also emits nothing to stderr, and neither does this.
+server.on("clientError", (_err: Error, socket: Socket) => {
+  if (socket.writableEnded || socket.destroyed) return;
+  const body = Buffer.from(FAILURE_BODY, "utf8");
+  socket.end(
+    "HTTP/1.1 400 Bad Request\r\n" +
+      "Content-Type: text/plain; charset=utf-8\r\n" +
+      `Content-Length: ${body.length}\r\n` +
+      `Content-Security-Policy: ${CONTENT_SECURITY_POLICY}\r\n` +
+      "Referrer-Policy: no-referrer\r\n" +
+      "Cache-Control: no-store, no-cache, must-revalidate, private\r\n" +
+      "X-Content-Type-Options: nosniff\r\n" +
+      "X-Frame-Options: DENY\r\n" +
+      "Connection: close\r\n" +
+      "\r\n" +
+      body.toString("utf8"),
+  );
+});
+
+// A response that dies between the handler and the wire -- a socket reset
+// mid-body, a write to a closed stream. Node's default is to emit an
+// unhandled 'error' event, which crashes the process and prints the reason.
+// Nothing is written about it here either.
+server.on("request", (_req, res) => {
+  res.on("error", () => respondWithoutQueryContext(res));
+});
+
+// Node's default handler for an escaped error prints the message and the full
+// stack to stderr. A stack frame can carry an argument, and a driver error can
+// carry query text -- so the default is a log of what was searched, arriving
+// through the one path nobody writes down. These handlers replace it with a
+// fixed constant.
+//
+// The cost is real and accepted: a crash in this process is not diagnosable
+// from its output. Principle III's trade is that the control is not holding
+// the data, and an error report that "usually" omits the address is a control
+// an outsider cannot check. Reproduce faults against fixture data instead --
+// docs/privacy/verification.md says so in the same words.
+const CRASH_LINE =
+  "somap: fatal error in the request process. No error content is printed, " +
+  "by design (Constitution Principle III). Exiting.";
+
+process.on("uncaughtException", () => {
+  writeSealedLine(CRASH_LINE);
+  process.exit(1);
+});
+process.on("unhandledRejection", () => {
+  writeSealedLine(CRASH_LINE);
+  process.exit(1);
+});
 
 server.listen(PORT, () => {
   // Startup line only. Never per-request, and never carries a path, query
   // string, or remote address.
-  console.log(`somap app listening on :${PORT}`);
+  //
+  // Then the process is SEALED: from here on nothing loaded into it can write
+  // to stdout or stderr, including dependencies that log a request URL from
+  // code nobody in this repository wrote. See server/silence.ts for the three
+  // places that already did, and why closing each at its source was not
+  // enough on its own.
+  writeSealedLine(`somap app listening on :${PORT}`);
+  sealProcessOutput();
 });

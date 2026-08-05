@@ -11,6 +11,7 @@
     "typecheck": "react-router typegen && tsc",
     "start": "node --enable-source-maps server/entry.js",
     "ingest": "node etl/ingest.ts",
+    "scan:external-origins": "node scripts/scan-external-origins.mjs",
     "test": "node --test tests/*.test.ts"
   },
   "dependencies": {

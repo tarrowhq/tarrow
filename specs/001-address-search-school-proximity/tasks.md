@@ -135,26 +135,35 @@ non-negotiable and this phase is its whole enforcement surface)
 **Goal**: Make Principle III true and checkable across the whole request path, including
 the layers people forget.
 
-- [ ] Disable request logging in the RR7 node server explicitly, as a single greppable
-      line rather than an emergent default
-- [ ] Configure PostgreSQL to log neither statements nor connections
+- [x] Disable request logging in the RR7 node server explicitly, as a single greppable
+      line rather than an emergent default (`REQUEST_LOGGING` in `app/server/http.ts`) —
+      and, because auditing was not enough, seal the process's output entirely after
+      startup (`app/server/silence.ts`; see Notes)
+- [x] Configure PostgreSQL to log neither statements nor connections
       (`log_statement=none`, `log_connections=off`, `log_disconnections=off`), so the
-      searched address cannot reach the database log
-- [ ] Ensure error handling carries **no query context** into logs or error output — an
+      searched address cannot reach the database log — as **command-line flags**, plus
+      the two non-default settings that actually carried the leak (see Notes)
+- [x] Ensure error handling carries **no query context** into logs or error output — an
       error may say what failed, never what was searched
-- [ ] Set the CSP on every response: `default-src 'self'; script-src 'self'; style-src
+- [x] Set the CSP on every response: `default-src 'self'; script-src 'self'; style-src
       'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action
       'self'; frame-ancestors 'none'`
-- [ ] Self-host fonts or use a system font stack. No Google Fonts, no CDN, nothing that
-      resolves off-origin
-- [ ] Add the build-output scan that fails the build on any external origin in built
+- [x] Self-host fonts or use a system font stack. No Google Fonts, no CDN, nothing that
+      resolves off-origin (`app/app/styles.css`, a system stack; no `@font-face`, no
+      `@import`, no `url()`)
+- [x] Add the build-output scan that fails the build on any external origin in built
       assets — the second layer behind CSP, not a replacement for it
-- [ ] Confirm the query path makes no outbound network call, structurally
-- [ ] Test: run a full end-to-end search in the composition, capture **every** log stream
+      (`app/scripts/scan-external-origins.mjs`, run as a `docker/app/Dockerfile` step)
+- [x] Confirm the query path makes no outbound network call, structurally — three ways,
+      and one stronger way that could not be had (see Notes: `internal: true`)
+- [x] Test: run a full end-to-end search in the composition, capture **every** log stream
       (app, HTTP server, PostgreSQL, container stdout/stderr), and assert neither the
       searched address nor the client IP appears in any of them
-- [ ] Test: assert the CSP header is present on every response, including error responses
-- [ ] Write `docs/privacy/verification.md` — how a competent outsider checks these claims
+      (`app/tests/no-logging.test.ts` — **it found three real leaks**)
+- [x] Test: assert the CSP header is present on every response, including error responses
+      (`app/tests/http-headers.test.ts` — 200, 404, 405, a protocol-level 400, a static
+      asset, and a thrown/rejected handler's 500)
+- [x] Write `docs/privacy/verification.md` — how a competent outsider checks these claims
       from network traffic and the composition alone, with the exact steps and what they
       should see
 
@@ -644,3 +653,166 @@ into the test output, and asserts them.
 - **An out-of-county address is indistinguishable from a misspelt one**: both return
   `could-not-locate`. The gap ledger names `outside_summit_county`, so the manifest covers
   it, but a dedicated variant would be a better answer.
+
+### Phase 4 (TASK-0002.04), 2026-08-04 — implemented by a `claude-opus-5[1m]` session
+
+**Everything ran through `docker compose`.** Suite: `docker compose --profile test run
+--rm test` → **107 tests, 25 suites, 0 failures** (was 43 before this phase).
+
+#### The headline: the log-capture test found three real leaks, and none of them was in somap's code
+
+Phase 3's note said the query path writes nothing, and it was right. somap's code was never
+the problem. Driving a probe address at the running composition and reading it back out of
+`docker logs` found the searched address printed by **dependencies**, from three places:
+
+1. **React Router's default `handleError`** — `console.error(error)` where the error is
+   `No route matches URL "/search/8675309%20ZZYZX%20SENTINEL%20PRIVACY%20WAY..."`. Closed by
+   ejecting the server entry (`react-router reveal`) into `app/app/entry.server.tsx` with a
+   `handleError()` that takes **no arguments**, so there is nothing to print rather than
+   something declined.
+2. **React Router's default root error boundary** — `console.error`s the same object again
+   while server-rendering the 404. Closed by `ErrorBoundary` in `app/app/root.tsx`, which
+   deliberately does **not** call `useRouteError()`. That default also emits an inline
+   `<script>`, which `script-src 'self'` blocks, so every error page was shipping dead code.
+3. **`@mjackson/node-fetch-server`'s `defaultErrorHandler`** — reached through
+   `@react-router/node`'s `createRequestListener`, which **does not expose the `onError`
+   option** that would replace it. Not closable at its source without dropping
+   `@react-router/node` from the request path (an R1 question, not a phase-local one).
+
+Three log sites, in one 7.x minor, in code nobody in this repository wrote. **A fourth
+arrives with any dependency bump.** So the process is sealed instead:
+`app/server/silence.ts` replaces `process.stdout.write`, `process.stderr.write`, and every
+`console` method after the startup line prints. Nothing loaded into the request process can
+put a byte on those streams. `docker compose logs app` is now exactly one line, for the
+life of the container.
+
+**The trade is real and is stated everywhere it applies:** a fault in the running server is
+not diagnosable from its output. That is deliberate and is the same trade Principle III
+makes throughout — an error report that *usually* omits the address is a control an outsider
+cannot check. `migrate` and `etl` are separate processes with separate entrypoints and are
+**not** sealed; they need to report row counts and assertion failures and never see a typed
+address. Reproduce request-path faults against fixture addresses.
+
+#### PostgreSQL: the two settings that were not on the checklist
+
+The three the box names were already the image default, which is not a control. The two
+that were **not** default are the ones that carried the leak:
+
+- `log_min_error_statement` defaults to `error` — **any** failing statement is logged in
+  full. Set to `panic`.
+- `log_parameter_max_length` defaults to `-1` — bind parameters logged **in full** wherever
+  a statement is logged at all. Set to `0`. (The searched address travels as a bind
+  parameter.)
+
+Plus `log_line_prefix=%m [%p]` (no `%h`/`%r`, which would put the client IP on every line
+regardless of `log_connections`), and `logging_collector=off` (a collector writes log
+*files* into the volume, where the container-stream capture would not look).
+
+They are **command-line flags in `docker-compose.yml`**, not an init script and not
+`ALTER SYSTEM`. Verified: `pg_settings.source` reads `command line`, and
+`ALTER SYSTEM SET log_statement='all'; SELECT pg_reload_conf();` leaves `SHOW log_statement`
+at `none` — a compromised superuser cannot quietly turn statement logging on. An init
+script would have been silently absent on an existing volume.
+
+#### The gate bites (proof, not assertion)
+
+Overriding the composition with `command: ["postgres", "-c", "log_statement=all"]` and
+re-running the suite: **11 failures**, and `docker compose logs db` contains
+`DETAIL:  Parameters: $1 = '1464 Garman Rd, Akron, OH 44313'` in as many words. Override
+removed, all green again. The override file was never committed.
+
+The log-capture test also refuses to conclude anything from an empty capture: it asserts
+PostgreSQL's startup banner and the app's listen line are *present* before it greps for a
+single address, and asserts the search it ran actually resolved and flagged. (Same class of
+hazard as the zero-collection test run the orchestrator found.)
+
+#### CSP forced a decision: somap ships no client-side JavaScript
+
+`script-src 'self'` with no `'unsafe-inline'` and no nonce is incompatible with React
+Router's hydration bootstrap, which is **three inline `<script>` blocks**. The three ways
+out were: soften the operator-signed policy (forbidden), leave the scripts and let the
+browser block them (works by accident, unverifiable), or ship no client JS. Took the third:
+`<Scripts />` and `<ScrollRestoration />` are gone from `app/app/root.tsx`.
+
+It costs nothing this application wanted — R1 chose RR7 SSR *because* it degrades to working
+HTML with JS disabled, and every Phase 5 box requires that. Removing `<Scripts />` also
+removed the `modulepreload` links, so the served document is now the HTML plus one
+same-origin stylesheet, full stop.
+
+**This binds Phase 5** — see below.
+
+#### Pre-existing defect fixed: the client build was never served
+
+`createRequestListener` bridges RR7 onto Node's http server and does **not** serve
+`build/client`. Every `/assets/*` URL had 404'd since Phase 1 (nothing noticed, because
+nothing referenced one until this phase added a stylesheet). A 404 stylesheet is a privacy
+defect, not a cosmetic one: the next person to find the page unstyled reaches for a CDN,
+which is the accidental AC #6 violation the runbook names as most likely. `app/server/static.ts`
+serves GET/HEAD from `build/client` only, with resolved-path containment, a fixed
+content-type table, no directory listing, and no logging. It is not an adapter — R1 forbids
+something in the request path *between* the socket and the router; this is the router's own
+process answering for its own assets.
+
+#### Headers beyond the CSP, and why each is not decoration
+
+`Referrer-Policy: no-referrer` (Phase 5 adds sheriff guidance, guidance grows links, and a
+link would otherwise tell a county which somap page a reader was on).
+`Cache-Control: no-store` (a result page in a browser or proxy cache is a durable record of
+where somebody is trying to move — on a shared or library computer especially).
+`Permissions-Policy: geolocation=()` (somap asks where you want to live; it must never be
+able to ask where you are). Plus `nosniff`, `X-Frame-Options`, and the `Cross-Origin-*`
+isolation pair.
+
+#### A control that was implemented and could not be kept
+
+A docker network declared `internal: true` would be the strongest form of FR-024 — no
+gateway, no NAT, nowhere to call. **The engine will not publish a port for a container on an
+internal network**: it accepts the binding and binds nothing (`HostConfig.PortBindings`
+populated, `NetworkSettings.Ports` empty, host connection refused — reproduced). `app` cannot
+be both isolated that way and reachable by a browser, so it was reverted. The reasoning sits
+in `docker-compose.yml` beside the `app` service and in `docs/privacy/verification.md` §6,
+where somebody wondering why the obvious control is missing will find it. A self-hoster
+behind their own reverse proxy *can* have it, and §6 says so.
+
+FR-024 stands on three checkable things instead: no module in the request path names a
+network client API (asserted file by file), the production dependency set is pinned to six
+packages and asserted, and `connect-src 'self'` plus no client JS closes the client half.
+
+#### What Phase 5 must know
+
+- **You may not add a component that requires hydration.** There is no client runtime.
+  Forms are plain `<Form method="post">` (a real `<form>`, submitted natively); progressive
+  disclosure is `<details>`/`<summary>` and CSS. Anything genuinely needing script is an
+  **operator checkpoint** — a CSP amendment, not a component choice. This is stated at
+  length at the top of `app/app/root.tsx`.
+- **Submit the address by POST, never GET.** A GET puts it in the URL, and a URL reaches
+  browser history, the `Referer` header, and any future proxy's access log — none of which
+  somap's controls reach. The form-action model does this naturally; do not "improve" it
+  into a query string.
+- **`app/app/root.tsx` has a placeholder `ErrorBoundary`.** It is the minimum that is safe,
+  not finished copy: Phase 5 owns the words and must add the sheriff-confirmation guidance
+  every result carries. Do **not** make it render anything from the error — it carries the
+  request that produced it.
+- **Tailwind must not introduce an off-origin asset.** Its font stack stays a system stack
+  or becomes genuinely self-hosted files served from `build/client`. The build-output scan
+  fails `docker compose build` otherwise, before an image exists.
+- **`app/tests/http-headers.test.ts` will fail if a route emits an inline `<script>` or an
+  off-origin `src`/`href`.** That is intended. It also asserts the linked stylesheet is
+  actually served, which is how the 404-asset defect above was found.
+- **The `test` service now depends on `app: service_healthy`** and mounts
+  `/var/run/docker.sock:ro` (test profile only — `docker compose up` never starts it).
+  Container output only exists outside the container, so a suite that cannot reach the
+  engine could only re-assert that somap does not log, which is the claim rather than the
+  evidence. `captureLogs()` excludes exactly one stream — the `test` service's own
+  containers, which print the probe address by name in every assertion message.
+- The suite is **107 tests**. If a run reports fewer, something was not collected.
+
+#### Still open, and carded nowhere yet
+
+- **`react-router/dist/development/*` is what loads in the runtime image**, despite
+  `NODE_ENV=production` in `docker/app/Dockerfile`. Visible in stack traces captured while
+  debugging the leaks. Not a privacy defect (the seal covers it either way) but it is the
+  slower, chattier build in production, and worth a card.
+- **The `Date` response header is still served.** Harmless, but it is the one piece of
+  per-response server state that is not suppressed, and a completeness-minded reviewer will
+  ask.
