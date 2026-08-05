@@ -4,6 +4,7 @@ title: Advocacy organization review as a launch gate
 status: To Do
 assignee: []
 created_date: '2026-08-04 16:00'
+updated_date: '2026-08-05 00:11'
 labels:
   - 'area:docs'
   - 'kind:spike'
@@ -11,6 +12,7 @@ labels:
 milestone: m-4
 dependencies:
   - TASK-0007
+  - TASK-0005.04
 references:
   - 'https://ohrsol.com/resources/residency-restrictions/'
   - 'https://rasa-legal.com/'
@@ -38,3 +40,9 @@ Per the Partners section of the constitution this review gates public launch and
 - [ ] #4 Rasa contacted for advice on jurisdictional expansion and sensitive-client handling
 - [ ] #5 An explicit go or no-go on public launch recorded with rationale
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+TASK-0005.04 added as an explicit dependency 2026-08-04. It is already transitively upstream via TASK-0007 -> TASK-0005, but the edge is made explicit because this is the launch gate and the thing it now blocks on is a named, confirmed missing school rather than a category of work. A launch gate that can be passed while a school somap knows about is unchecked is not a gate.
+<!-- SECTION:NOTES:END -->
