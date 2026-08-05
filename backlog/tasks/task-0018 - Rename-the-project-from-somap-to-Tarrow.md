@@ -1,11 +1,11 @@
 ---
 id: TASK-0018
 title: Rename the project from somap to Tarrow
-status: In Progress
+status: Done
 assignee:
   - '@claude'
 created_date: '2026-08-05 20:14'
-updated_date: '2026-08-05 20:39'
+updated_date: '2026-08-05 22:01'
 labels:
   - 'kind:debt'
 dependencies: []
@@ -50,6 +50,8 @@ Verification ran against a live database holding the full county load (266,518 p
 The upgrade path was exercised rather than asserted. The ETL loaded into a database created under the old identifiers, then the renamed composition ran against that same volume with POSTGRES_DB and POSTGRES_USER pinned to somap, reproducing what an in-place upgrade actually looks like. Migration runner output: 001-013 skipped as already applied, 014 applied. Post-migration psql confirmed all four functions renamed to tarrow_*, the role renamed to tarrow_app, the somap owner role still present as documented, and 266,518 parcels intact. Suite then: 216 passed, 0 failed. Browser suite: 3 passed, 0 failed.
 
 Two deliberate non-renames, both recorded in the commit message. The maintainers' live host soma.infinitynode.media is left as written because editing it before DNS moves would make the document assert something false, against Principle III. Board cards are left as the historical record of work done under the old name, per operator decision.
+
+Landed as PR #13, merged 2026-08-05. Deployed to the misc instance the same day; the infrastructure side is tracked in the infinitynode.media repository. One reference was missed and is fixed by TASK-0019: app/scripts/scan-external-origins.mjs was excluded from the substitution because git grep -lI skips files git considers binary, and that file carried a literal NUL byte.
 <!-- SECTION:NOTES:END -->
 
 ## Final Summary
