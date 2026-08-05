@@ -1,10 +1,10 @@
 ---
 id: TASK-0014
 title: A large header block fails as an unexplained 400
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-08-05 13:20'
-updated_date: '2026-08-05 14:16'
+updated_date: '2026-08-05 14:54'
 labels:
   - 'area:web'
   - 'kind:bug'
@@ -54,4 +54,6 @@ Note this is largely a localhost artifact. On its own origin somap receives only
 
 <!-- SECTION:NOTES:BEGIN -->
 Returned to To Do 2026-08-05: TASK-0015 (somap unusable in every Chromium browser) took priority and merged first as PR #8. TASK-0014's worktree was cut before that and its edits are unmerged; resuming it needs origin/main merged into the branch, since PR #8 touched both server/http.ts and server/entry.ts -- the same two files this task changes.
+
+Scope amended 2026-08-05 with operator sign-off. The card was written believing a polluted localhost cookie jar was breaking the operator's browser; it was not -- Brave sent 632 bytes, and the real cause was TASK-0015. That removed the motivating scenario but revealed a better one in the same handler: a TLS ClientHello delivered to the plain-HTTP port produces the identical opaque failure, and that IS likely, because Chromium silently upgrades http:// to https:// for every hostname it does not consider trustworthy. localhost is exempt, a LAN hostname is not. So the Principle VII self-hoster -- someone who stands somap up on their own network over plain HTTP and opens a browser -- gets 'somap failed while handling this request' for a browser policy, on a housing tool, with no reason to suspect TLS. somap's own browser suite hit exactly this and failed with ERR_SSL_PROTOCOL_ERROR saying nothing about somap at all. The TLS case is now the headline; header overflow is the second case.
 <!-- SECTION:NOTES:END -->

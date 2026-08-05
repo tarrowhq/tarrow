@@ -18,8 +18,8 @@ import type { Socket } from "node:net";
 import { createRequestListener } from "@react-router/node";
 
 import {
+  bodyForClientError,
   CONTENT_SECURITY_POLICY,
-  FAILURE_BODY,
   respondWithoutQueryContext,
   withSecurityEnvelope,
 } from "./http.ts";
@@ -53,12 +53,21 @@ const server = createServer(
 
 // A request malformed enough that Node rejects it before a ServerResponse
 // exists at all -- a bad request line, an oversized header block, an invalid
-// chunked body. Node's default handler answers `400 Bad Request` with no
-// headers, which would be the one response in this process without a policy on
-// it. It also emits nothing to stderr, and neither does this.
-server.on("clientError", (_err: Error, socket: Socket) => {
+// chunked body, or a TLS ClientHello arriving where a request line was
+// expected. Node's default handler answers `400 Bad Request` with no headers,
+// which would be the one response in this process without a policy on it. It
+// also emits nothing to stderr, and neither does this.
+//
+// The error is passed to `bodyForClientError`, which reads its parser CODE and
+// (for a TLS record) two protocol-constant bytes, and returns one of three
+// fixed constants. Nothing derived from the request reaches the socket -- see
+// that function for why this is not a hole in the rule that the error is never
+// inspected. Two of the three answers name a cause and a way out, because
+// these are the only failures somap can explain: the parser rejected them
+// before an address existed to protect (TASK-0014).
+server.on("clientError", (err: Error, socket: Socket) => {
   if (socket.writableEnded || socket.destroyed) return;
-  const body = Buffer.from(FAILURE_BODY, "utf8");
+  const body = Buffer.from(bodyForClientError(err), "utf8");
   socket.end(
     "HTTP/1.1 400 Bad Request\r\n" +
       "Content-Type: text/plain; charset=utf-8\r\n" +
