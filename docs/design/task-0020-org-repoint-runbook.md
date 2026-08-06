@@ -186,7 +186,7 @@ under the harness isolation root, because the root-guard hook's write-allow rule
   after the merge is verified.
 - This file's execution log is complete and its status is flipped to `done`.
 
-## Phase 4 blocker — GitHub-hosted runners never picked up the publish run (2026-08-06)
+## Phase 4 blocker — a GitHub Actions outage (2026-08-06)
 
 Recorded here rather than left in a session transcript, because Phase 4 is the half of
 this task that cannot be satisfied by reading the diff, and a resuming session needs to
@@ -197,40 +197,64 @@ the path filter matched via `docker-compose.deploy.yml` and `app/**`, no dispatc
 Run [31120554341](https://github.com/tarrowhq/tarrow/actions/runs/31120554341).
 
 It did not run. Both jobs queued at 16:38:45Z and sat there; `parity` was cancelled at
-16:53:47Z — **exactly fifteen minutes**, GitHub's hosted-runner acquisition timeout — with
-the annotation:
+16:53:47Z and `prepare` at 16:58:47Z — fifteen and twenty minutes, GitHub's hosted-runner
+acquisition timeouts — with the annotation:
 
 > The job was not acquired by Runner of type hosted even after multiple attempts
 
-This is not a defect in the workflow, the compose files, or anything TASK-0020 changed.
-The evidence that it is environmental rather than ours:
+`publish` and `smoke` were skipped as downstream dependents. A rerun queued identically. A
+fresh `workflow_dispatch` run (31123072863) queued identically again, and its live job log
+gave the cause outright:
 
-- The job never started. There is no step output to fail, no log to read.
-- `actions/permissions` on the repository is `{"enabled": true, "allowed_actions": "all"}`.
-- The repository has no self-hosted runners registered (`total_count: 0`) and the workflow
-  asks for `ubuntu-latest`, so hosted runners are the only source.
-- `tarrowhq` is a **free-plan organization** and `tarrowhq/tarrow` is **private**. Private
-  repositories bill Actions minutes against the org's quota; public repositories do not.
-  The old `evanstern/tarrow` was a personal repository, so this constraint is new with the
-  move and did not exist when TASK-0016 verified a multi-arch publish.
+> All GitHub-hosted runners with label [ubuntu-latest] are busy.
+> For more information, see https://gh.io/job-concurrency-limits
 
-`gh run rerun` refuses while the run is still queued ("This workflow is already running").
+**GitHub Actions was in `major_outage`**, declared at 16:33:31Z — two minutes before the
+merge fired the first run. `githubstatus.com` carried it as an active incident alongside
+Pages, also escalated to `major_outage` at the same timestamp.
 
-### What an operator can do
+Nothing in the workflow, the compose files, or anything TASK-0020 changed is implicated.
+No job ever started, so no step ran and there is no log to read beyond the queue messages.
 
-In rough order of effort:
+### A wrong diagnosis, recorded because the correction is the useful part
 
-1. **Check the org's Actions billing** — `github.com/organizations/tarrowhq/settings/billing`.
-   A free org gets 2,000 minutes/month for private repositories; an exhausted quota or a
-   missing payment method blocks hosted runners exactly this way. This is the most likely
-   cause and cannot be checked from a token without `admin:org`.
-2. **Make `tarrowhq/tarrow` public.** Actions minutes are free for public repositories,
-   which removes the constraint entirely — and it would resolve TASK-0021 as a side effect,
-   since packages inherit repository visibility. This is a disclosure decision, not a
-   technical one, so it is the operator's to make and not a sweep's.
-3. **Re-run the workflow** once either of the above is settled:
-   `gh workflow run "publish images" --repo tarrowhq/tarrow --ref main`, or re-run
-   31120554341 once it leaves the queued state.
+This section originally attributed the blocker to Actions minutes billing: `tarrowhq` is a
+free-plan org, `tarrowhq/tarrow` was private at the time, and private repositories bill
+against an org quota that a personal repository never imposed. The operator acted on that
+reading and **made the repository public**. The symptom did not change, which is what
+falsified the theory — and, since Actions was already in a declared outage before the
+first run was ever created, the quota reading had been wrong from the start.
+
+The tell was available and went unweighed: quota exhaustion on a free org rejects a run
+outright rather than queueing it into a silent acquisition timeout. "No runner was ever
+offered" and "billing refused the run" are different failures, and the observed one was
+always the former.
+
+Two consequences that outlive the outage:
+
+- **The repository is now public.** That was a disclosure decision made on a faulty
+  premise. It is worth revisiting on its merits rather than left standing because a
+  diagnosis suggested it — with the note that a public repository does make GitHub-hosted
+  Actions minutes free, so the reasoning is not worthless, only unrelated to this failure.
+- **TASK-0021 may be resolved as a side effect.** Packages inherit the visibility of the
+  publishing repository, so images published while the repository is public should be
+  anonymously pullable without an operator flipping anything by hand. This is not
+  confirmed and does not close TASK-0021: its acceptance criteria require verification via
+  an *anonymous* token, not a pull from a logged-in machine.
+
+Also worth noting for whoever revisits the visibility decision: the workflow's own header
+comment says arm64 is built under QEMU emulation because "GitHub's free
+`ubuntu-24.04-arm` runners are public-repository-only and this repository is private."
+That premise no longer holds. Dropping emulation in favour of a native ARM runner is a
+real simplification now available — and is not this task's to make.
+
+### What to do when Actions recovers
+
+Re-run the publish and complete Phase 4's checks:
+
+```sh
+gh workflow run "publish images" --repo tarrowhq/tarrow --ref main
+```
 
 ### Phase 4's checks are unchanged and still owed
 

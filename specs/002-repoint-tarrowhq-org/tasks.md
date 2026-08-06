@@ -61,12 +61,13 @@ and is the orchestrator's, not an implementer's.
 
 **BLOCKED (2026-08-06).** The merge fired run
 [31120554341](https://github.com/tarrowhq/tarrow/actions/runs/31120554341) as predicted,
-but no GitHub-hosted runner ever acquired it: `parity` was cancelled after exactly fifteen
-minutes with "The job was not acquired by Runner of type hosted even after multiple
-attempts". `tarrowhq` is a free-plan org and this repository is private, so Actions
-minutes bill against an org quota that did not constrain the old personal repository.
-Diagnosis and operator options: `docs/design/task-0020-org-repoint-runbook.md`, "Phase 4
-blocker". None of the boxes below are relaxed by this.
+but no GitHub-hosted runner ever acquired it: the jobs were cancelled at their 15- and
+20-minute acquisition timeouts, and a fresh dispatch queued identically with "All
+GitHub-hosted runners with label [ubuntu-latest] are busy". **GitHub Actions was in
+`major_outage`**, declared 16:33:31Z — two minutes before the merge. Nothing this task
+changed is implicated. Diagnosis, and a correction to a wrong first reading of it:
+`docs/design/task-0020-org-repoint-runbook.md`, "Phase 4 blocker". None of the boxes below
+are relaxed by this.
 
 - [ ] A `publish images` run fired on the merge commit (path filter matched via
       `docker-compose.deploy.yml` and `app/**`) — confirm a run started rather than
