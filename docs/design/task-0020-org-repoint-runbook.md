@@ -256,6 +256,61 @@ Re-run the publish and complete Phase 4's checks:
 gh workflow run "publish images" --repo tarrowhq/tarrow --ref main
 ```
 
+### Published by hand during the outage (2026-08-06)
+
+With Actions unavailable and no end in sight, the images were built and pushed from a
+workstation rather than by the workflow. The operator granted `write:packages` for this
+specifically. What was published, at tag `sha-0a03fad` (the `main` tip at the time):
+
+- `ghcr.io/tarrowhq/tarrow-app` — OCI image index, `linux/amd64` + `linux/arm64`
+- `ghcr.io/tarrowhq/tarrow-db` — OCI image index, `linux/amd64` + `linux/arm64`
+
+Both built with `docker buildx` under a `docker-container` builder from the same
+Dockerfiles, contexts, and targets the workflow's `publish` matrix names. Each package
+carries exactly one tag — no `latest`, no `main` — confirmed against the registry's
+`tags/list`.
+
+The workflow's other jobs were reproduced by hand and pass:
+
+- **parity** — `db`'s command block resolved by Compose from both files, identical.
+- **smoke** — the deploy composition stood up from the *published* images (not a local
+  build): `app` reached `healthy`; all ten privacy flags present on `tarrow-db`'s argv;
+  the credential published in `010_grants.sql` was refused, and the configured
+  `PGAPPPASSWORD` accepted, both checked from a separate container so the connection meets
+  `scram-sha-256` rather than pg_hba's loopback `trust`; the application answered on its
+  published port.
+
+**This is not a CI publish, and the distinction is worth keeping.** Phase 4's *artifacts*
+are satisfied — the images exist, multi-arch, immutably tagged, and they work. Its
+*provenance* is not: these were built from a workstation's working copy rather than a
+clean checkout by an auditable runner. The working copy was clean and on `main` at
+`0a03fad`, which is the best available substitute and not the same thing. A later reader
+should not mistake these images for workflow output. When Actions recovers, a normal
+publish on a later commit supersedes them and restores the usual provenance; nothing needs
+to be un-published for that to happen, since the tags are immutable and distinct.
+
+### Anonymous pull still fails — TASK-0021 is NOT resolved
+
+Checked directly rather than assumed, because the earlier reasoning that a public
+repository would carry its packages public was another inference worth testing:
+
+```
+curl "https://ghcr.io/token?scope=repository:tarrowhq/tarrow-app:pull&service=ghcr.io"
+  → {"errors":[{"code":"UNAUTHORIZED","message":"authentication required"}]}
+
+gh api orgs/tarrowhq/packages/container/tarrow-app --jq .visibility
+  → "private"
+```
+
+Both packages are private despite the repository being public. GHCR packages are created
+private and their visibility is set per-package, not inherited on every push. So the
+side-effect hoped for above does not happen, and TASK-0021 remains exactly as carded: an
+operator must flip both packages public through the GitHub UI, after which the anonymous
+check above should return a token and a `200`.
+
+Until then, a stranger following `docs/deploy/self-hosting.md` gets a `401`. The document
+already says so.
+
 ### Phase 4's checks are unchanged and still owed
 
 Nothing about this blocker relaxes them. When a run does execute, verify: all five jobs

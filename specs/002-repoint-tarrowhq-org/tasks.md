@@ -69,12 +69,19 @@ changed is implicated. Diagnosis, and a correction to a wrong first reading of i
 `docs/design/task-0020-org-repoint-runbook.md`, "Phase 4 blocker". None of the boxes below
 are relaxed by this.
 
-- [ ] A `publish images` run fired on the merge commit (path filter matched via
-      `docker-compose.deploy.yml` and `app/**`) — confirm a run started rather than
-      assuming
-- [ ] All jobs green: `prepare`, `parity`, `publish` (×2), `smoke`
-- [ ] `ghcr.io/tarrowhq/tarrow-app` and `ghcr.io/tarrowhq/tarrow-db` exist at the run's
-      `sha-<short>` tag
-- [ ] Both manifests are OCI image indexes carrying `linux/amd64` and `linux/arm64`
-- [ ] No moving tag published (no `latest`, no `main`)
-- [ ] Card the package-visibility follow-up (spec R5) on the board
+- [x] A `publish images` run fired on the merge commit (path filter matched via
+      `docker-compose.deploy.yml` and `app/**`) — confirmed: run 31120554341 was created by
+      the merge, as predicted. It never executed (Actions outage; see the runbook)
+- [ ] All jobs green: `prepare`, `parity`, `publish` (×2), `smoke` — **NOT satisfied.**
+      No run has executed. `parity` and `smoke` were reproduced by hand against the
+      published images and pass, but a hand-run check is not a green CI job and this box
+      stays open until a workflow run produces one
+- [x] `ghcr.io/tarrowhq/tarrow-app` and `ghcr.io/tarrowhq/tarrow-db` exist at
+      `sha-0a03fad` — published by hand during the outage, not by the workflow
+- [x] Both manifests are OCI image indexes carrying `linux/amd64` and `linux/arm64` —
+      verified with `docker buildx imagetools inspect --raw`
+- [x] No moving tag published (no `latest`, no `main`) — each package's `tags/list`
+      returns exactly `["sha-0a03fad"]`
+- [x] Card the package-visibility follow-up (spec R5) on the board — TASK-0021. Confirmed
+      still needed: both packages are `private` and an anonymous token request is refused,
+      despite the repository now being public
