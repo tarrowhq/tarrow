@@ -25,6 +25,7 @@ therefore land under `ghcr.io/tarrowhq` with no edit at all.
 | `README.md` | names `ghcr.io/evanstern/tarrow-app` and `-db` as the published images |
 | `app/etl/fetch.ts` | `USER_AGENT` carries `+https://github.com/evanstern/tarrow` — a contact URL that 404s for the operator of a source we scrape |
 | `docs/design/task-0002-walking-skeleton-runbook.md` | a `gh api repos/evanstern/tarrow/pulls/<n>` example |
+| `.env.deploy.example` | the commented `#TARROW_REGISTRY=ghcr.io/evanstern` default — the file a self-hoster copies to `.env` |
 
 ## Why this matters beyond tidiness
 
@@ -73,13 +74,23 @@ The existing somap→tarrow note is not deleted or rewritten to pretend the soma
 were always under tarrowhq. Both moves happened; a reader arriving from either one needs
 their own paragraph.
 
-### R3 — README and the ETL User-Agent name the new org (AC #3)
+### R3 — README, the ETL User-Agent, and the deploy env template name the new org (AC #3)
 
 `README.md`'s image names and `app/etl/fetch.ts`'s `USER_AGENT` URL resolve to
 `tarrowhq/tarrow`. The runbook's `gh api` example is corrected in the same pass — it is a
 copy-pasteable command in a document that describes how to verify a merge, and a wrong
 repo path there produces a confusing 404 at exactly the moment someone is trying to
 confirm something landed.
+
+`.env.deploy.example`'s commented `#TARROW_REGISTRY=ghcr.io/evanstern` is corrected here
+too. This was missed when this spec was first written and added during implementation
+after Phase 3 surfaced it; it is recorded as an amendment rather than quietly folded in.
+It matters more than its size suggests: `.env.deploy.example` is the file
+`docs/deploy/self-hosting.md` instructs a self-hoster to copy to `.env`, so an operator
+who uncomments that line — exactly what the surrounding comment invites, since it is
+offered as the knob for pointing at your own registry — pins their deployment to the
+frozen registry *explicitly*, which is worse than inheriting a stale default, because an
+explicit setting looks deliberate to the next person who reads it.
 
 ### R4 — A publish from the new repo produces images under `ghcr.io/tarrowhq` and the smoke job passes (AC #4)
 

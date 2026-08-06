@@ -38,10 +38,24 @@ and is the orchestrator's, not an implementer's.
 - [x] `app/etl/fetch.ts`: `USER_AGENT` URL → `+https://github.com/tarrowhq/tarrow`
 - [x] `docs/design/task-0002-walking-skeleton-runbook.md`: the `gh api repos/evanstern/tarrow/pulls/<n>`
       example → `repos/tarrowhq/tarrow`; change nothing else in that runbook
-- [ ] Verification grep: `grep -rn "evanstern" --exclude-dir=.git .` returns only the
-      permitted survivors — the somap migration note in `docs/deploy/self-hosting.md`,
-      TASK-0016's card under `backlog/`, and this spec directory's own prose
-- [ ] `docker compose run --rm app npm test` passes (container-only, constitution VII)
+- [x] `.env.deploy.example`: the commented `#TARROW_REGISTRY=ghcr.io/evanstern` →
+      `ghcr.io/tarrowhq` (added by spec amendment during Phase 3 — this is the file a
+      self-hoster copies to `.env`, so an operator who uncomments it pins to the frozen
+      registry explicitly)
+- [x] Verification grep: `grep -rn "evanstern" --exclude-dir=.git .` returns only the
+      permitted survivors, each of which names the old owner *on purpose*: the somap
+      migration note and the new org-move note in `docs/deploy/self-hosting.md` (the
+      latter is about the old registry, so it must name it); TASK-0016's card and
+      TASK-0020's own card under `backlog/`; this spec directory's prose; and
+      `docs/design/task-0020-org-repoint-runbook.md`. **Zero hits is a failure** — it
+      would mean historically-correct references were rewritten
+- [x] `docker compose --profile test run --rm test` passes (container-only, constitution VII).
+      Corrected during Phase 3: this line originally named `docker compose run --rm app npm
+      test`, which `app/scripts/run-tests.mjs` refuses outright — the runtime image carries no
+      `tests/` and no dev dependencies, so that invocation collected zero tests and would have
+      read as a pass. The `test` profile is the only sanctioned invocation (`README.md`).
+      216 tests, 216 passed, 0 failed, across 10 files — run against a composition whose ETL
+      had been loaded first, because the suite queries the real Summit County data
 
 ## Phase 4: Post-merge publish verification (orchestrator)
 
