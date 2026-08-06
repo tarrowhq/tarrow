@@ -1,9 +1,10 @@
 ---
 id: TASK-0020
 title: Repoint project references to the tarrowhq org
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-08-06 15:20'
+updated_date: '2026-08-06 15:53'
 labels:
   - 'kind:chore'
 dependencies: []
