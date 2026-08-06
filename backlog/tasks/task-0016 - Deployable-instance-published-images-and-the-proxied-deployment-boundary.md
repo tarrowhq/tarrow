@@ -1,10 +1,10 @@
 ---
 id: TASK-0016
 title: 'Deployable instance: published images and the proxied-deployment boundary'
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-08-05 17:05'
-updated_date: '2026-08-05 17:18'
+updated_date: '2026-08-06 15:18'
 labels:
   - 'area:infra'
   - 'kind:feature'
@@ -46,12 +46,12 @@ That is not an argument against deploying. It is an argument that the deployment
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Pinned, multi-architecture (linux/amd64 and linux/arm64) images are published for both the application and the database
-- [ ] #2 A deploy composition stands somap up from published images alone, with no source checkout and no build toolchain on the host
+- [x] #1 Pinned, multi-architecture (linux/amd64 and linux/arm64) images are published for both the application and the database
+- [x] #2 A deploy composition stands somap up from published images alone, with no source checkout and no build toolchain on the host
 - [x] #3 The deploy path requires a database credential to be supplied and does not fall back to the development default
 - [x] #4 Deployment documentation states what a TLS-terminating proxy in front of somap can see, naming that the address travels in the request body
 - [x] #5 Deployment documentation states that somap must have its own origin and why
-- [ ] #6 The published images are pulled and stood up from the deploy composition, and the result answers a real address
+- [x] #6 The published images are pulled and stood up from the deploy composition, and the result answers a real address
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -86,4 +86,45 @@ This is an asymmetry between the two credentials worth stating plainly: PGAPPPAS
 (The pre-existing volume was not mine and was left intact -- the smoke test was re-run under an isolated project name.)
 
 Not verified here, and deliberately: acceptance criteria #1, #2 and #6 name *published* images, and nothing publishes until this merges and the workflow runs. What was proven locally is that the composition, the migration, the credential rotation and the parity gate all work; what remains is that GHCR receives the artifacts and that a pull-only host can stand them up. AC #6 additionally needs the ETL to have run, which is a several-minute fetch of county and federal sources and belongs to the deployment, not to CI.
+
+Closed out 2026-08-06 after verifying the three criteria that could only be proven after merge.
+
+AC #1 -- pinned, multi-arch, published. ghcr.io/evanstern/tarrow-app and ghcr.io/evanstern/tarrow-db carry sha-785b71f and sha-13d962b and no moving tag. Both are OCI image indexes with linux/amd64 and linux/arm64 entries, i.e. QEMU emulation produced real arm64 artifacts rather than a single-arch manifest. Checked with an anonymous ghcr.io pull token carrying no account: the manifests resolve without a credential, so the packages really are public and a stranger can pull them, which was the decision the card recorded.
+
+AC #2 -- the deploy composition stands up from images alone. The workflow's smoke job is the proof and it is running on every merge (last: run 31050785981, all five jobs green). It writes a .env with generated passwords, brings up docker-compose.deploy.yml on a runner with no source build, polls the application's own healthcheck, reads all ten logging flags back out of docker inspect, and runs both directions of the credential check -- the published tarrow_app password refused from a separate container, the configured one accepted.
+
+AC #6 -- published images answer a real address. demo.tarrow.org is live behind Cloudflare Tunnel. Two queries, distinct outcomes, against loaded data:
+  1464 Garman Rd, Akron, OH 44313 -> "3 school premises are within 304.8 m (1,000 feet) of this address."
+  1361 Milan Ave, Copley, OH      -> "Outside every buffer we checked."
+Distinguishing results means geocode, buffer, and ETL all ran; a health stub cannot produce them. Response headers carry the zero-JS CSP the runbook specifies.
+
+Handoffs the card promised are in place: TASK-0010's implementation notes carry both the proxy-interception item raised here and TASK-0014's shared-origin cookie item, so the threat-model work is not orphaned.
+
+One thing left for a later card, not blocking this one: docs/deploy/self-hosting.md still names SOMAP_REGISTRY in the migration section (line ~236) where it means to name the old variable, and app/sql/schema/014_rename_to_tarrow.sql references somap by design. The doc reference is intentional history, not drift.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+tarrow is deployable by someone who has never spoken to us.
+
+Before this task the project had a README describing how an instance might be stood up and no artifact that proved it -- the exact gap Principle VII names. It now publishes two pinned, multi-architecture images to GHCR as public packages, ships a deploy composition that stands up from those images with no source checkout and no build toolchain, refuses to start without an explicitly named immutable tag, and refuses to run on the database credential this repository publishes in its own migration.
+
+Shipped:
+- .github/workflows/publish-images.yml -- builds tarrow-app and tarrow-db for linux/amd64 and linux/arm64, publishes immutable sha-<short> tags only, and smoke-tests the result by standing up the deploy composition from what it just pushed.
+- A parity job that resolves docker-compose.yml and docker-compose.deploy.yml through Compose itself and fails if the database's command block differs. The deploy file stands alone rather than overriding, so the logging flags are written twice; those flags are what makes privacy claim 1 true, and no test in the repository would have caught the drift because they all run against the development composition.
+- docker-compose.deploy.yml -- no build: key, so no host is asked for a source tree; requires POSTGRES_PASSWORD and PGAPPPASSWORD with no defaults.
+- Credential rotation in migrate.ts via ALTER ROLE on every run, rather than an edit to 010_grants.sql. Editing the migration would have fixed nothing: schema_migrations makes a changed file a no-op on every existing database, which is precisely the long-lived deployments where it matters.
+- docs/deploy/self-hosting.md -- states plainly that a TLS-terminating proxy holds the searched address in plaintext. Putting the address in the request body defeats logging; it was never able to defeat interception. Ranks the arrangements honestly and records the one the maintainers actually run rather than describing a better one.
+- A scope statement on docs/privacy/verification.md: its six claims are claims about the composition, proven by tests that read this compose project's containers, and say nothing about anything in front of it.
+
+Two things the work found that were not visible from the plan:
+
+The first version of the credential check connected from inside the database container and passed while measuring nothing. initdb writes `host all all 127.0.0.1/32 trust` into pg_hba, so a loopback psql is authenticated by address and never sees a password at all. The check now runs from a separate container, which falls through to the scram-sha-256 rule a real client meets, and a positive control runs alongside the negative one -- a negative test alone passes for any reason a connection might fail.
+
+POSTGRES_PASSWORD does not rotate and fails in a way that looks like a typo. The postgres image reads it only when initialising an empty data directory; on an existing volume it is ignored entirely, so the database keeps the old password while everything connecting uses the new one. PGAPPPASSWORD rotates cleanly, POSTGRES_PASSWORD does not rotate at all, and the asymmetry is now documented with the ALTER ROLE to do it properly.
+
+Verified end to end (2026-08-06): both images resolve anonymously from ghcr.io as multi-arch indexes; the smoke job is green on every merge since; demo.tarrow.org answers real Summit County addresses with distinguishing results -- 1464 Garman Rd returns three school premises within 1,000 feet, 1361 Milan Ave returns outside every buffer.
+
+Deliberately not absorbed: the on-page notice about the proxy path, and the threat model naming the hosted-instance operator and its intermediaries as parties in the trust model. Both are appended to TASK-0010, which owns that surface.
+<!-- SECTION:FINAL_SUMMARY:END -->
