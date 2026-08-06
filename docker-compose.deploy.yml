@@ -49,7 +49,7 @@ services:
     # instances silently running different versions of the component
     # computing safety-critical distances, which is the precise failure the
     # pinning rule exists to prevent. Compose refuses to start without it.
-    image: ${TARROW_REGISTRY:-ghcr.io/evanstern}/tarrow-db:${TARROW_IMAGE_TAG:?set TARROW_IMAGE_TAG to a published tag, e.g. sha-1a2b3c4 -- see docs/deploy/self-hosting.md}
+    image: ${TARROW_REGISTRY:-ghcr.io/tarrowhq}/tarrow-db:${TARROW_IMAGE_TAG:?set TARROW_IMAGE_TAG to a published tag, e.g. sha-1a2b3c4 -- see docs/deploy/self-hosting.md}
     # THE DATABASE LOGS NOTHING ABOUT WHAT WAS ASKED.
     #
     # Byte-identical to the block in docker-compose.yml, and checked to stay
@@ -124,7 +124,7 @@ services:
   # and re-setting it on every migrate is what makes that true for existing
   # clusters as well as fresh ones.
   migrate:
-    image: ${TARROW_REGISTRY:-ghcr.io/evanstern}/tarrow-app:${TARROW_IMAGE_TAG:?set TARROW_IMAGE_TAG to a published tag, e.g. sha-1a2b3c4 -- see docs/deploy/self-hosting.md}
+    image: ${TARROW_REGISTRY:-ghcr.io/tarrowhq}/tarrow-app:${TARROW_IMAGE_TAG:?set TARROW_IMAGE_TAG to a published tag, e.g. sha-1a2b3c4 -- see docs/deploy/self-hosting.md}
     command: ["node", "server/migrate.ts"]
     environment:
       PGHOST: db
@@ -139,7 +139,7 @@ services:
     restart: "no"
 
   app:
-    image: ${TARROW_REGISTRY:-ghcr.io/evanstern}/tarrow-app:${TARROW_IMAGE_TAG:?set TARROW_IMAGE_TAG to a published tag, e.g. sha-1a2b3c4 -- see docs/deploy/self-hosting.md}
+    image: ${TARROW_REGISTRY:-ghcr.io/tarrowhq}/tarrow-app:${TARROW_IMAGE_TAG:?set TARROW_IMAGE_TAG to a published tag, e.g. sha-1a2b3c4 -- see docs/deploy/self-hosting.md}
     environment:
       PGHOST: db
       PGPORT: "5432"
@@ -182,7 +182,7 @@ services:
   # needs its own credentials.
   etl:
     profiles: ["etl"]
-    image: ${TARROW_REGISTRY:-ghcr.io/evanstern}/tarrow-app:${TARROW_IMAGE_TAG:?set TARROW_IMAGE_TAG to a published tag, e.g. sha-1a2b3c4 -- see docs/deploy/self-hosting.md}
+    image: ${TARROW_REGISTRY:-ghcr.io/tarrowhq}/tarrow-app:${TARROW_IMAGE_TAG:?set TARROW_IMAGE_TAG to a published tag, e.g. sha-1a2b3c4 -- see docs/deploy/self-hosting.md}
     entrypoint: ["node", "etl/ingest.ts"]
     environment:
       PGHOST: db

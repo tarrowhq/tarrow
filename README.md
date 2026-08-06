@@ -68,8 +68,8 @@ The steps above build from this source tree, publish the database on loopback fo
 inspection, and use fixed development credentials that are in this repository — right for a
 laptop, wrong for a machine on a network.
 
-For a real deployment there are published images — `ghcr.io/evanstern/tarrow-app` and
-`ghcr.io/evanstern/tarrow-db`, both `linux/amd64` and `linux/arm64`, pinned by immutable tag
+For a real deployment there are published images — `ghcr.io/tarrowhq/tarrow-app` and
+`ghcr.io/tarrowhq/tarrow-db`, both `linux/amd64` and `linux/arm64`, pinned by immutable tag
 and never `:latest` — and a separate composition, `docker-compose.deploy.yml`, that needs no
 source checkout and refuses to start on a defaulted credential.
 
