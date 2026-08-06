@@ -4,7 +4,7 @@ title: Repoint project references to the tarrowhq org
 status: In Progress
 assignee: []
 created_date: '2026-08-06 15:20'
-updated_date: '2026-08-06 16:02'
+updated_date: '2026-08-06 16:40'
 labels:
   - 'kind:chore'
 dependencies: []
@@ -30,9 +30,9 @@ Spec: specs/002-repoint-tarrowhq-org
 - [ ] #2 Self-hosting docs name the tarrowhq images and carry a migration note for the org move
 - [ ] #3 README and ETL User-Agent name the new org
 - [ ] #4 A publish from the new repo produces images under ghcr.io/tarrowhq and the deploy smoke job passes against them
-- [ ] #5 Spec phase: Deploy composition default
-- [ ] #6 Spec phase: Self-hosting documentation
-- [ ] #7 Spec phase: Remaining current-state references
+- [x] #5 Spec phase: Deploy composition default
+- [x] #6 Spec phase: Self-hosting documentation
+- [x] #7 Spec phase: Remaining current-state references
 - [ ] #8 Spec phase: Post-merge publish verification (orchestrator)
 <!-- AC:END -->
 
@@ -44,4 +44,6 @@ Dispatch tier (2026-08-06): mechanical, model claude-sonnet-5 (pinned in .claude
 Rubric justification: the judgment in this task is spent in specs/002-repoint-tarrowhq-org/spec.md (R2, R5) and plan.md (why not a single sed) -- which evanstern references are current-state versus historically-correct record, and what a second migration note must tell a self-hoster. What reaches the implementer is a named file set, a named must-not-touch set, and a stated content requirement. That is work to an existing pattern with its constraints stated rather than discovered.
 
 Phases 1-3 dispatched one fresh implementer each. Phase 4 (post-merge publish verification) is the orchestrator's and cannot be satisfied from a diff.
+
+spec-bridge sync: Deploy composition default: 3/3 · Self-hosting documentation: 5/5 · Remaining current-state references: 6/6 · Post-merge publish verification (orchestrator): 0/6
 <!-- SECTION:NOTES:END -->
