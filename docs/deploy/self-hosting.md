@@ -20,8 +20,8 @@ Two images, published on every change to `main`:
 
 | Image | What it is |
 |---|---|
-| `ghcr.io/evanstern/tarrow-app` | The React Router server that answers requests, the migration runner, and the ETL pipeline. One image, three entrypoints. |
-| `ghcr.io/evanstern/tarrow-db` | PostgreSQL 17 with PostGIS, built on the official `postgres` image rather than pulled from `postgis/postgis`, which publishes amd64 only. |
+| `ghcr.io/tarrowhq/tarrow-app` | The React Router server that answers requests, the migration runner, and the ETL pipeline. One image, three entrypoints. |
+| `ghcr.io/tarrowhq/tarrow-db` | PostgreSQL 17 with PostGIS, built on the official `postgres` image rather than pulled from `postgis/postgis`, which publishes amd64 only. |
 
 Both are `linux/amd64` and `linux/arm64`, so an ARM VPS or a Raspberry Pi is a supported
 target rather than an aspiration.
@@ -231,8 +231,8 @@ people using it — in a container name, a connection string, or a browser tab s
 see. It is gone. If you deployed before the rename, three things move.
 
 **The images are published under new names.** `ghcr.io/evanstern/somap-app` and
-`ghcr.io/evanstern/somap-db` receive no further tags. Pull `ghcr.io/evanstern/tarrow-app`
-and `ghcr.io/evanstern/tarrow-db` instead, and rename `SOMAP_IMAGE_TAG` and
+`ghcr.io/evanstern/somap-db` receive no further tags. Pull `ghcr.io/tarrowhq/tarrow-app`
+and `ghcr.io/tarrowhq/tarrow-db` instead, and rename `SOMAP_IMAGE_TAG` and
 `SOMAP_REGISTRY` to `TARROW_IMAGE_TAG` and `TARROW_REGISTRY` in your `.env`. The old tags
 keep working for as long as the registry holds them; nothing is deleted out from under a
 running instance.
@@ -260,6 +260,27 @@ docker compose -f docker-compose.deploy.yml down -v
 docker compose -f docker-compose.deploy.yml up -d
 docker compose -f docker-compose.deploy.yml --profile etl run --rm etl
 ```
+
+## Upgrading from the `evanstern` org
+
+The repository moved from `evanstern/tarrow` to `tarrowhq/tarrow`. If you deployed before
+the move, two things follow.
+
+**The images are published under a new owner.** `ghcr.io/evanstern/tarrow-app` and
+`ghcr.io/evanstern/tarrow-db` receive no further tags. Pull `ghcr.io/tarrowhq/tarrow-app`
+and `ghcr.io/tarrowhq/tarrow-db` instead — accept the new default, or set
+`TARROW_REGISTRY` in your `.env` if you had it set explicitly, then pick a tag published
+under the new owner. An instance pinned to an `evanstern` tag keeps working; the old images
+are not deleted, so this is not urgent.
+
+**The new images start private.** `ghcr.io/evanstern/tarrow-*` were made public
+deliberately, verified with an anonymous pull token (TASK-0016), because a self-hoster who
+has never spoken to us must be able to pull them. That property does not travel with the
+org move: `ghcr.io/tarrowhq/tarrow-*` are new packages, and a package inherits its
+repository's visibility. `tarrowhq/tarrow` is private, so the new images start private too,
+until an operator flips them public in GitHub's package settings — see *If the packages are
+private* above. If `docker compose ... up` fails with `denied` or `unauthorized` against
+the new registry, this is almost certainly why.
 
 ## Keeping it honest over time
 

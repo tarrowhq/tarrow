@@ -17,19 +17,19 @@ and is the orchestrator's, not an implementer's.
 
 ## Phase 2: Self-hosting documentation
 
-- [ ] Update the image table in `docs/deploy/self-hosting.md` to name
+- [x] Update the image table in `docs/deploy/self-hosting.md` to name
       `ghcr.io/tarrowhq/tarrow-app` and `ghcr.io/tarrowhq/tarrow-db`
-- [ ] Update every other current-state `ghcr.io/evanstern/tarrow-*` reference in the
+- [x] Update every other current-state `ghcr.io/evanstern/tarrow-*` reference in the
       document to the new owner
-- [ ] Add a migration note for the org move, in the shape of the existing somap→tarrow
+- [x] Add a migration note for the org move, in the shape of the existing somap→tarrow
       note: `ghcr.io/evanstern/tarrow-*` receive no further tags; an instance pinned to an
       `evanstern` tag keeps working and this is not urgent; the upgrade path is to accept
       the new default or set `TARROW_REGISTRY`, then pick a tag published under the new
       owner
-- [ ] Record the package-visibility situation (spec R5): packages under
+- [x] Record the package-visibility situation (spec R5): packages under
       `ghcr.io/tarrowhq` inherit this repository's private visibility and must be made
       public by an operator before a stranger can pull them
-- [ ] Leave the existing somap→tarrow note's `ghcr.io/evanstern/somap-*` references
+- [x] Leave the existing somap→tarrow note's `ghcr.io/evanstern/somap-*` references
       unchanged — they are historically accurate
 
 ## Phase 3: Remaining current-state references
