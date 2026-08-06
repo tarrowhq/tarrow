@@ -301,7 +301,7 @@ a convention you have to remember.
 ## The instance we run
 
 For completeness, and because Principle III says a claim you cannot check is not a claim:
-the maintainers run an instance at `soma.infinitynode.media`.
+the maintainers run an instance at `demo.tarrow.org`.
 
 Its request path is a **Cloudflare Tunnel** — the Cloudflare edge terminates TLS, and a
 `cloudflared` connector sitting in the same Docker network as the application carries the
@@ -311,6 +311,12 @@ one third party holds the plaintext on the way in, and no other party does.
 **That instance is a demo**, run for the maintainers and a small number of invited people. It
 is not a service anyone has been referred to, and the trade above was made knowingly on that
 basis. If it ever stops being a demo, the trade has to be made again rather than inherited.
+
+The subdomain says so deliberately. The apex `tarrow.org` serves nothing and is held back for
+a release that has been verified in the ways this one has not — no human has signed off the
+statutory reading the buffer is applied from, and the measurement method is this project's own
+over-restrictive interpretation. Serving that from the bare domain would imply a finished
+product at the name a finished product should own.
 
 Worth recording, because it is the useful part for anyone building the same thing: that path
 used to be longer. It ran through a self-hosted tunnel server on a rented VPS and then a
