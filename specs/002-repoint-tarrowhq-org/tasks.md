@@ -34,9 +34,9 @@ and is the orchestrator's, not an implementer's.
 
 ## Phase 3: Remaining current-state references
 
-- [ ] `README.md`: image names → `ghcr.io/tarrowhq/tarrow-app`, `ghcr.io/tarrowhq/tarrow-db`
-- [ ] `app/etl/fetch.ts`: `USER_AGENT` URL → `+https://github.com/tarrowhq/tarrow`
-- [ ] `docs/design/task-0002-walking-skeleton-runbook.md`: the `gh api repos/evanstern/tarrow/pulls/<n>`
+- [x] `README.md`: image names → `ghcr.io/tarrowhq/tarrow-app`, `ghcr.io/tarrowhq/tarrow-db`
+- [x] `app/etl/fetch.ts`: `USER_AGENT` URL → `+https://github.com/tarrowhq/tarrow`
+- [x] `docs/design/task-0002-walking-skeleton-runbook.md`: the `gh api repos/evanstern/tarrow/pulls/<n>`
       example → `repos/tarrowhq/tarrow`; change nothing else in that runbook
 - [ ] Verification grep: `grep -rn "evanstern" --exclude-dir=.git .` returns only the
       permitted survivors — the somap migration note in `docs/deploy/self-hosting.md`,

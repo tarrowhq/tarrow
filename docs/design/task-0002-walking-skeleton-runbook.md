@@ -259,7 +259,7 @@ TASK-0002 must have produced. **No PR opens until each line below checks true.**
   another session holds TASK-0002 or spec number 001, STOP and surface it to the operator.
   On an unrelated rejection with the task and number still free, merge `origin/main` into
   the claim branch and re-push a plain push.
-- Verify the PR merged (`gh api repos/evanstern/tarrow/pulls/<n> --jq .merged`) **before**
+- Verify the PR merged (`gh api repos/tarrowhq/tarrow/pulls/<n> --jq .merged`) **before**
   deleting the branch or worktree. Never delete-and-recreate a closed PR's head branch.
 
 ## Operator checkpoints (do not proceed silently past)
