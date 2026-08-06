@@ -186,8 +186,142 @@ under the harness isolation root, because the root-guard hook's write-allow rule
   after the merge is verified.
 - This file's execution log is complete and its status is flipped to `done`.
 
+## Phase 4 blocker — a GitHub Actions outage (2026-08-06)
+
+Recorded here rather than left in a session transcript, because Phase 4 is the half of
+this task that cannot be satisfied by reading the diff, and a resuming session needs to
+know it was attempted and why it did not complete.
+
+The merge to `main` (`01575f1`) fired `publish images` on its own, as the spec predicted —
+the path filter matched via `docker-compose.deploy.yml` and `app/**`, no dispatch needed.
+Run [31120554341](https://github.com/tarrowhq/tarrow/actions/runs/31120554341).
+
+It did not run. Both jobs queued at 16:38:45Z and sat there; `parity` was cancelled at
+16:53:47Z and `prepare` at 16:58:47Z — fifteen and twenty minutes, GitHub's hosted-runner
+acquisition timeouts — with the annotation:
+
+> The job was not acquired by Runner of type hosted even after multiple attempts
+
+`publish` and `smoke` were skipped as downstream dependents. A rerun queued identically. A
+fresh `workflow_dispatch` run (31123072863) queued identically again, and its live job log
+gave the cause outright:
+
+> All GitHub-hosted runners with label [ubuntu-latest] are busy.
+> For more information, see https://gh.io/job-concurrency-limits
+
+**GitHub Actions was in `major_outage`**, declared at 16:33:31Z — two minutes before the
+merge fired the first run. `githubstatus.com` carried it as an active incident alongside
+Pages, also escalated to `major_outage` at the same timestamp.
+
+Nothing in the workflow, the compose files, or anything TASK-0020 changed is implicated.
+No job ever started, so no step ran and there is no log to read beyond the queue messages.
+
+### A wrong diagnosis, recorded because the correction is the useful part
+
+This section originally attributed the blocker to Actions minutes billing: `tarrowhq` is a
+free-plan org, `tarrowhq/tarrow` was private at the time, and private repositories bill
+against an org quota that a personal repository never imposed. The operator acted on that
+reading and **made the repository public**. The symptom did not change, which is what
+falsified the theory — and, since Actions was already in a declared outage before the
+first run was ever created, the quota reading had been wrong from the start.
+
+The tell was available and went unweighed: quota exhaustion on a free org rejects a run
+outright rather than queueing it into a silent acquisition timeout. "No runner was ever
+offered" and "billing refused the run" are different failures, and the observed one was
+always the former.
+
+Two consequences that outlive the outage:
+
+- **The repository is now public.** That was a disclosure decision made on a faulty
+  premise. It is worth revisiting on its merits rather than left standing because a
+  diagnosis suggested it — with the note that a public repository does make GitHub-hosted
+  Actions minutes free, so the reasoning is not worthless, only unrelated to this failure.
+- **TASK-0021 may be resolved as a side effect.** Packages inherit the visibility of the
+  publishing repository, so images published while the repository is public should be
+  anonymously pullable without an operator flipping anything by hand. This is not
+  confirmed and does not close TASK-0021: its acceptance criteria require verification via
+  an *anonymous* token, not a pull from a logged-in machine.
+
+Also worth noting for whoever revisits the visibility decision: the workflow's own header
+comment says arm64 is built under QEMU emulation because "GitHub's free
+`ubuntu-24.04-arm` runners are public-repository-only and this repository is private."
+That premise no longer holds. Dropping emulation in favour of a native ARM runner is a
+real simplification now available — and is not this task's to make.
+
+### What to do when Actions recovers
+
+Re-run the publish and complete Phase 4's checks:
+
+```sh
+gh workflow run "publish images" --repo tarrowhq/tarrow --ref main
+```
+
+### Published by hand during the outage (2026-08-06)
+
+With Actions unavailable and no end in sight, the images were built and pushed from a
+workstation rather than by the workflow. The operator granted `write:packages` for this
+specifically. What was published, at tag `sha-0a03fad` (the `main` tip at the time):
+
+- `ghcr.io/tarrowhq/tarrow-app` — OCI image index, `linux/amd64` + `linux/arm64`
+- `ghcr.io/tarrowhq/tarrow-db` — OCI image index, `linux/amd64` + `linux/arm64`
+
+Both built with `docker buildx` under a `docker-container` builder from the same
+Dockerfiles, contexts, and targets the workflow's `publish` matrix names. Each package
+carries exactly one tag — no `latest`, no `main` — confirmed against the registry's
+`tags/list`.
+
+The workflow's other jobs were reproduced by hand and pass:
+
+- **parity** — `db`'s command block resolved by Compose from both files, identical.
+- **smoke** — the deploy composition stood up from the *published* images (not a local
+  build): `app` reached `healthy`; all ten privacy flags present on `tarrow-db`'s argv;
+  the credential published in `010_grants.sql` was refused, and the configured
+  `PGAPPPASSWORD` accepted, both checked from a separate container so the connection meets
+  `scram-sha-256` rather than pg_hba's loopback `trust`; the application answered on its
+  published port.
+
+**This is not a CI publish, and the distinction is worth keeping.** Phase 4's *artifacts*
+are satisfied — the images exist, multi-arch, immutably tagged, and they work. Its
+*provenance* is not: these were built from a workstation's working copy rather than a
+clean checkout by an auditable runner. The working copy was clean and on `main` at
+`0a03fad`, which is the best available substitute and not the same thing. A later reader
+should not mistake these images for workflow output. When Actions recovers, a normal
+publish on a later commit supersedes them and restores the usual provenance; nothing needs
+to be un-published for that to happen, since the tags are immutable and distinct.
+
+### Anonymous pull still fails — TASK-0021 is NOT resolved
+
+Checked directly rather than assumed, because the earlier reasoning that a public
+repository would carry its packages public was another inference worth testing:
+
+```
+curl "https://ghcr.io/token?scope=repository:tarrowhq/tarrow-app:pull&service=ghcr.io"
+  → {"errors":[{"code":"UNAUTHORIZED","message":"authentication required"}]}
+
+gh api orgs/tarrowhq/packages/container/tarrow-app --jq .visibility
+  → "private"
+```
+
+Both packages are private despite the repository being public. GHCR packages are created
+private and their visibility is set per-package, not inherited on every push. So the
+side-effect hoped for above does not happen, and TASK-0021 remains exactly as carded: an
+operator must flip both packages public through the GitHub UI, after which the anonymous
+check above should return a token and a `200`.
+
+Until then, a stranger following `docs/deploy/self-hosting.md` gets a `401`. The document
+already says so.
+
+### Phase 4's checks are unchanged and still owed
+
+Nothing about this blocker relaxes them. When a run does execute, verify: all five jobs
+green (`prepare`, `parity`, `publish` ×2, `smoke`); `ghcr.io/tarrowhq/tarrow-app` and
+`ghcr.io/tarrowhq/tarrow-db` exist at that run's `sha-<short>` tag; both manifests are OCI
+image indexes carrying `linux/amd64` **and** `linux/arm64`; and no moving tag (`latest`,
+`main`) was published. An org move that silently drops an architecture violates Principle
+VII as surely as an amd64-only base image would.
+
 ## Execution log
 
 | date | task | PR | merge | tokens/cost (best-effort) | notes |
 |------|------|----|-------|---------------------------|-------|
-| 2026-08-06 | TASK-0020 | — | — | — | claimed; spec 002 authored (spec/plan/tasks); card linked, phase ACs #5–#8 seeded; phases: none dispatched yet |
+| 2026-08-06 | TASK-0020 | [#1](https://github.com/tarrowhq/tarrow/pull/1) | `01575f1` | — | phases 1–3 dispatched one fresh mechanical implementer each, all landed; 216/216 tests pass under the sanctioned `test` profile; grep returns only permitted survivors; merged. Phase 4 **blocked** — see "Phase 4 blocker" below |
