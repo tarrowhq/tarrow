@@ -7,12 +7,12 @@ and is the orchestrator's, not an implementer's.
 
 ## Phase 1: Deploy composition default
 
-- [ ] Change the four `image:` lines in `docker-compose.deploy.yml` from
+- [x] Change the four `image:` lines in `docker-compose.deploy.yml` from
       `${TARROW_REGISTRY:-ghcr.io/evanstern}` to `${TARROW_REGISTRY:-ghcr.io/tarrowhq}`
       (one `tarrow-db`, three `tarrow-app`)
-- [ ] Confirm the `${TARROW_IMAGE_TAG:?...}` guard and its message are byte-identical on
+- [x] Confirm the `${TARROW_IMAGE_TAG:?...}` guard and its message are byte-identical on
       all four lines — no floating tag introduced (constitution VII, pinning)
-- [ ] `docker compose -f docker-compose.deploy.yml config` parses with
+- [x] `docker compose -f docker-compose.deploy.yml config` parses with
       `TARROW_IMAGE_TAG` set, and still refuses with it unset
 
 ## Phase 2: Self-hosting documentation
