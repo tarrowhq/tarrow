@@ -59,6 +59,15 @@ and is the orchestrator's, not an implementer's.
 
 ## Phase 4: Post-merge publish verification (orchestrator)
 
+**BLOCKED (2026-08-06).** The merge fired run
+[31120554341](https://github.com/tarrowhq/tarrow/actions/runs/31120554341) as predicted,
+but no GitHub-hosted runner ever acquired it: `parity` was cancelled after exactly fifteen
+minutes with "The job was not acquired by Runner of type hosted even after multiple
+attempts". `tarrowhq` is a free-plan org and this repository is private, so Actions
+minutes bill against an org quota that did not constrain the old personal repository.
+Diagnosis and operator options: `docs/design/task-0020-org-repoint-runbook.md`, "Phase 4
+blocker". None of the boxes below are relaxed by this.
+
 - [ ] A `publish images` run fired on the merge commit (path filter matched via
       `docker-compose.deploy.yml` and `app/**`) — confirm a run started rather than
       assuming

@@ -186,8 +186,63 @@ under the harness isolation root, because the root-guard hook's write-allow rule
   after the merge is verified.
 - This file's execution log is complete and its status is flipped to `done`.
 
+## Phase 4 blocker — GitHub-hosted runners never picked up the publish run (2026-08-06)
+
+Recorded here rather than left in a session transcript, because Phase 4 is the half of
+this task that cannot be satisfied by reading the diff, and a resuming session needs to
+know it was attempted and why it did not complete.
+
+The merge to `main` (`01575f1`) fired `publish images` on its own, as the spec predicted —
+the path filter matched via `docker-compose.deploy.yml` and `app/**`, no dispatch needed.
+Run [31120554341](https://github.com/tarrowhq/tarrow/actions/runs/31120554341).
+
+It did not run. Both jobs queued at 16:38:45Z and sat there; `parity` was cancelled at
+16:53:47Z — **exactly fifteen minutes**, GitHub's hosted-runner acquisition timeout — with
+the annotation:
+
+> The job was not acquired by Runner of type hosted even after multiple attempts
+
+This is not a defect in the workflow, the compose files, or anything TASK-0020 changed.
+The evidence that it is environmental rather than ours:
+
+- The job never started. There is no step output to fail, no log to read.
+- `actions/permissions` on the repository is `{"enabled": true, "allowed_actions": "all"}`.
+- The repository has no self-hosted runners registered (`total_count: 0`) and the workflow
+  asks for `ubuntu-latest`, so hosted runners are the only source.
+- `tarrowhq` is a **free-plan organization** and `tarrowhq/tarrow` is **private**. Private
+  repositories bill Actions minutes against the org's quota; public repositories do not.
+  The old `evanstern/tarrow` was a personal repository, so this constraint is new with the
+  move and did not exist when TASK-0016 verified a multi-arch publish.
+
+`gh run rerun` refuses while the run is still queued ("This workflow is already running").
+
+### What an operator can do
+
+In rough order of effort:
+
+1. **Check the org's Actions billing** — `github.com/organizations/tarrowhq/settings/billing`.
+   A free org gets 2,000 minutes/month for private repositories; an exhausted quota or a
+   missing payment method blocks hosted runners exactly this way. This is the most likely
+   cause and cannot be checked from a token without `admin:org`.
+2. **Make `tarrowhq/tarrow` public.** Actions minutes are free for public repositories,
+   which removes the constraint entirely — and it would resolve TASK-0021 as a side effect,
+   since packages inherit repository visibility. This is a disclosure decision, not a
+   technical one, so it is the operator's to make and not a sweep's.
+3. **Re-run the workflow** once either of the above is settled:
+   `gh workflow run "publish images" --repo tarrowhq/tarrow --ref main`, or re-run
+   31120554341 once it leaves the queued state.
+
+### Phase 4's checks are unchanged and still owed
+
+Nothing about this blocker relaxes them. When a run does execute, verify: all five jobs
+green (`prepare`, `parity`, `publish` ×2, `smoke`); `ghcr.io/tarrowhq/tarrow-app` and
+`ghcr.io/tarrowhq/tarrow-db` exist at that run's `sha-<short>` tag; both manifests are OCI
+image indexes carrying `linux/amd64` **and** `linux/arm64`; and no moving tag (`latest`,
+`main`) was published. An org move that silently drops an architecture violates Principle
+VII as surely as an amd64-only base image would.
+
 ## Execution log
 
 | date | task | PR | merge | tokens/cost (best-effort) | notes |
 |------|------|----|-------|---------------------------|-------|
-| 2026-08-06 | TASK-0020 | — | — | — | claimed; spec 002 authored (spec/plan/tasks); card linked, phase ACs #5–#8 seeded; phases: none dispatched yet |
+| 2026-08-06 | TASK-0020 | [#1](https://github.com/tarrowhq/tarrow/pull/1) | `01575f1` | — | phases 1–3 dispatched one fresh mechanical implementer each, all landed; 216/216 tests pass under the sanctioned `test` profile; grep returns only permitted survivors; merged. Phase 4 **blocked** — see "Phase 4 blocker" below |
