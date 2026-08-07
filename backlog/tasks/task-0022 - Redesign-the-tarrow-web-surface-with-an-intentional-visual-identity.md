@@ -4,7 +4,7 @@ title: Redesign the tarrow web surface with an intentional visual identity
 status: In Progress
 assignee: []
 created_date: '2026-08-07 13:13'
-updated_date: '2026-08-07 19:56'
+updated_date: '2026-08-07 20:45'
 labels:
   - 'area:web'
   - 'kind:design'
@@ -42,14 +42,14 @@ Delivered as one PR off a long-running worktree, developed iteratively with the 
 <!-- AC:BEGIN -->
 - [x] #1 Design options are delivered as static demo HTML artifacts covering the search page, an unflagged answer, a flagged answer, and a refusal
 - [x] #2 The operator selects one direction, recorded as a tracked decision, before app code changes
-- [ ] #3 The chosen direction is written down as a token system -- named colours, a type scale, a spacing rhythm, and the named signature element -- in a tracked design note, so the next editor extends the system rather than guessing at it
-- [ ] #4 styles.css is restructured into a stated layer system (tokens, primitives, components) with no unexplained one-off rules, and the no-external-origin comment block survives
-- [ ] #5 result-view.tsx is decomposed into reusable components with a single responsibility each, and no component reaches past its own concern
-- [ ] #6 A refusal, an unflagged answer, and a flagged answer remain distinguishable without colour -- verified in greyscale and against the existing structural rules
-- [ ] #7 The page reads and works on a 360px viewport, with visible keyboard focus and prefers-reduced-motion respected
-- [ ] #8 No new dependency, no external origin in the build output (scan-external-origins passes), and no inline style attribute anywhere
-- [ ] #9 The full suite including copy.test.ts and the browser suite passes in the container with scripting disabled
-- [ ] #10 Page order and the collapse rule are unchanged: manifest above the fold, gaps visible, provenance collapsed
+- [x] #3 The chosen direction is written down as a token system -- named colours, a type scale, a spacing rhythm, and the named signature element -- in a tracked design note, so the next editor extends the system rather than guessing at it
+- [x] #4 styles.css is restructured into a stated layer system (tokens, primitives, components) with no unexplained one-off rules, and the no-external-origin comment block survives
+- [x] #5 result-view.tsx is decomposed into reusable components with a single responsibility each, and no component reaches past its own concern
+- [x] #6 A refusal, an unflagged answer, and a flagged answer remain distinguishable without colour -- verified in greyscale and against the existing structural rules
+- [x] #7 The page reads and works on a 360px viewport, with visible keyboard focus and prefers-reduced-motion respected
+- [x] #8 No new dependency, no external origin in the build output (scan-external-origins passes), and no inline style attribute anywhere
+- [x] #9 The full suite including copy.test.ts and the browser suite passes in the container with scripting disabled
+- [x] #10 Page order and the collapse rule are unchanged: manifest above the fold, gaps visible, provenance collapsed
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -94,4 +94,22 @@ D and F are preserved rather than discarded, each carded with its artifact cited
 - TASK-0024 -- direction F (The Worksheet). Operator: 'I DO like the F (worksheet) style and see how it adheres to our purpose. BUT it does too much for a V1 MVP.' Preserved as the strongest expression of Principle II found so far; revisit after E ships. Carries an open Principle I question about tarrow authoring first-person sentences a reader will say to an official.
 
 AC #1 was compound (options delivered AND operator selects). Split into #1 (delivered, true at round 2) and #2 (selection, true now); both ticked.
+
+IMPLEMENTED (commit 5ad9044). Direction E is the surface.
+
+Structure: the deck is the page; each idea gets one full-viewport card, snapped with CSS scroll-snap (proximity, not mandatory -- a card taller than the viewport must stay freely scrollable or content strands off-screen, which is the exact failure rule 5 names). No script anywhere in the mechanism.
+
+Files: docs/design/tarrow-design-system.md is the written system (AC #3). styles.css rebuilt into four stated layers. result-view.tsx 1089 -> ~490 lines keeping only the five shapes and their assembly order; the rest split into cards.tsx (primitives), finding-view.tsx (what tarrow found), manifest-view.tsx (what it did not check).
+
+Verification actually run, not assumed:
+- 221/221 main suite, browser suite 3/3 including the scripting-off path
+- typecheck clean, scan-external-origins clean
+- zero inline style attributes in the served flagged answer (grep of the wire)
+- rendered at 360px; greyscale checked with Chromium achromatopsia emulation, not by argument -- flagged is a solid left edge plus a numeral, the refusal is a dashed edge plus an em-dash, and the labels and headlines differ
+
+Two test gates repointed at renamed markers WITHOUT weakening them: the answer label now hangs off an explicit data-answer-label attribute rather than a class name (a styling hook could be renamed by a restyle and take the gate with it; an attribute that exists only to be asserted cannot), and answer--x became card--x.
+
+ONE PRE-EXISTING BUG FOUND AND FIXED, unrelated to this redesign. tests/browser/form.test.ts asserted the form POST through waitForNavigation(), correct while the app shipped no client script. TASK-0008.01 restored hydration, so <Form> submits by fetch to /answer.data and navigates on the client -- no document navigation, so the assertion compared undefined against 200 and always failed. Confirmed pre-existing by checking out the pre-redesign tree and running it there: same failure. The POST is now captured off the network, covering both the hydrated and scripting-off paths.
+
+Also worth recording for whoever runs this next: the worktree's database starts empty, and every result shape is search-failed until 'docker compose --profile etl run --rm etl' is run. 54 tests fail before that and it looks like a code regression.
 <!-- SECTION:NOTES:END -->
