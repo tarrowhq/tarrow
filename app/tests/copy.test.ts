@@ -536,15 +536,18 @@ describe("the strongest available answer is phrased as Principle I requires", ()
     );
   });
 
-  test("it qualifies itself in the banner, not further down the page", () => {
+  test("it qualifies itself on the finding card, not further down the deck", () => {
     const body = shape("outside-every-buffer-we-checked").body;
-    const headline = body.indexOf("Outside every buffer we checked.");
+    // The label that names this shape, which is where the phrase now sits
+    // (TASK-0022: the finding card carries label, count, unit, and the
+    // is-not sentence, in that order, on one screen).
+    const headline = body.indexOf("outside every buffer we checked");
     const qualifier = body.indexOf("smaller than it sounds");
     assert.ok(headline > -1 && qualifier > headline);
     assert.ok(
       qualifier - headline < 400,
-      "the qualification must sit immediately under the headline. A reader " +
-        "who stops reading after the first line must not stop on good news.",
+      "the qualification must sit on the same card as the finding. A reader " +
+        "who stops reading after the first screen must not stop on good news.",
     );
   });
 });
@@ -716,10 +719,16 @@ describe("a refusal and a result differ by more than a sentence (User Story 3, A
   });
 
   test("every shape carries a distinct label above the headline", () => {
+    // TASK-0022 moved this onto an explicit `data-answer-label` attribute
+    // rather than reading it off a class name. The label is a CONTRACT --
+    // the one string that names a shape and must differ across all of them --
+    // and hanging it off a styling hook meant a restyle could silently take
+    // the gate with it. An attribute that exists only to be asserted cannot
+    // be renamed by accident.
     const labels = [...RESULTS, ...REFUSALS, "nothing-submitted", "error-boundary"].map(
       (name) => {
         const match = shape(name).body.match(
-          /class="answer__label">([^<]+)</,
+          /data-answer-label="([^"]+)"/,
         );
         assert.ok(match, `${name} renders no answer label at all`);
         return match[1];
@@ -733,23 +742,28 @@ describe("a refusal and a result differ by more than a sentence (User Story 3, A
   });
 
   test("the refusals are drawn as an interruption, the results are not", () => {
-    // Not colour alone: the modifier class changes the border to dashed, and
-    // it is asserted here so that a restyle cannot quietly erase the only
-    // non-textual difference a reader sees at a glance.
+    // Not colour alone: the modifier class changes the finding card's edge to
+    // dashed, and it is asserted here so that a restyle cannot quietly erase
+    // the only non-textual difference a reader sees at a glance.
+    //
+    // TASK-0022 renamed `answer answer--x` to `card card--x` when the banner
+    // became a full-screen card. The property asserted is unchanged: each
+    // shape is drawn in its own state, and the two no-answer shapes are drawn
+    // differently from the two answers.
     for (const name of REFUSALS) {
       assert.match(
         shape(name).body,
-        /class="answer answer--(?:stopped|broken)"/,
+        /class="card card--(?:stopped|broken)"/,
         `${name} is drawn like a result`,
       );
     }
     assert.match(
       shape("premises-within-buffer").body,
-      /class="answer answer--flagged"/,
+      /class="card card--flagged"/,
     );
     assert.match(
       shape("outside-every-buffer-we-checked").body,
-      /class="answer answer--measured"/,
+      /class="card card--measured"/,
     );
   });
 

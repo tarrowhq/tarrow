@@ -49,7 +49,7 @@ export default function Faq() {
         </p>
       </header>
 
-      <h1 className="ask__question">What tarrow is</h1>
+      <h1 className="doc__title">What tarrow is</h1>
 
       <section className="section">
         <h2 className="section__title">What it measures</h2>

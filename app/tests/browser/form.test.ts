@@ -69,22 +69,60 @@ describe("a real browser can actually use tarrow", () => {
 
       await page.type("input[type=text]", ADDRESS);
 
-      // The navigation the form causes IS the subject of this test. Under
-      // `Referrer-Policy: no-referrer` this response was 400 Bad Request, in
-      // every Chromium browser, because the browser serialized the form's
-      // origin as `null` and React Router refused it.
-      const [response] = await Promise.all([
-        page.waitForNavigation({ waitUntil: "domcontentloaded" }),
-        page.click("button[type=submit]"),
-      ]);
+      // WHAT THE SUBMIT ACTUALLY DOES, AND WHY THIS IS NOT A NAVIGATION WAIT.
+      //
+      // The POST that carries the address IS the subject of this test. Under
+      // `Referrer-Policy: no-referrer` it was 400 Bad Request in every
+      // Chromium browser, because the browser serialized the form's origin as
+      // `null` and React Router refused it (TASK-0015).
+      //
+      // This used to be asserted through `waitForNavigation()`, on the
+      // understanding that the app shipped no client script and the form was
+      // therefore always a document POST. TASK-0008.01 restored hydration, and
+      // a hydrated React Router <Form> submits with `fetch` to a `.data`
+      // endpoint and then navigates on the client. There is no document
+      // navigation to wait for, so `waitForNavigation` resolved with `null`
+      // and the assertion read `undefined !== 200` -- a failure that says
+      // nothing about whether the POST worked. It did work; the test was
+      // measuring a mechanism the app had stopped using.
+      //
+      // So the POST is captured off the network directly. That covers BOTH
+      // submit paths -- the hydrated fetch to `/answer.data` and the plain
+      // document POST to `/answer` a browser makes with scripting off (the
+      // next test) -- because the assertion is about the request the address
+      // rides in, not about how the page changed afterwards.
+      const posted = new Promise<number>((resolve, reject) => {
+        const timer = setTimeout(
+          () => reject(new Error("no POST carrying the address was observed")),
+          15_000,
+        );
+        page.on("response", (res) => {
+          if (res.request().method() !== "POST") return;
+          if (!/\/answer(\.data)?(\?|$)/.test(res.url())) return;
+          clearTimeout(timer);
+          resolve(res.status());
+        });
+      });
+
+      await page.click("button[type=submit]");
+      const status = await posted;
 
       assert.equal(
-        response?.status(),
+        status,
         200,
         "The form POST must succeed in a browser. A 400 here means the " +
           "browser sent something the server refused -- check Referrer-Policy " +
           "(no-referrer makes Chromium send `Origin: null`) before assuming " +
           "the failure is in the route.",
+      );
+
+      // The client-side navigation that follows the hydrated fetch. Without
+      // this the body below is read off the form page, before the answer has
+      // replaced it.
+      await page.waitForFunction(
+        () => document.body.innerText.includes("TARROW CHECKED") ||
+          document.body.innerText.includes("tarrow checked"),
+        { timeout: 15_000 },
       );
 
       const body = await page.evaluate(() => document.body.innerText);

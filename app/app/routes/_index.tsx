@@ -50,65 +50,73 @@ export function meta() {
 
 export default function Index() {
   return (
-    <main className="page page--ask">
-      <header className="masthead masthead--ask">
-        <p className="masthead__name">tarrow</p>
-      </header>
+    <main className="deck">
+      <section className="card">
+        <div className="card__body">
+          <h1 className="ask__title">How far is an address from a school?</h1>
+          <p className="ask__sub">
+            Summit County, Ohio. School premises only. A helper, not an
+            authority.
+          </p>
 
-      <h1 className="ask__question">How far is an address from a school?</h1>
+          <Form method="post" action="/answer">
+            <label className="field">
+              {/* Visually hidden rather than absent: the question above reads
+                  as a label to somebody who can see it, and a screen reader
+                  needs one attached to the input itself. A placeholder is not
+                  a label. */}
+              <span className="field__label visually-hidden">
+                A street address in Summit County, Ohio
+              </span>
+              <input
+                className="field__input"
+                type="text"
+                name="address"
+                required
+                // The address must not be kept by the browser for the next
+                // person at this machine. Library and shared computers are a
+                // real setting for this application, and an autofill
+                // suggestion is a record of where somebody was trying to move,
+                // sitting on a screen.
+                autoComplete="off"
+                spellCheck={false}
+                enterKeyHint="search"
+              />
+            </label>
+            <button className="button" type="submit">
+              Check this address
+            </button>
+          </Form>
 
-      <Form method="post" action="/answer">
-        <label className="field">
-          {/* Visually hidden rather than absent: the question above reads as a
-              label to somebody who can see it, and a screen reader needs one
-              attached to the input itself. A placeholder is not a label. */}
-          <span className="field__label visually-hidden">
-            A street address in Summit County, Ohio
-          </span>
-          <input
-            className="field__input"
-            type="text"
-            name="address"
-            required
-            // The address must not be kept by the browser for the next person
-            // at this machine. Library and shared computers are a real setting
-            // for this application, and an autofill suggestion is a record of
-            // where somebody was trying to move, sitting on a screen.
-            autoComplete="off"
-            spellCheck={false}
-            enterKeyHint="search"
-          />
-        </label>
-        <button className="button" type="submit">
-          Check this address
-        </button>
-      </Form>
+          {/* The one thing a reader has to know BEFORE typing, and the only
+              thing on this screen drawn to be unmissable. It is not
+              decoration: tarrow answers about the address it matched or it
+              answers about nothing, and a reader who assumes it will helpfully
+              find the nearest thing is a reader who can be answered about the
+              wrong building. */}
+          <div className="notice">
+            <p>
+              <strong>
+                tarrow does not correct spelling, and it does not guess.
+              </strong>{" "}
+              Type the address as it appears on a bill. If tarrow cannot find
+              exactly what you typed, it says so rather than answering about the
+              wrong building.
+            </p>
+            <p className="notice__example">
+              For example <code>1464 Garman Rd, Akron, OH 44313</code>
+            </p>
+          </div>
 
-      {/* The one thing a reader has to know BEFORE typing, and the only thing
-          on this page drawn to be unmissable. It is not decoration: tarrow
-          answers about the address it matched or it answers about nothing, and
-          a reader who assumes it will helpfully find the nearest thing is a
-          reader who can be answered about the wrong building. */}
-      <div className="notice">
-        <p>
-          <strong>tarrow does not correct spelling, and it does not guess.</strong>{" "}
-          Type the address as it appears on a bill. If tarrow cannot find exactly
-          what you typed, it says so rather than answering about the wrong
-          building.
-        </p>
-        <p className="notice__example">
-          For example <code>1464 Garman Rd, Akron, OH 44313</code>
-        </p>
-      </div>
-
-      <p className="ask__blurb">
-        tarrow covers <strong>Summit County, Ohio</strong> and checks{" "}
-        <strong>school premises only</strong>. It measures distances and
-        decides nothing.{" "}
-        <a href="/faq">
-          What tarrow checks, what it misses, and what happens to what you type
-        </a>
-      </p>
+          <p className="ask__blurb">
+            tarrow measures distances and decides nothing.{" "}
+            <a href="/faq">
+              What tarrow checks, what it misses, and what happens to what you
+              type
+            </a>
+          </p>
+        </div>
+      </section>
     </main>
   );
 }
