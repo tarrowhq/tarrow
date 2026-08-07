@@ -30,6 +30,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { CLIENT_ERROR_CONTENT_SECURITY_POLICY } from "./http.ts";
+
 const CLIENT_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
@@ -114,7 +116,15 @@ export function serveStaticAsset(
   // `no-store` on this response, and it is left alone deliberately: assets are
   // content-hashed and would be safe to cache, but a per-response exception is
   // one edit away from becoming a per-response exception for a result page.
-  res.writeHead(200, { "Content-Type": type });
+  // The policy is set HERE rather than by the envelope, because on a merge
+  // Node lets a value set with setHeader win over one passed to writeHead --
+  // which would leave a rendered document unable to supersede it with the
+  // nonce its inline bootstrap needs. See applySecurityHeaders. An asset is
+  // never a document, so it gets the script-free policy.
+  res.writeHead(200, {
+    "Content-Type": type,
+    "Content-Security-Policy": CLIENT_ERROR_CONTENT_SECURITY_POLICY,
+  });
 
   if (req.method === "HEAD") {
     res.end();

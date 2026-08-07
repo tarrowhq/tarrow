@@ -1,53 +1,47 @@
-// The document shell -- and the place tarrow decides it ships no client-side
-// JavaScript at all.
+// The document shell.
 //
-// WHY <Scripts /> AND <ScrollRestoration /> ARE NOT HERE
+// THE SCRIPTS CARRY A NONCE
 //
-// The Content-Security-Policy this application serves is the one the runbook
-// specifies, and its `script-src 'self'` clause carries no `'unsafe-inline'`
-// and no nonce. React Router's hydration bootstrap is three INLINE <script>
-// blocks (the scroll-position restore, `window.__reactRouterContext`, and the
-// route manifest). Under that policy a browser refuses to execute them.
+// React Router's hydration bootstrap is three INLINE <script> blocks: the
+// scroll-position restore, `window.__reactRouterContext`, and the route
+// manifest. Their content varies per response, so no `sha256-` source
+// expression can match them; a nonce is the only mechanism that admits them
+// without admitting everything else.
 //
-// There were three ways out and only one that does not weaken a gate:
+// This file used to omit <Scripts /> entirely, and the application shipped no
+// client-side JavaScript at all. That was never a requirement and was never
+// chosen -- it fell out of a CSP string written in the TASK-0002 runbook, which
+// that runbook records honestly at its 2026-08-04 checkpoint. Principle III
+// forbids third-party scripts, analytics, and request logs; FR-025 and FR-026
+// are scoped to third-party ORIGINS. First-party script was never in question.
+// See docs/decisions/task-0008-01-nonce.md and server/http.ts.
 //
-//   1. Add 'unsafe-inline' or a per-request nonce to script-src. That is the
-//      operator-specified policy softened by an implementer, which the runbook
-//      forbids outright -- and a policy that admits tarrow's own inline script
-//      admits every other one, which is the hole an analytics snippet walks
-//      through.
-//   2. Leave <Scripts /> in and let the browser block it. The page would still
-//      work, because it is server-rendered HTML, but it would work by accident
-//      while emitting policy violations, and "hydration is broken on purpose"
-//      is not a property anybody could verify.
-//   3. Ship no client-side JavaScript. `script-src 'self'` then describes
-//      something true and trivially checkable: view source, and there is no
-//      script to reason about.
+// WHAT STILL HOLDS, AND WHY IT IS WORTH KEEPING
 //
-// This file takes (3), and it costs this application nothing it wanted.
-// Ruling R1 chose React Router 7 in SSR mode precisely because its form-action
-// model "degrades to working HTML with JavaScript disabled, which for this
-// user population is a safety property and not an ergonomic one" -- and every
-// acceptance criterion in Phase 5 requires the surface to work with JavaScript
-// off. What was optional is now structural.
+// Ruling R1 chose SSR because the form-action model "degrades to working HTML
+// with JavaScript disabled, which for this user population is a safety property
+// and not an ergonomic one". That is still true and still tested: spec SC-001
+// and User Story 4 scenario 4, and app/tests/browser/form.test.ts drives the
+// whole flow with scripting switched off. Somebody browsing defensively, or on
+// a locked-down library machine, gets the entire answer.
 //
-// PHASE 5, READ THIS: you may not add a component that requires hydration.
-// There is no client runtime to hydrate it. Forms are plain <Form method="post">
-// (which React Router renders as a real <form> and the browser submits
-// natively), progressive disclosure is <details>/<summary> and CSS, and
-// anything that genuinely needs script is an operator checkpoint -- a CSP
-// amendment, not a component choice.
+// So: hydration is available where it earns its place. It is not a licence to
+// put anything load-bearing behind it. The coverage manifest, the distances,
+// and the sheriff step are server-rendered and stay that way (spec FR-015).
 
 import type { ReactNode } from "react";
 import type { LinksFunction } from "react-router";
-import { Links, Meta, Outlet } from "react-router";
+import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 
 import styles from "./styles.css?url";
 
 export const links: LinksFunction = () => [
   // A same-origin stylesheet built into build/client/assets/. Not an inline
-  // <style> element: `style-src 'self'` blocks those for the same reason
-  // `script-src 'self'` blocks inline script.
+  // <style> element, and not a `style=` attribute anywhere in the app either:
+  // `style-src 'self'` admits neither, and unlike script-src it carries no
+  // nonce, so there is nothing to relax. Anything that needs a computed value
+  // in the document -- see the distance scale in result-view.tsx -- uses SVG
+  // presentation attributes, which are not CSS and not covered by this policy.
   { rel: "stylesheet", href: styles },
 ];
 
@@ -64,7 +58,17 @@ export function Layout({ children }: { children: ReactNode }) {
         <Meta />
         <Links />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* No nonce prop here. entry.server.tsx reads the value off this
+            response's own CSP header and hands it to <ServerRouter>, which
+            passes it to every nonce-aware component including these two. That
+            is one seam instead of one per call site, and it is the seam where
+            the header is actually in scope -- so a tag can never be stamped
+            with a value the policy did not admit. */}
+        <ScrollRestoration />
+        <Scripts />
+      </body>
     </html>
   );
 }
@@ -80,9 +84,9 @@ export default function Root() {
  * Without one, React Router server-renders its OWN default boundary, and that
  * default:
  *
- *   - emits an inline <script> (the "Hey developer" console tip). Under
- *     `script-src 'self'` a browser refuses it, so every error page would ship
- *     dead code that a reader inspecting the source cannot account for; and
+ *   - emits an inline <script> (the "Hey developer" console tip) carrying no
+ *     nonce, which a browser therefore refuses -- so every error page would
+ *     ship dead code a reader inspecting the source cannot account for; and
  *   - console.error's the error while rendering, which on a 404 means printing
  *     `No route matches URL "/search/<the address somebody typed>"` to the
  *     container log. That is one of the three framework log sites

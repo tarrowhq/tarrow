@@ -100,16 +100,17 @@ a control to hide or for one to be missing.
    *All*, and **Disable cache** ticked.
 2. Reload.
 
-**What you should see.** Every request is to `127.0.0.1:3000`. There are two: the document,
-and one stylesheet under `/assets/`. There is **no third-party host** in the list — no
-`fonts.googleapis.com`, no `fonts.gstatic.com`, no CDN, no analytics endpoint.
+**What you should see.** Every request is to `127.0.0.1:3000`: the document, one stylesheet,
+and a handful of `.js` files, all under `/assets/`. There is **no third-party host** in the
+list — no `fonts.googleapis.com`, no `fonts.gstatic.com`, no CDN, no analytics endpoint. What
+matters for claim 5 is not that the list is short; it is that every entry points back here.
 
 3. Click the document request and read the **Response Headers**. You are looking for:
 
 ```
-Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self';
-  img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self';
-  frame-ancestors 'none'
+Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-<random>';
+  style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none';
+  form-action 'self'; frame-ancestors 'none'
 Referrer-Policy: same-origin
 Cache-Control: no-store, no-cache, must-revalidate, private
 Permissions-Policy: geolocation=(), camera=(), ...
@@ -119,7 +120,9 @@ Permissions-Policy: geolocation=(), camera=(), ...
 
 **Read what each clause buys you.** `default-src 'self'` and `connect-src 'self'` mean the
 page cannot fetch, XHR, WebSocket, or beacon anywhere but back to tarrow. `script-src 'self'`
-with **no `'unsafe-inline'` and no nonce** means no inline script runs at all.
+plus a nonce means a script runs only if it came from this origin or carries the random value
+this response committed to — and **not** `'unsafe-inline'`, which would admit any inline
+script at all, including one injected into the page.
 `form-action 'self'` means the address you type cannot be submitted to another host.
 `base-uri 'none'` means an injected `<base>` tag cannot silently re-point every relative URL
 somewhere else. `Referrer-Policy: same-origin` means that if tarrow ever links you to a county
@@ -133,15 +136,45 @@ your machine changed; see TASK-0015.) `Cache-Control: no-store`
 means your result page is not written to your browser's disk cache, which matters on a shared
 or library computer.
 
-4. **View source.** `Ctrl-U`. Count the `<script>` tags.
+4. **Fetch the page twice and compare the nonce.**
 
-There are **none**. tarrow ships no client-side JavaScript at all — see
-`app/app/root.tsx` for the reasoning. This is why claim 5 is easy to check: there is no
-script to audit, no bundle to read, and nothing that could contact anybody after the page
-loads.
+```
+curl -sS -D - http://127.0.0.1:3000/ -o /dev/null | grep -i content-security-policy
+curl -sS -D - http://127.0.0.1:3000/ -o /dev/null | grep -i content-security-policy
+```
 
-5. Turn JavaScript off entirely and use the site. Everything works. It was built that way on
-   purpose.
+The `'nonce-...'` value is **different every time**, and it is 128 bits of randomness from the
+operating system's CSPRNG. That is the property the whole clause rests on: a script injected
+into this page cannot guess the value, and a script carrying a previous response's value does
+not run. If the nonce is ever the same twice, the policy is decoration and this check has
+failed — say so.
+
+5. **View source and check every script against it.** `Ctrl-U`, or:
+
+```
+curl -sS http://127.0.0.1:3000/ | grep -o '<script[^>]*'
+```
+
+Every tag either has a `src=` that is a **relative path** — `/assets/…`, never a URL with a
+host in it — or carries a `nonce=` matching the header from that same response. Anything else
+is a script the browser refuses to run.
+
+> **This check changed, and it is worth saying why.** tarrow used to ship no client-side
+> JavaScript at all, and this step used to read "count the `<script>` tags: there are none."
+> That was a cheaper check and we are sorry to lose it. It was also never a decision — it fell
+> out of a CSP string written during an early build, and defending it meant ruling out
+> interface work that helps the people this is for. The replacement is still something you can
+> run in a terminal in ten seconds without reading any JavaScript.
+>
+> What has **not** changed: every byte of script comes from this origin, there is no third
+> party anywhere in the page, and the reasoning is recorded in
+> `docs/decisions/task-0008-01-nonce.md` rather than left as a config state to be discovered.
+
+6. Turn JavaScript off entirely and use the site. **Everything still works** — you get the
+   full answer, the coverage manifest, and the sheriff step. That is spec SC-001, it is
+   tested (`app/tests/browser/form.test.ts` drives the whole flow with scripting disabled),
+   and it is deliberate: for somebody browsing defensively, that is not a degraded mode, it
+   is the only mode.
 
 ### The equivalent without a browser
 
@@ -375,7 +408,9 @@ Three independent things, all readable:
 2. **No dependency that could.** The production dependency set is six packages
    (`react-router`, `@react-router/node`, `react`, `react-dom`, `pg`, `isbot`) and the same
    test pins the list, so adding a seventh is a decision somebody has to make in a diff.
-3. **No client half.** `connect-src 'self'` in the CSP, and no client-side JavaScript at all.
+3. **No client half.** `connect-src 'self'` in the CSP: the page cannot fetch, XHR, WebSocket,
+   or beacon anywhere but back to this origin, so no amount of client script could carry an
+   address off the machine even if some were added.
 
 The **ETL** — the pipeline that downloads Summit County's parcels and the federal school
 files — does make outbound calls. That is its whole job. It is a separate job service
@@ -436,9 +471,15 @@ and they pass again. That is what makes the passing run mean something.
 
 ### Break the CSP check
 
-Add `'unsafe-inline'` to `script-src` in `app/server/http.ts` and rebuild. The header test
-fails, because it compares the served header against the policy transcribed from the signed
-runbook rather than against the constant the server built it from.
+Add `'unsafe-inline'` to `script-src` in `app/server/http.ts` and rebuild. Two tests fail:
+the one comparing the served header against the policy transcribed from the signed runbook
+(rather than against the string the server built it from), and the one that asserts
+`'unsafe-inline'` never appears — because a nonce that sits beside `'unsafe-inline'` admits
+everything and is worth nothing.
+
+Or make the nonce fixed: return a constant from `nonce()` instead of `randomBytes`. The test
+that fetches a hundred nonces and asserts they never repeat fails. A predictable nonce is a
+guessable one.
 
 ### Break the scan
 
@@ -483,9 +524,9 @@ The tests that back this page:
 | File | Claims |
 |---|---|
 | `app/tests/no-logging.test.ts` | 1, 2 — the end-to-end capture, plus every PostgreSQL setting and the running process's argv |
-| `app/tests/http-headers.test.ts` | 3, 4, 5 — the policy on 200/404/405/400/500 and on assets, the error body, no inline script, no off-origin reference |
+| `app/tests/http-headers.test.ts` | 3, 4, 5 — the policy on 200/404/405/400/500 and on assets, the error body, every script matched against the nonce its own response committed to, no off-origin reference |
 | `app/tests/no-outbound.test.ts` | 5, 6 — the source scan, the pinned dependency set, the build-output scan and a proof it bites |
-| `app/tests/copy.test.ts` | 5 — no `<script>` and no off-origin `src`/`href` on any of the ten served shapes; and that no searched address reaches a link, a form action, or the page title |
+| `app/tests/copy.test.ts` | 5 — nothing load-bearing behind script, and no off-origin `src`/`href`, on any of the ten served shapes; and that no searched address reaches a link, a form action, the page title, or the hydration payload |
 
 `app/tests/no-logging.test.ts` reads container logs through the Docker engine API, which is
 why the `test` service mounts `/var/run/docker.sock`. Container output only exists *outside*

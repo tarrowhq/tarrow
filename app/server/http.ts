@@ -13,6 +13,7 @@
 // is TRYING to move. It exists nowhere else in the world, and tarrow does not
 // create it as a record.
 
+import { randomBytes } from "node:crypto";
 import type { IncomingMessage, RequestListener, ServerResponse } from "node:http";
 
 /**
@@ -33,26 +34,93 @@ import type { IncomingMessage, RequestListener, ServerResponse } from "node:http
 export const REQUEST_LOGGING = "disabled" as const;
 
 /**
- * The policy the runbook specifies, verbatim, as one string.
+ * A fresh nonce for one response. 16 bytes -- 128 bits -- base64.
  *
- * `script-src 'self'` with no `'unsafe-inline'` and no nonce is the load-bearing
- * clause, and it is why this application ships no client-side JavaScript at all
- * (see app/app/root.tsx). React Router's hydration bootstrap is three inline
- * <script> blocks; a policy that admitted them would have to admit every other
- * inline script too, which is exactly the hole a third-party analytics snippet
- * walks through. The resolution that does not weaken the policy is to have no
- * inline script to admit.
- *
- * `connect-src 'self'` means the page cannot open an XHR, fetch, WebSocket, or
- * EventSource to anywhere but this origin. `base-uri 'none'` means an injected
- * <base> tag cannot re-point every relative URL at another host.
- * `form-action 'self'` means a typed address cannot be submitted anywhere else.
- * `frame-ancestors 'none'` means no other site can embed tarrow and read the
- * user's interaction with it.
+ * The security property a nonce provides is unguessability, so this has to come
+ * from a CSPRNG and must never be reused across responses. `randomBytes` is the
+ * CSPRNG; calling this once per response is what makes the second half true.
  */
-export const CONTENT_SECURITY_POLICY =
+export function nonce(): string {
+  return randomBytes(16).toString("base64");
+}
+
+/**
+ * HOW THE RENDERER GETS THIS VALUE, since it is not obvious and the obvious
+ * answers are wrong.
+ *
+ * The document has to carry the same nonce the header committed to. The two
+ * are produced in different layers: this file sets the header on Node's
+ * ServerResponse before React Router sees the request at all, while the
+ * document is rendered inside a Fetch-standard handler that never receives
+ * that object.
+ *
+ * The seam that works is app/entry.server.tsx, which is handed
+ * `responseHeaders` -- the same envelope, by then -- and reads the nonce back
+ * out of the policy string it finds there. Reading it back rather than passing
+ * it forward is deliberate: the header is the half a browser enforces, so
+ * deriving the document's value FROM it means the two cannot drift.
+ *
+ * A module-level AsyncLocalStorage was tried first and does not work here.
+ * Vite bundles a copy of this module into build/server/index.js, so the
+ * renderer and this file hold two different store instances and the renderer
+ * reads an empty one -- a failure that produces no error, only scripts a
+ * browser silently refuses.
+ */
+
+/**
+ * The policy tarrow serves, as a function of one response's nonce.
+ *
+ * WHY THERE IS A NONCE. `script-src` admits `'self'` and this one per-response
+ * value. It does not admit `'unsafe-inline'`, and that distinction is the whole
+ * point: `'unsafe-inline'` admits ANY inline script, which is exactly the hole a
+ * third-party analytics snippet walks through, whereas a nonce admits only
+ * script this server put in this document. An injected script cannot guess 128
+ * bits, and a script carrying a previous response's nonce does not run.
+ *
+ * This replaced a nonce-free policy whose side effect was that hydration could
+ * not work at all -- React Router's bootstrap is inline <script> -- and which
+ * had therefore left the application shipping no client-side JavaScript. That
+ * state was never a requirement and was never chosen. It fell out of the CSP
+ * string the TASK-0002 runbook specified in Lane 0, which that runbook records
+ * honestly at its 2026-08-04 checkpoint. No principle asks for it: Principle III
+ * forbids third-party scripts, analytics, and request logs, and FR-025 and
+ * FR-026 are scoped to third-party ORIGINS -- all of which this policy still
+ * enforces, unchanged. See docs/decisions/task-0008-01-nonce.md.
+ *
+ * Every other directive is exactly as it was. `connect-src 'self'` means the
+ * page cannot open an XHR, fetch, WebSocket, or EventSource to anywhere but this
+ * origin. `base-uri 'none'` means an injected <base> tag cannot re-point every
+ * relative URL at another host. `form-action 'self'` means a typed address
+ * cannot be submitted anywhere else. `frame-ancestors 'none'` means no other
+ * site can embed tarrow and read the user's interaction with it.
+ */
+export function contentSecurityPolicy(responseNonce: string): string {
+  return (
+    "default-src 'self'; " +
+    `script-src 'self' 'nonce-${responseNonce}'; ` +
+    "style-src 'self'; " +
+    "img-src 'self' data:; " +
+    "connect-src 'self'; " +
+    "base-uri 'none'; " +
+    "form-action 'self'; " +
+    "frame-ancestors 'none'"
+  );
+}
+
+/**
+ * The policy for the one response written before a request object exists: the
+ * `clientError` path in entry.ts, which answers a malformed request line or an
+ * oversized header block from a raw socket.
+ *
+ * `script-src 'none'` rather than a nonce, because that body is one of three
+ * fixed plain-text constants and contains no script at all. There is nothing
+ * for a nonce to admit, and minting one would tell a reader of this header that
+ * some script on this response had been authorised when none exists. This is
+ * the stricter of the two policies, not a relaxation of the other.
+ */
+export const CLIENT_ERROR_CONTENT_SECURITY_POLICY =
   "default-src 'self'; " +
-  "script-src 'self'; " +
+  "script-src 'none'; " +
   "style-src 'self'; " +
   "img-src 'self' data:; " +
   "connect-src 'self'; " +
@@ -105,20 +173,26 @@ export const CONTENT_SECURITY_POLICY =
  *     origins that might otherwise share a browsing context group with this one.
  */
 export const SECURITY_HEADERS: ReadonlyArray<readonly [string, string]> = [
-  ["Content-Security-Policy", CONTENT_SECURITY_POLICY],
-  ["Referrer-Policy", "same-origin"],
-  ["Cache-Control", "no-store, no-cache, must-revalidate, private"],
-  ["Pragma", "no-cache"],
-  ["Expires", "0"],
-  [
-    "Permissions-Policy",
-    "geolocation=(), camera=(), microphone=(), payment=(), usb=(), " +
-      "interest-cohort=(), browsing-topics=()",
-  ],
-  ["X-Content-Type-Options", "nosniff"],
-  ["X-Frame-Options", "DENY"],
-  ["Cross-Origin-Opener-Policy", "same-origin"],
-  ["Cross-Origin-Resource-Policy", "same-origin"],
+    // The DEFAULT policy: no script at all. It is what a 404, a 405, an asset,
+    // and a framework-internal 500 carry, because none of those is a document
+    // and none of them needs script. A rendered document supersedes this line
+    // with `contentSecurityPolicy(nonce)` from app/entry.server.tsx -- the one
+    // place a nonce is minted, which is also the place the tags that carry it
+    // are rendered.
+    ["Content-Security-Policy", CLIENT_ERROR_CONTENT_SECURITY_POLICY],
+    ["Referrer-Policy", "same-origin"],
+    ["Cache-Control", "no-store, no-cache, must-revalidate, private"],
+    ["Pragma", "no-cache"],
+    ["Expires", "0"],
+    [
+      "Permissions-Policy",
+      "geolocation=(), camera=(), microphone=(), payment=(), usb=(), " +
+        "interest-cohort=(), browsing-topics=()",
+    ],
+    ["X-Content-Type-Options", "nosniff"],
+    ["X-Frame-Options", "DENY"],
+    ["Cross-Origin-Opener-Policy", "same-origin"],
+    ["Cross-Origin-Resource-Policy", "same-origin"],
 ];
 
 /**
@@ -233,13 +307,38 @@ export function bodyForClientError(err: unknown): string {
   return FAILURE_BODY;
 }
 
-/** Set the response envelope before anything decides what the response is. */
+/**
+ * Set the response envelope before anything decides what the response is, and
+ * return the nonce that envelope committed to.
+ *
+ * The nonce is minted HERE, not by the document renderer, because the header is
+ * the binding half: a document that stamps a value the header never admitted
+ * simply does not run its scripts. Making this function the single source means
+ * the two halves cannot drift apart -- the renderer is handed the value rather
+ * than generating its own and hoping.
+ */
 export function applySecurityHeaders(res: ServerResponse): void {
   // Set BEFORE the handler runs. Node merges headers set here with any passed
   // to writeHead() later, so a route cannot accidentally drop the policy by
   // calling writeHead with its own header object -- and a response nobody
   // wrote a route for (404, 405, a framework-internal 500) carries it too.
-  for (const [name, value] of SECURITY_HEADERS) res.setHeader(name, value);
+  //
+  // THE ONE EXCEPTION IS THE POLICY ITSELF, and the exception is why this
+  // function does not set it. On a merge, the value set here WINS over the one
+  // React Router passes to writeHead -- so a policy set here could not be
+  // superseded by a rendered document, and a document needs a nonce this layer
+  // cannot mint (it does not know whether the response will be a document).
+  //
+  // So the split is: app/entry.server.tsx sets the policy for anything it
+  // renders, with its nonce; `respondWithoutQueryContext` below sets the
+  // script-free policy for every failure this layer answers itself; and
+  // server/static.ts sets it for assets. Every path is covered, and the test
+  // that proves it is `assertEnvelope` in tests/http-headers.test.ts, which
+  // checks 200, 404, 405, 400, 500 and an asset.
+  for (const [name, value] of SECURITY_HEADERS) {
+    if (name === "Content-Security-Policy") continue;
+    res.setHeader(name, value);
+  }
 }
 
 /**
@@ -259,7 +358,12 @@ export function respondWithoutQueryContext(
     return;
   }
   applySecurityHeaders(res);
-  res.writeHead(status, { "Content-Type": "text/plain; charset=utf-8" });
+  res.writeHead(status, {
+    "Content-Type": "text/plain; charset=utf-8",
+    // This body is a fixed plain-text constant carrying no script, so the
+    // policy is the script-free one rather than a nonce nothing would use.
+    "Content-Security-Policy": CLIENT_ERROR_CONTENT_SECURITY_POLICY,
+  });
   res.end(FAILURE_BODY);
 }
 

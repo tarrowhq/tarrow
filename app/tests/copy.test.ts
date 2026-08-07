@@ -166,7 +166,18 @@ const VISIBLE_GAP_TOKENS = [
 
 /** Everything inside a <details>, removed. tarrow nests none, so this is exact. */
 function withoutCollapsedContent(body: string): string {
-  return body.replace(/<details[\s\S]*?<\/details>/g, " ");
+  // Scripts first, then <details>.
+  //
+  // React Router's hydration bootstrap serializes the loader payload into an
+  // inline <script>, and that payload contains the gap ledger as data --
+  // including the strings this file checks are NOT visible. They are not
+  // visible: they are inside a script element, which renders nothing. But a
+  // <details> stripper cannot see that, so without this line the collapse
+  // assertion reports a failure that is really an artefact of reading the
+  // hydration payload as if it were markup.
+  return body
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<details[\s\S]*?<\/details>/g, " ");
 }
 
 /**
@@ -764,13 +775,25 @@ describe("a refusal and a result differ by more than a sentence (User Story 3, A
 
 describe("none of it requires JavaScript (FR-015, SC-001, User Story 4 scenario 4)", () => {
   for (const name of EVERY_SHAPE) {
-    test(`${name} contains no script element of any kind`, () => {
-      assert.doesNotMatch(
-        shape(name).body,
-        /<script/i,
-        `${name} ships script. tarrow ships none: the CSP is script-src 'self' ` +
-          "with no nonce, so anything inline would be dead code, and a reader " +
-          "verifying the page should find nothing to audit.",
+    test(`${name} puts nothing load-bearing behind script`, () => {
+      // These bodies are fetched from the running server, so they carry React
+      // Router's hydration bootstrap. That is permitted (see
+      // docs/decisions/task-0008-01-nonce.md); DEPENDING on it is not.
+      //
+      // So the assertion is about position, not presence: everything inside
+      // <body> that a reader needs comes BEFORE the first <script>. A browser
+      // with scripting off, or one that refused the bundle, or a reader who
+      // hits Escape while the page is still arriving, has the whole answer.
+      // That is what FR-015 and SC-001 actually require.
+      const body = shape(name).body;
+      const beforeScript = body.split(/<script/i)[0] ?? "";
+      const closing = /<\/(?:main|body)>/i;
+      assert.match(
+        beforeScript,
+        closing,
+        `${name} reaches its first <script> before it closes <main>, so some ` +
+          "of the page depends on script having run. The answer, the coverage " +
+          "manifest, and the sheriff step must be readable with scripting off.",
       );
     });
 

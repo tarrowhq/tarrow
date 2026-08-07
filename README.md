@@ -80,11 +80,19 @@ address in plaintext, and that is the operator's disclosure to make rather than 
 
 ### It works with JavaScript switched off
 
-tarrow ships **no client-side JavaScript at all**. View source and count the `<script>` tags:
-there are none. The form is a real `<form>` that your browser submits itself, and the
-address travels in the request body rather than in the URL, so it never reaches your
-browser's history, the address bar, a `Referer` header, or any proxy's access log. See
-[`app/app/root.tsx`](app/app/root.tsx) for why this is structural rather than incidental.
+Switch JavaScript off entirely and you get the **whole answer** — the distances, the coverage
+manifest, and the sheriff step. Nothing load-bearing hides behind hydration. For somebody
+browsing defensively, or on a locked-down library machine, that is not a degraded mode; it is
+the only mode, and it is tested that way (`app/tests/browser/form.test.ts`).
+
+The form is a real `<form>` that your browser submits itself, and the address travels in the
+request body rather than in the URL, so it never reaches your browser's history, the address
+bar, a `Referer` header, or any proxy's access log.
+
+Every script the page does load comes from tarrow's own origin, and the Content-Security-Policy
+admits inline script only when it carries that response's own random nonce — never
+`'unsafe-inline'`. [`docs/privacy/verification.md`](docs/privacy/verification.md) shows you how
+to check both in about ten seconds.
 
 ## Running the tests
 
