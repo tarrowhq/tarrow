@@ -9,7 +9,7 @@ sources:
   - specs/002-repoint-tarrowhq-org/spec.md
   - README.md
   - CLAUDE.md
-verified_against: b5b247a6cb390ba505c674f0c77af551dd547949
+verified_against: 6d60a311a4e38c2e7520aa71dc141ac5bd014599
 ---
 
 # Work planning
@@ -52,8 +52,10 @@ for the no-adapter server, `R4` for queries authored as files.
 **Frozen evidence.** `spikes/task-0001-geocoding/` holds an investigation and its published
 `RESULTS.md`. The `tools` service and `docker/tools/` are kept byte-identical specifically so
 those numbers keep reproducing; the accuracy figures quoted throughout the code (96.79%
-correct, 151,904 probes, the p95 campus extent) trace back there. `docs/design/` holds runbooks
-and decision records.
+correct, 151,904 probes, the p95 campus extent) trace back there. `docs/design/` holds runbooks;
+`docs/decisions/` holds decision records, which are cited from source comments the same way
+plan rulings are — `docs/decisions/task-0008-01-nonce.md` is referenced from `app/server/http.ts`,
+`root.tsx`, and the tests that hold its line.
 
 ## Connections
 

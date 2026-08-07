@@ -11,7 +11,7 @@ sources:
   - app/tests/docker.ts
   - app/tests/fixtures.ts
   - app/tests/browser/form.test.ts
-verified_against: b5b247a6cb390ba505c674f0c77af551dd547949
+verified_against: 6d60a311a4e38c2e7520aa71dc141ac5bd014599
 ---
 
 # Test suite
@@ -29,6 +29,18 @@ that found three framework log sites and produced [[process-output-seal]].
 that the production dependency set is fixed. `copy.test.ts` scans the raw response body of
 every result shape for permission vocabulary. `explain.test.ts` asserts the proximity query
 plan contains no `::geography` cast and does use the spatial index.
+
+Two assertions changed shape when TASK-0008.01 admitted first-party script, and the new form
+is the more useful one. `copy.test.ts` no longer asserts that no shape contains a `<script>`
+element; it asserts **position** — everything inside `<body>` that the reader must see closes
+`</main>` before the first `<script>` — so the answer, manifest, and sheriff step cannot come
+to depend on script having run (FR-015, SC-001). Its `<details>` stripper also strips
+`<script>` first, because the hydration payload serializes gap-ledger strings that the
+collapse assertion would otherwise misread as markup. The browser suite's script assertion
+likewise narrowed from "no script is loaded" to "no script is loaded *from another origin*".
+`http-headers.test.ts` holds the CSP line directly: `'unsafe-inline'` never appears, a nonce is
+at least 128 bits of CSPRNG output and never repeats across a hundred draws, and every script
+tag in a served document is matched against the nonce its own response committed to.
 `http-headers.test.ts`, `manifest.test.ts`, `no-fallback.test.ts`, `normalize.test.ts`,
 `proximity.test.ts`, and `result-type.test.ts` cover the rest; `tests/types/` holds the
 compile-failure fixture proving a clearance-shaped variant does not type-check.

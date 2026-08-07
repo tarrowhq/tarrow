@@ -1,6 +1,6 @@
 ---
 name: web-surface
-description: The React Router 7 routes, the decision to ship no client-side JavaScript at all, and how a POST keeps the searched address out of every URL, history entry, and proxy log.
+description: The React Router 7 routes, the rule that nothing load-bearing may hide behind hydration even though first-party script now ships, and how a POST keeps the searched address out of every URL, history entry, and proxy log.
 kind: component
 sources:
   - app/app/root.tsx
@@ -10,7 +10,7 @@ sources:
   - app/app/routes/faq.tsx
   - app/app/entry.server.tsx
   - app/react-router.config.ts
-verified_against: b5b247a6cb390ba505c674f0c77af551dd547949
+verified_against: 6d60a311a4e38c2e7520aa71dc141ac5bd014599
 ---
 
 # Web surface
@@ -21,20 +21,33 @@ disabled — which, for this population, is a safety property rather than an erg
 
 ## How it works
 
-**No client-side JavaScript, anywhere.** `app/app/root.tsx` omits `<Scripts />` and
-`<ScrollRestoration />`. The reasoning is recorded in the file: the CSP's `script-src 'self'`
-carries no `'unsafe-inline'` and no nonce, React Router's hydration bootstrap is three inline
-`<script>` blocks, and a browser refuses them under that policy. Of the three ways out —
-weaken the policy, leave the blocked scripts in, or ship no script — only the third does not
-soften a gate. A policy that admits tarrow's own inline script admits every other one, which
-is the hole an analytics snippet walks through. `script-src 'self'` then describes something
-trivially checkable: view source, and there is no script to reason about.
+**The page hydrates, and nothing load-bearing waits for it.** `app/app/root.tsx` renders
+`<Scripts />` and `<ScrollRestoration />`, whose inline bootstrap blocks are admitted by the
+per-response nonce in the CSP. Neither carries a `nonce` prop here: `entry.server.tsx` reads
+the value back off the response's own CSP header and hands it to `<ServerRouter>`, which
+passes it to every nonce-aware component — one seam, in the only place the header is in
+scope, so a tag can never be stamped with a value the policy did not admit.
 
-The consequence is binding on future work, and `root.tsx` says so directly: no component may
-require hydration. Forms are `<Form method="post">`, which renders a real `<form>` the browser
-submits natively; progressive disclosure is `<details>`/`<summary>` and CSS. The stylesheet is
-a same-origin built asset, not an inline `<style>`, because `style-src 'self'` blocks those
-for the same reason.
+The file also records what this replaced and why the replacement is not a loosening. tarrow
+used to omit `<Scripts />` entirely and ship no client JavaScript at all. That was never a
+requirement and never a decision: it fell out of the nonce-free CSP string written in the
+TASK-0002 runbook. Principle III forbids third-party scripts, analytics, and request logs, and
+FR-025/FR-026 scope third-party *origins* — first-party script was never in question. See
+`docs/decisions/task-0008-01-nonce.md`.
+
+What survived is the rule that matters: **no component may put anything load-bearing behind
+script.** Forms are `<Form method="post">`, which renders a real `<form>` the browser submits
+natively; progressive disclosure is `<details>`/`<summary>` and CSS. The answer, the coverage
+manifest, and the sheriff step are server-rendered on every shape (FR-015), and the whole flow
+is tested with scripting switched off (SC-001, User Story 4 scenario 4,
+`app/tests/browser/form.test.ts`). For somebody browsing defensively or on a locked-down
+library machine, that is the only mode, not a degraded one.
+
+The stylesheet is a same-origin built asset, not an inline `<style>`, and there is no `style=`
+attribute anywhere in the app: `style-src 'self'` admits neither, and unlike `script-src` it
+carries no nonce, so there is nothing to relax. Anything needing a computed value in the
+document — the distance scale in `result-view.tsx` — uses SVG presentation attributes, which
+are not CSS and not covered by that clause.
 
 **The address lives in a POST body.** `routes/answer.tsx` answers `action` only, never a
 `loader`. The address therefore never reaches a URL — not the address bar, not browser
@@ -48,10 +61,20 @@ to `ResultPage`. There is no branch on whether anything was found, no count, no 
 "and nothing that could become one."
 
 `root.tsx` also defines an `ErrorBoundary`, present because React Router's default one emits
-an inline script and `console.error`s the error while rendering — which on a 404 prints the
-searched path to the container log. It deliberately never calls `useRouteError()`: it takes
-nothing from the error at all, and instead withdraws every coverage claim explicitly rather
-than leaving a silence a reader could mistake for reassurance.
+an inline script carrying no nonce — which the browser refuses, leaving dead code a reader
+inspecting source cannot account for — and `console.error`s the error while rendering, which
+on a 404 prints the searched path to the container log. It deliberately never calls
+`useRouteError()`: it takes nothing from the error at all, and instead withdraws every
+coverage claim explicitly rather than leaving a silence a reader could mistake for
+reassurance.
+
+Restoring `<Scripts />` opened a second path for the same datum, closed in the same commit.
+React Router serializes `staticHandlerContext` into the hydration payload, and on a request to
+an unmatched route that context holds `No route matches URL "/search/<the typed address>"` —
+which would write the address into the document and the back-button cache. `entry.server.tsx`
+scrubs it: `withoutErrorDetail` drops error messages and the `serverHandoffStream` that
+carries them verbatim, keeping only `status`/`statusText`, neither of which can hold a URL.
+`copy.test.ts` caught this the moment `<Scripts />` returned.
 
 ## Connections
 

@@ -1,12 +1,12 @@
 ---
 name: answer-rendering
-description: How a search result becomes a page — the five copy rules, the collapse rule that keeps limitations visible while provenance folds away, and the prohibition on the renderer computing anything.
+description: How a search result becomes a page — the five copy rules, the collapse rule that keeps limitations visible while provenance folds away, the bare distance scale, and the prohibition on the renderer computing anything.
 kind: component
 sources:
   - app/app/result-view.tsx
   - app/app/format.ts
   - app/tests/copy.test.ts
-verified_against: b5b247a6cb390ba505c674f0c77af551dd547949
+verified_against: 6d60a311a4e38c2e7520aa71dc141ac5bd014599
 ---
 
 # Answer rendering
@@ -48,9 +48,27 @@ Principle II violation dressed as an information-architecture improvement, becau
 not a statement.
 
 **Nothing here computes anything.** Every number comes from the result, every limitation from
-the coverage-gap ledger, and the only arithmetic is a unit conversion in `app/format.ts`. A
-renderer that derives "no flags means fine" is the failure the type gate exists to prevent:
-it cannot construct a clearance, but it could still write one as a sentence.
+the coverage-gap ledger, and the only arithmetic is presentation in `app/format.ts` — a unit
+conversion, and `bufferFraction`, which places a measured distance on the buffer scale as a
+clamped fraction in [0,1]. A renderer that derives "no flags means fine" is the failure the
+type gate exists to prevent: it cannot construct a clearance, but it could still write one as a
+sentence.
+
+`DistanceScale` draws that fraction as a line, because "127.9 m against a buffer of 304.8 m"
+is two numbers a frightened reader has to hold and divide when the question is really *how
+close*. It is deliberately bare: no colour coding, no zones, no "safe" end, and `aria-hidden`,
+since the sentence above already says the same thing once. It is SVG rather than CSS because
+`style-src 'self'` admits no `style` attribute, so a custom property could not carry a computed
+value into the document; SVG presentation attributes are not CSS and not covered by that
+clause. The clamp is deliberate too — a premises measured past the buffer would otherwise push
+the mark off the end, and a drawing that runs off its own axis reads as a rendering fault
+rather than a distance.
+
+`ResultPage` orders the page answer → sheriff step → coverage manifest → unverified rule →
+privacy footnote. The sheriff step moved up under TASK-0008; the manifest stayed above the
+fold, immediately under the answer and the action, because Principle II binds a result to state
+what was not checked, and demoting it below the fold would be the `/faq` mistake by a slower
+route.
 
 Database codes get plain-language vocabulary here — `PREMISES_BASIS` and `RESIDENCE_BASIS`
 map each measurement basis to a sentence, including `none`: "tarrow holds a name for this
@@ -64,7 +82,8 @@ premises and no shape for it, so it was never measured and was never given a mad
 
 ## Operational notes
 
-`app/format.ts` holds `metres`, `metresAndFeet`, `count`, `plural`, and `day`. Shared
+`app/format.ts` holds `metres`, `metresAndFeet`, `bufferFraction`, `count`, `plural`, and
+`day`. Shared
 components — `Masthead`, `SheriffNextStep`, `PrivacyFootnote` — are exported for reuse by the
 route-level empty state and the root error boundary, so the sheriff guidance survives even a
 failure that renders no result at all.

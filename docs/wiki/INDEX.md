@@ -39,8 +39,8 @@ under-restricting (not), and by a refusal to record what anybody searched.
 
 ## The web surface
 
-- [[web-surface]] — routes, the no-client-JavaScript stance, and how a POST keeps the
-  address out of every URL.
+- [[web-surface]] — routes, the rule that nothing load-bearing hides behind hydration, and
+  how a POST keeps the address out of every URL.
 - [[answer-rendering]] — how a result becomes a page without the renderer deciding
   anything, plus the wording rules.
 
