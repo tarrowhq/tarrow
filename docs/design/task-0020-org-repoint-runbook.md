@@ -6,7 +6,7 @@ merge → re-ground. Direction is decided; do not re-litigate it: the repository
 `tarrowhq/tarrow` already happened, and `specs/002-repoint-tarrowhq-org/spec.md` wins on
 scope. Plan-of-record is the board; this file carries only ordering, doctrine, and the log.
 
-**Status:** executing · operator sign-off on lanes: pending
+**Status:** done · operator sign-off on lanes: moot (single-task sweep)
 
 <!-- This is a single-task sweep. The operator invoked `/pdlc:sweep TASK-0020` directly,
      which is the sign-off on scope; lane sign-off is moot with one lane and one task.
@@ -311,6 +311,51 @@ check above should return a token and a `200`.
 Until then, a stranger following `docs/deploy/self-hosting.md` gets a `401`. The document
 already says so.
 
+### Resolved — a clean CI publish (2026-08-07)
+
+The outage ended and the workflow was re-run. It failed first, and the cause was the
+hand-publish itself:
+
+```
+failed to push ghcr.io/tarrowhq/tarrow-db:sha-df4ce10:
+  unexpected status from HEAD request ... 403 Forbidden
+```
+
+Pushing from a workstation with a personal token created both packages **owned by the org
+but linked to no repository** (`repository: null`). A workflow's `GITHUB_TOKEN` only holds
+write access to packages linked to its own repository, so it authenticated and was then
+refused on the blob push. The workaround had broken the path it was standing in for — worth
+recording as the cost of a manual publish, alongside the provenance caveat already noted.
+
+The fix was to delete both orphaned packages (operator, via the UI) and re-run. Run
+[31145127147](https://github.com/tarrowhq/tarrow/actions/runs/31145127147) on `df4ce10`
+came back `success` with all five jobs green, and the packages were recreated correctly
+linked to `tarrowhq/tarrow`.
+
+Verified against the registry rather than read off the job status:
+
+- both `ghcr.io/tarrowhq/tarrow-app:sha-df4ce10` and `...tarrow-db:sha-df4ce10` are
+  `application/vnd.oci.image.index.v1+json` carrying `linux/amd64` and `linux/arm64`,
+- each package's `tags/list` returns exactly `["sha-df4ce10"]` — no `latest`, no `main`,
+- both now report `repository: tarrowhq/tarrow`.
+
+The hand-built `sha-0a03fad` images are gone, deleted with their packages. Nothing depended
+on them.
+
+**TASK-0021 is still not resolved.** Both packages report `visibility: private` even though
+the repository is public and the workflow created them, and an anonymous token request is
+still refused:
+
+```
+curl "https://ghcr.io/token?scope=repository:tarrowhq/tarrow-app:pull&service=ghcr.io"
+  → {"errors":[{"code":"UNAUTHORIZED","message":"authentication required"}]}
+```
+
+That is now twice this inference has been tested and failed — once after the repository was
+made public, once after a workflow recreated the packages from scratch. GHCR container
+packages are created private and their visibility is a per-package setting, full stop. An
+operator must flip both, which is exactly what TASK-0021 cards.
+
 ### Phase 4's checks are unchanged and still owed
 
 Nothing about this blocker relaxes them. When a run does execute, verify: all five jobs
@@ -325,3 +370,4 @@ VII as surely as an amd64-only base image would.
 | date | task | PR | merge | tokens/cost (best-effort) | notes |
 |------|------|----|-------|---------------------------|-------|
 | 2026-08-06 | TASK-0020 | [#1](https://github.com/tarrowhq/tarrow/pull/1) | `01575f1` | — | phases 1–3 dispatched one fresh mechanical implementer each, all landed; 216/216 tests pass under the sanctioned `test` profile; grep returns only permitted survivors; merged. Phase 4 **blocked** — see "Phase 4 blocker" below |
+| 2026-08-07 | TASK-0020 phase 4 | [#2](https://github.com/tarrowhq/tarrow/pull/2), #4 | `b5b247a` | — | Actions outage recorded, diagnosis corrected once; hand-publish attempted then superseded; run 31145127147 green across all five jobs on `df4ce10`; Phase 4 closed. TASK-0021 carded and confirmed still needed |
