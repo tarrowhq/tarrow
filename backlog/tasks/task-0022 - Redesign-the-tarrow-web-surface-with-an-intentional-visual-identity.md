@@ -4,7 +4,7 @@ title: Redesign the tarrow web surface with an intentional visual identity
 status: In Progress
 assignee: []
 created_date: '2026-08-07 13:13'
-updated_date: '2026-08-07 19:30'
+updated_date: '2026-08-07 19:56'
 labels:
   - 'area:web'
   - 'kind:design'
@@ -40,15 +40,16 @@ Delivered as one PR off a long-running worktree, developed iteratively with the 
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Design options are delivered as static demo HTML artifacts covering the search page, an unflagged answer, a flagged answer, and a refusal, and the operator selects one direction before app code changes
-- [ ] #2 The chosen direction is written down as a token system -- named colours, a type scale, a spacing rhythm, and the named signature element -- in a tracked design note, so the next editor extends the system rather than guessing at it
-- [ ] #3 styles.css is restructured into a stated layer system (tokens, primitives, components) with no unexplained one-off rules, and the no-external-origin comment block survives
-- [ ] #4 result-view.tsx is decomposed into reusable components with a single responsibility each, and no component reaches past its own concern
-- [ ] #5 A refusal, an unflagged answer, and a flagged answer remain distinguishable without colour -- verified in greyscale and against the existing structural rules
-- [ ] #6 The page reads and works on a 360px viewport, with visible keyboard focus and prefers-reduced-motion respected
-- [ ] #7 No new dependency, no external origin in the build output (scan-external-origins passes), and no inline style attribute anywhere
-- [ ] #8 The full suite including copy.test.ts and the browser suite passes in the container with scripting disabled
-- [ ] #9 Page order and the collapse rule are unchanged: manifest above the fold, gaps visible, provenance collapsed
+- [x] #1 Design options are delivered as static demo HTML artifacts covering the search page, an unflagged answer, a flagged answer, and a refusal
+- [x] #2 The operator selects one direction, recorded as a tracked decision, before app code changes
+- [ ] #3 The chosen direction is written down as a token system -- named colours, a type scale, a spacing rhythm, and the named signature element -- in a tracked design note, so the next editor extends the system rather than guessing at it
+- [ ] #4 styles.css is restructured into a stated layer system (tokens, primitives, components) with no unexplained one-off rules, and the no-external-origin comment block survives
+- [ ] #5 result-view.tsx is decomposed into reusable components with a single responsibility each, and no component reaches past its own concern
+- [ ] #6 A refusal, an unflagged answer, and a flagged answer remain distinguishable without colour -- verified in greyscale and against the existing structural rules
+- [ ] #7 The page reads and works on a 360px viewport, with visible keyboard focus and prefers-reduced-motion respected
+- [ ] #8 No new dependency, no external origin in the build output (scan-external-origins passes), and no inline style attribute anywhere
+- [ ] #9 The full suite including copy.test.ts and the browser suite passes in the container with scripting disabled
+- [ ] #10 Page order and the collapse rule are unchanged: manifest above the fold, gaps visible, provenance collapsed
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -85,4 +86,12 @@ E -- One Card. Inverse bet: one full screen per idea. The finding owns a screen 
 F -- The Worksheet. No results page: a first-person worksheet, partly filled by tarrow, deliberately BLANK where only the sheriff can answer, each blank captioned with who must fill it. Coverage becomes the unfinished half of the document rather than a disclosure section. Prints.
 
 AWAITING OPERATOR SELECTION among D, E, F (or a hybrid, or another turn). No app code touched.
+
+SELECTION (2026-08-07): E -- One Card. Recorded as docs/decisions/task-0022-direction-e-one-card.md.
+
+D and F are preserved rather than discarded, each carded with its artifact cited:
+- TASK-0023 -- direction D (The Survey), to be rebuilt on a real map engine. NOT Mapbox: its bundle, style, glyphs and tiles come from api.mapbox.com, and a tile request's path IS the coordinate being viewed -- which here is the address somebody on a registry just typed. That hands a third party the reader's IP, the referrer, and the queried location on every answer. The available engine is MapLibre GL JS vendored to our own origin over self-hosted PMTiles built from geometry already in Postgres.
+- TASK-0024 -- direction F (The Worksheet). Operator: 'I DO like the F (worksheet) style and see how it adheres to our purpose. BUT it does too much for a V1 MVP.' Preserved as the strongest expression of Principle II found so far; revisit after E ships. Carries an open Principle I question about tarrow authoring first-person sentences a reader will say to an official.
+
+AC #1 was compound (options delivered AND operator selects). Split into #1 (delivered, true at round 2) and #2 (selection, true now); both ticked.
 <!-- SECTION:NOTES:END -->
