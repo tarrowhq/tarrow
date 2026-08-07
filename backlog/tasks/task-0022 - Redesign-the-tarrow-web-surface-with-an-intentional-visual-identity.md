@@ -4,7 +4,7 @@ title: Redesign the tarrow web surface with an intentional visual identity
 status: In Progress
 assignee: []
 created_date: '2026-08-07 13:13'
-updated_date: '2026-08-07 17:03'
+updated_date: '2026-08-07 19:19'
 labels:
   - 'area:web'
   - 'kind:design'
@@ -65,4 +65,10 @@ C (Call Sheet): the page as the thing carried into the sheriff phone call; one r
 Awaiting operator selection. No app code touched.
 
 Process finding, worth carrying: the card was created BEFORE the worktree was cut from origin/main, so the branch never contained it and the CLI could not see it from inside the worktree. Cut the worktree first, or commit the card, before starting work.
+
+Round 1b (dacadd2): verified all three directions render in dark mode as well as light. Found and fixed a demo-chrome bug -- the specimen header painted its background from --ink, which flips light in dark mode, while its text colours were literals, washing the block out. Pinned to fixed dark chrome in all three files; it is specimen furniture and should not theme at all. No direction's design changed.
+
+Claim branch pushed to origin/task-0022-redesign (was committed but unpushed). Duplicate card file removed from the root checkout now that the card lives on the branch.
+
+AWAITING OPERATOR SELECTION among A (Instrument), B (Register), C (Call Sheet). Phase 3 -> 4 boundary: no app code touched, no direction implemented.
 <!-- SECTION:NOTES:END -->
