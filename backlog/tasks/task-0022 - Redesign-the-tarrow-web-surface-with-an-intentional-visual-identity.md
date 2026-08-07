@@ -4,7 +4,7 @@ title: Redesign the tarrow web surface with an intentional visual identity
 status: In Progress
 assignee: []
 created_date: '2026-08-07 13:13'
-updated_date: '2026-08-07 19:19'
+updated_date: '2026-08-07 19:30'
 labels:
   - 'area:web'
   - 'kind:design'
@@ -71,4 +71,18 @@ Round 1b (dacadd2): verified all three directions render in dark mode as well as
 Claim branch pushed to origin/task-0022-redesign (was committed but unpushed). Duplicate card file removed from the root checkout now that the card lives on the branch.
 
 AWAITING OPERATOR SELECTION among A (Instrument), B (Register), C (Call Sheet). Phase 3 -> 4 boundary: no app code touched, no direction implemented.
+
+Round 2 (8ad1bfc): docs/design/round2/ -- D, E, F.
+
+Operator rejected all of round 1: 'They are all the same basic UI same basic structure same basic everything.' Correct -- A/B/C differed in paint (type, palette, one column position) but shared a page shape: masthead, answer block, stacked prose sections. Also asked for the existing UI and its guidelines to be thrown out, keeping security-mindedness but going wide.
+
+Round 2 varies STRUCTURE, not style:
+
+D -- The Survey. Answers the geometric question geometrically: a survey plat with the address as a parcel, the buffer as a ring, schools as hatched parcels, distances as annotated dimension lines. Zero body copy on the result screen; prose is drawing labels plus numbered margin notes. Fetches nothing -- SVG from geometry already in Postgres -- so it adds no request and is MORE private than the text version.
+
+E -- One Card. Inverse bet: one full screen per idea. The finding owns a screen alone; each premises, each gap, the sheriff step are their own full-screen cards. CSS scroll-snap, no script; degrades to a long page with scripting off. Commits to a single dark world.
+
+F -- The Worksheet. No results page: a first-person worksheet, partly filled by tarrow, deliberately BLANK where only the sheriff can answer, each blank captioned with who must fill it. Coverage becomes the unfinished half of the document rather than a disclosure section. Prints.
+
+AWAITING OPERATOR SELECTION among D, E, F (or a hybrid, or another turn). No app code touched.
 <!-- SECTION:NOTES:END -->
