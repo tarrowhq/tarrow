@@ -1,0 +1,430 @@
+<title>tarrow round 2 — D: The Survey</title>
+<style>
+/* ==========================================================================
+   DIRECTION D — THE SURVEY
+   The question is geometric. Nobody drew the geometry.
+
+   "Is this address within 1,000 feet of a school premises, measured parcel
+   boundary to parcel boundary" is a statement about SHAPES ON GROUND, and
+   every version of this interface so far has answered it with paragraphs.
+   This direction draws it: a survey plat. The address is a parcel. The
+   buffer is a ring. The schools are parcels. The distance is a dimension
+   line, the way a surveyor or an architect would annotate it.
+
+   Prose becomes annotation. There is no body copy on the result screen at
+   all — every sentence is either a label on the drawing or a note in the
+   margin, which is how technical drawings have carried dense, high-stakes
+   information for two hundred years.
+
+   PRIVACY NOTE, and the reason no product has done this: a normal web map
+   fetches tiles from a third party, which hands the reader's IP address and
+   the area they are looking at to a stranger — catastrophic here. This map
+   fetches NOTHING. It is SVG drawn from parcel geometry the server already
+   holds and already measured against. It is more private than the text
+   version was, because it replaces nothing and adds no request.
+   ========================================================================== */
+:root {
+  --plat:        #f4f1e9;   /* drafting stock */
+  --plat-edge:   #e7e2d5;
+  --ink:         #1c1b18;
+  --ink-soft:    #6a675e;
+  --graphite:    #9b978b;   /* pencil linework */
+  --graphite-lt: #cbc7ba;
+  --flagged:     #a32e18;
+  --flagged-sunk:#f6e7e2;
+  --stopped:     #7a5a12;
+  --stopped-sunk:#f6efdc;
+  --subject:     #1c1b18;   /* the searched parcel */
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --plat:        #16171a;
+    --plat-edge:   #1e2024;
+    --ink:         #eceae4;
+    --ink-soft:    #a3a196;
+    --graphite:    #6e6f74;
+    --graphite-lt: #3a3c41;
+    --flagged:     #f2a08e;
+    --flagged-sunk:#2b1815;
+    --stopped:     #e6c583;
+    --stopped-sunk:#241e10;
+    --subject:     #eceae4;
+  }
+}
+:root[data-theme="dark"] {
+  --plat: #16171a; --plat-edge: #1e2024; --ink: #eceae4; --ink-soft: #a3a196;
+  --graphite: #6e6f74; --graphite-lt: #3a3c41; --flagged: #f2a08e;
+  --flagged-sunk: #2b1815; --stopped: #e6c583; --stopped-sunk: #241e10; --subject: #eceae4;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--plat); color: var(--ink);
+  font-family: var(--sans); line-height: 1.5; -webkit-text-size-adjust: 100%; }
+h1,h2,h3 { text-wrap: balance; }
+a { color: inherit; text-underline-offset: 0.2em; }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* specimen chrome — fixed, never themed */
+.sh { background: #14150f; color: #f2f0e6; padding: 1.75rem 1.5rem; }
+.sh__in { max-width: 60rem; margin: 0 auto; }
+.sh h1 { margin: 0 0 .6rem; font-size: 1.75rem; letter-spacing: -.02em; }
+.sh p { margin: 0 0 .5rem; color: #b8b4a4; max-width: 68ch; font-size: .9375rem; }
+.sh b { color: #f2f0e6; }
+.lbl { max-width: 60rem; margin: 2.5rem auto .6rem; padding: 0 1.25rem;
+  font-family: var(--mono); font-size: .75rem; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-soft); display: flex; gap: .75rem; align-items: center; }
+.lbl::after { content:""; flex:1; height:1px; background: var(--graphite-lt); }
+.sheet { max-width: 60rem; margin: 0 auto; background: var(--plat);
+  border: 1px solid var(--graphite); }
+
+/* ---------- THE SHEET: a drawing has a border and a title block ---------- */
+.plat { padding: 0; }
+.plat__frame { border: 1px solid var(--graphite-lt); margin: .6rem; padding: 0; }
+
+/* Title block — bottom-right on a real plat; here it leads, because a
+   reader needs to know what sheet they are holding. */
+.tblock { display: grid; grid-template-columns: 1fr auto; gap: .5rem 1.5rem;
+  border-bottom: 1px solid var(--graphite); padding: .75rem 1rem; align-items: end; }
+.tblock__what { margin: 0; font-size: 1.0625rem; font-weight: 700; letter-spacing: -.01em; }
+.tblock__sub { margin: .1rem 0 0; font-size: .8125rem; color: var(--ink-soft); }
+.tblock__meta { font-family: var(--mono); font-size: .6875rem; color: var(--ink-soft);
+  text-align: right; line-height: 1.6; }
+
+/* ---------- THE DRAWING ---------- */
+.draw { display: block; width: 100%; height: auto; background: var(--plat); }
+.draw text { font-family: var(--mono); fill: var(--ink); }
+
+/* Legend reads as part of the drawing, not a UI panel. */
+.legend { display: flex; flex-wrap: wrap; gap: .35rem 1.25rem;
+  border-top: 1px solid var(--graphite-lt); padding: .6rem 1rem;
+  font-family: var(--mono); font-size: .6875rem; color: var(--ink-soft); }
+.legend span { display: flex; align-items: center; gap: .4rem; }
+.legend i { width: 1.4rem; height: 0; border-top-width: 2px; border-top-style: solid; display: block; }
+
+/* ---------- THE SCHEDULE: a drawing's table, not a list of cards ---------- */
+.sched { width: 100%; border-collapse: collapse; font-size: .875rem; }
+.sched caption { text-align: left; padding: .8rem 1rem .4rem; font-weight: 700;
+  font-size: .8125rem; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-soft); }
+.sched th, .sched td { border-top: 1px solid var(--graphite-lt); padding: .5rem 1rem; text-align: left; }
+.sched th { font-size: .6875rem; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-soft); font-weight: 700; }
+.sched td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sched .key { font-family: var(--mono); font-weight: 700; color: var(--flagged); }
+.sched tr.subject .key { color: var(--subject); }
+
+/* ---------- MARGIN NOTES: where prose is allowed to live ---------- */
+.notes { border-top: 1px solid var(--graphite); display: grid; gap: 0; }
+@media (min-width: 46rem) { .notes { grid-template-columns: 1fr 1fr; } }
+.note { padding: .85rem 1rem; border-bottom: 1px solid var(--graphite-lt); }
+@media (min-width: 46rem) { .note:nth-child(odd) { border-right: 1px solid var(--graphite-lt); } }
+.note__n { font-family: var(--mono); font-size: .6875rem; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--ink-soft); margin: 0 0 .2rem; }
+.note p { margin: 0; font-size: .875rem; max-width: 52ch; }
+.note--gap { background: var(--stopped-sunk); }
+.note--gap .note__n { color: var(--stopped); }
+
+/* ---------- THE ACTION: stamped, like an approval block ---------- */
+.stamp { border-top: 1px solid var(--graphite); padding: 1rem;
+  display: grid; gap: .5rem 1rem; }
+@media (min-width: 40rem) { .stamp { grid-template-columns: auto 1fr; align-items: start; } }
+.stamp__mark { border: 2px solid var(--ink); padding: .45rem .7rem; font-family: var(--mono);
+  font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; font-weight: 700;
+  text-align: center; align-self: start; }
+.stamp p { margin: 0 0 .4rem; font-size: .875rem; max-width: 60ch; }
+.stamp p:last-child { margin: 0; }
+
+/* ---------- SEARCH SHEET ---------- */
+.ask { padding: 2.5rem 1.5rem 2rem; text-align: center; }
+.ask h1 { margin: 0 0 .3rem; font-size: clamp(1.6rem, 4.5vw, 2.4rem); letter-spacing: -.03em; }
+.ask__sub { margin: 0 0 1.6rem; color: var(--ink-soft); font-size: .9375rem; }
+.ask form { max-width: 30rem; margin: 0 auto; text-align: left; }
+.f__l { display: block; font-family: var(--mono); font-size: .6875rem; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--ink-soft); margin-bottom: .3rem; }
+.f__i { width: 100%; font: inherit; font-family: var(--mono); font-size: 1.0625rem;
+  padding: .7rem .8rem; border: 2px solid var(--ink); background: var(--plat); color: var(--ink); }
+.btn { width: 100%; font: inherit; font-size: 1rem; font-weight: 700; margin-top: .7rem;
+  padding: .75rem 1.4rem; border: 2px solid var(--ink); background: var(--ink);
+  color: var(--plat); cursor: pointer; }
+.ask__note { max-width: 30rem; margin: 1.3rem auto 0; text-align: left;
+  border-left: 4px solid var(--stopped); background: var(--stopped-sunk); padding: .7rem .85rem; }
+.ask__note p { margin: 0; font-size: .875rem; }
+.ask__note p + p { margin-top: .3rem; font-family: var(--mono); font-size: .75rem; color: var(--ink-soft); }
+code { font-family: var(--mono); font-size: .9em; }
+.void { padding: 2.5rem 1.5rem; text-align: center; }
+.void__m { font-family: var(--mono); font-size: .75rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--stopped); margin: 0 0 .5rem; }
+.void h1 { margin: 0 0 .6rem; font-size: 1.5rem; letter-spacing: -.02em; }
+.void p { margin: 0 auto; max-width: 46ch; font-size: .9375rem; color: var(--ink-soft); }
+</style>
+
+<header class="sh">
+  <div class="sh__in">
+    <h1>D — The Survey</h1>
+    <p>The question is <b>geometric</b>, and no version of this interface has ever drawn it.
+      "Within 1,000 feet, measured parcel boundary to parcel boundary" is a statement about
+      shapes on ground; answering it in paragraphs makes the reader rebuild the picture in
+      their head while frightened.</p>
+    <p>This is a <b>survey plat</b>. The address is a parcel, the buffer is a ring, each school
+      is a parcel, and every distance is a dimension line — annotated the way drawings have
+      carried high-stakes information for two centuries. <b>There is no body copy on the result
+      screen.</b> Every sentence is a label on the drawing or a numbered margin note.</p>
+    <p><b>Why no product does this, and why tarrow can:</b> a normal web map fetches tiles from a
+      third party, handing over the reader's IP and the area they are studying. This drawing
+      fetches <b>nothing</b> — it is SVG built from parcel geometry the server already holds and
+      already measured. It adds no request at all.</p>
+  </div>
+</header>
+
+<!-- ============================ SEARCH ============================= -->
+<p class="lbl">Sheet 1 · the search</p>
+<div class="sheet">
+  <div class="ask">
+    <h1>How far is an address from a school?</h1>
+    <p class="ask__sub">Summit County, Ohio · school premises only · a helper, not an authority</p>
+    <form>
+      <label>
+        <span class="f__l">Street address</span>
+        <input class="f__i" type="text" autocomplete="off" spellcheck="false">
+      </label>
+      <button class="btn" type="button">Draw this address</button>
+    </form>
+    <div class="ask__note">
+      <p><strong>tarrow does not correct spelling, and it does not guess.</strong> Type the
+        address as it appears on a bill. If it cannot find exactly what you typed, it says so
+        rather than answering about the wrong building.</p>
+      <p>e.g. <code>1464 Garman Rd, Akron, OH 44313</code></p>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= FLAGGED — THE PLAT ======================= -->
+<p class="lbl">Sheet 2 · three premises inside the buffer</p>
+<div class="sheet">
+  <div class="plat">
+    <div class="tblock">
+      <div>
+        <p class="tblock__what">Three school premises lie within 1,000 ft of this parcel</p>
+        <p class="tblock__sub">Measured boundary to boundary. A measurement, not a decision.</p>
+      </div>
+      <div class="tblock__meta">
+        SHEET 1 OF 1<br>BUFFER 304.8 m / 1000 ft<br>DATA 3 AUG 2026
+      </div>
+    </div>
+
+    <!-- THE DRAWING. Pure SVG presentation attributes: no CSS custom property
+         carries a computed value into the document, so style-src 'self' is
+         satisfied exactly as DistanceScale already satisfies it today. -->
+    <svg class="draw" viewBox="0 0 800 470" role="img"
+         aria-label="Survey drawing: the searched parcel at centre with a 1,000 foot buffer ring, and three school parcels inside it — Firestone Park Elementary at 270 and 420 feet, and Saint Paul School at 780 feet.">
+      <defs>
+        <pattern id="hatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+          <line x1="0" y1="0" x2="0" y2="7" stroke="var(--flagged)" stroke-width="1.4" opacity="0.55"/>
+        </pattern>
+        <marker id="tick" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+          <line x1="4" y1="0" x2="4" y2="8" stroke="var(--graphite)" stroke-width="1.4"/>
+        </marker>
+      </defs>
+
+      <!-- north arrow + scale bar: a drawing states its orientation and scale -->
+      <g transform="translate(748 34)">
+        <line x1="0" y1="26" x2="0" y2="-4" stroke="var(--ink)" stroke-width="1.4"/>
+        <path d="M -5 4 L 0 -8 L 5 4 Z" fill="var(--ink)"/>
+        <text x="0" y="40" font-size="11" text-anchor="middle" fill="var(--ink-soft)">N</text>
+      </g>
+      <g transform="translate(624 432)">
+        <line x1="0" y1="0" x2="104" y2="0" stroke="var(--graphite)" stroke-width="1.4"/>
+        <line x1="0" y1="-4" x2="0" y2="4" stroke="var(--graphite)" stroke-width="1.4"/>
+        <line x1="104" y1="-4" x2="104" y2="4" stroke="var(--graphite)" stroke-width="1.4"/>
+        <text x="52" y="16" font-size="10" text-anchor="middle" fill="var(--ink-soft)">500 ft</text>
+      </g>
+
+      <!-- the buffer: the rule, drawn -->
+      <circle cx="330" cy="235" r="200" fill="var(--flagged-sunk)" fill-opacity="0.28"
+              stroke="var(--flagged)" stroke-width="1.6" stroke-dasharray="7 5"/>
+      <text x="330" y="24" font-size="11" text-anchor="middle" fill="var(--flagged)"
+            letter-spacing="1">1,000 FT BUFFER — THE RULE</text>
+
+      <!-- streets, for orientation only -->
+      <line x1="0" y1="330" x2="800" y2="330" stroke="var(--graphite-lt)" stroke-width="9"/>
+      <text x="18" y="326" font-size="10" fill="var(--ink-soft)">GARMAN RD</text>
+      <line x1="470" y1="0" x2="470" y2="470" stroke="var(--graphite-lt)" stroke-width="9"/>
+
+      <!-- SCHOOL PARCEL A -->
+      <g>
+        <rect x="232" y="150" width="96" height="62" fill="url(#hatch)"
+              stroke="var(--flagged)" stroke-width="2"/>
+        <text x="280" y="143" font-size="11" text-anchor="middle" fill="var(--flagged)" font-weight="700">A</text>
+        <line x1="330" y1="235" x2="300" y2="196" stroke="var(--graphite)" stroke-width="1.2"
+              marker-start="url(#tick)" marker-end="url(#tick)"/>
+        <rect x="238" y="196" width="52" height="17" fill="var(--plat)" opacity="0.92"/>
+        <text x="264" y="209" font-size="11" text-anchor="middle" fill="var(--ink)">270 ft</text>
+      </g>
+
+      <!-- SCHOOL PARCEL B -->
+      <g>
+        <rect x="150" y="238" width="104" height="70" fill="url(#hatch)"
+              stroke="var(--flagged)" stroke-width="2"/>
+        <text x="202" y="326" font-size="11" text-anchor="middle" fill="var(--flagged)" font-weight="700">B</text>
+        <line x1="330" y1="235" x2="254" y2="262" stroke="var(--graphite)" stroke-width="1.2"
+              marker-start="url(#tick)" marker-end="url(#tick)"/>
+        <text x="268" y="228" font-size="11" text-anchor="end" fill="var(--ink)">420 ft</text>
+      </g>
+
+      <!-- SCHOOL PARCEL C -->
+      <g>
+        <rect x="352" y="62" width="118" height="66" fill="url(#hatch)"
+              stroke="var(--flagged)" stroke-width="2"/>
+        <text x="411" y="54" font-size="11" text-anchor="middle" fill="var(--flagged)" font-weight="700">C</text>
+        <line x1="330" y1="235" x2="392" y2="128" stroke="var(--graphite)" stroke-width="1.2"
+              marker-start="url(#tick)" marker-end="url(#tick)"/>
+        <rect x="392" y="170" width="52" height="17" fill="var(--plat)" opacity="0.92"/>
+        <text x="418" y="183" font-size="11" text-anchor="middle" fill="var(--ink)">780 ft</text>
+      </g>
+
+      <!-- THE SUBJECT PARCEL — heaviest line on the sheet -->
+      <rect x="296" y="212" width="70" height="48" fill="none" stroke="var(--subject)" stroke-width="3.5"/>
+      <circle cx="330" cy="235" r="3.5" fill="var(--subject)"/>
+      <text x="331" y="284" font-size="12" text-anchor="middle" fill="var(--ink)" font-weight="700">THIS ADDRESS</text>
+      <text x="331" y="299" font-size="10" text-anchor="middle" fill="var(--ink-soft)">PARCEL 6712004</text>
+    </svg>
+
+    <div class="legend">
+      <span><i style="border-color: var(--subject); border-top-width:3px"></i> the parcel you asked about</span>
+      <span><i style="border-color: var(--flagged)"></i> school premises inside the buffer</span>
+      <span><i style="border-color: var(--flagged); border-top-style: dashed"></i> 1,000 ft buffer</span>
+      <span><i style="border-color: var(--graphite-lt); border-top-width:5px"></i> street, for orientation</span>
+    </div>
+
+    <table class="sched">
+      <caption>Schedule of premises measured</caption>
+      <thead>
+        <tr><th>Key</th><th>Premises</th><th>Distance</th><th>Parcel</th><th>Basis</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="key">A</td><td>Firestone Park Elementary School</td>
+            <td class="n">270 ft · 82.4 m</td><td class="n">6743119</td><td>boundary</td></tr>
+        <tr><td class="key">B</td><td>Firestone Park Elementary School</td>
+            <td class="n">420 ft · 128.1 m</td><td class="n">6743120</td><td>boundary</td></tr>
+        <tr><td class="key">C</td><td>Saint Paul School</td>
+            <td class="n">780 ft · 237.7 m</td><td class="n">6801442</td><td>boundary</td></tr>
+        <tr class="subject"><td class="key">◼</td><td>The address you typed</td>
+            <td class="n">—</td><td class="n">6712004</td><td>rooftop</td></tr>
+      </tbody>
+    </table>
+
+    <!-- Prose lives HERE, numbered, in the margin — never in the drawing. -->
+    <div class="notes">
+      <div class="note">
+        <p class="note__n">Note 1 — why a school appears twice</p>
+        <p>Ohio's rule is written about the <em>premises</em> — the parcel of land — not the
+          building. A school owning several parcels appears once per parcel. A and B are the
+          same school. Repeated names are not a mistake.</p>
+      </div>
+      <div class="note">
+        <p class="note__n">Note 2 — how these were measured</p>
+        <p>Nearest point of one parcel boundary to the nearest point of the other, never
+          centre to centre. 318 of the 341 premises tarrow holds have a real boundary.</p>
+      </div>
+      <div class="note note--gap">
+        <p class="note__n">Note 3 — not drawn: facility classes</p>
+        <p>Preschools, licensed child day-care, children's crisis care and residential infant
+          care are <strong>not on this sheet</strong> because they are not loaded at all. Their
+          absence from the drawing is not their absence from the ground.</p>
+      </div>
+      <div class="note note--gap">
+        <p class="note__n">Note 4 — not drawn: municipal rules</p>
+        <p>No city or village ordinance is loaded. Summit County municipalities set their own
+          rules, and <strong>none of them is on this sheet.</strong> Only the state's 1,000 ft
+          school rule is drawn here.</p>
+      </div>
+      <div class="note note--gap">
+        <p class="note__n">Note 5 — unsigned</p>
+        <p>No person has checked the rule tarrow applied. tarrow read the statute and applied a
+          number; nobody signed their name to that reading, and no court was asked whether this
+          is how the state measures. <strong>A real plat is stamped by a surveyor. This one is
+          not.</strong></p>
+      </div>
+      <div class="note">
+        <p class="note__n">Note 6 — what tarrow kept</p>
+        <p>Nothing. The address is not in a log, a URL, a database, or a browser history entry.
+          <a href="#">How to check that yourself</a>.</p>
+      </div>
+    </div>
+
+    <div class="stamp">
+      <div class="stamp__mark">Take this<br>to the sheriff</div>
+      <div>
+        <p>The office where you register enforces this rule and knows the local rules that are
+          not on this sheet. Read it the three names and distances above, and say tarrow checked
+          school premises only.</p>
+        <p><strong>If that office and this drawing disagree, the office is right.</strong></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== REFUSAL — THE EMPTY SHEET ================== -->
+<p class="lbl">Sheet 3 · a refusal, drawn as an empty sheet</p>
+<div class="sheet">
+  <div class="plat">
+    <div class="tblock">
+      <div>
+        <p class="tblock__what">Nothing was drawn, because nothing was located</p>
+        <p class="tblock__sub">This is not an answer. It is the absence of one.</p>
+      </div>
+      <div class="tblock__meta">SHEET 0 OF 0<br>NO PARCEL RESOLVED<br>NO MEASUREMENT</div>
+    </div>
+
+    <svg class="draw" viewBox="0 0 800 260" role="img"
+         aria-label="An empty survey sheet: no parcel was located, so no buffer and no premises were drawn.">
+      <rect x="16" y="16" width="768" height="228" fill="none"
+            stroke="var(--graphite-lt)" stroke-width="1.5" stroke-dasharray="4 6"/>
+      <line x1="16" y1="16" x2="784" y2="244" stroke="var(--graphite-lt)" stroke-width="1"/>
+      <line x1="784" y1="16" x2="16" y2="244" stroke="var(--graphite-lt)" stroke-width="1"/>
+      <rect x="250" y="104" width="300" height="52" fill="var(--plat)" stroke="var(--stopped)" stroke-width="2"/>
+      <text x="400" y="136" font-size="15" text-anchor="middle" fill="var(--stopped)"
+            letter-spacing="2">NO PARCEL LOCATED</text>
+    </svg>
+
+    <div class="notes">
+      <div class="note note--gap">
+        <p class="note__n">Note 1 — what this sheet is not</p>
+        <p>An empty drawing is not "nothing nearby". tarrow does not know where this address is,
+          so it measured no distances and found nothing — neither near nor far.</p>
+      </div>
+      <div class="note">
+        <p class="note__n">Note 2 — what to try</p>
+        <p>The address may not be in Summit County; the county may write it differently (road
+          type, direction, unit); or the county may not have published a point for it. Try it as
+          it appears on a tax bill or lease.</p>
+      </div>
+      <div class="note">
+        <p class="note__n">Note 3 — why tarrow left it blank</p>
+        <p>It will not fall back to the middle of the street or the centre of the ZIP code, and
+          it will not offer the nearest parcel it happened to find. A confident drawing of the
+          wrong building is more dangerous to you than a blank sheet.</p>
+      </div>
+      <div class="note">
+        <p class="note__n">Note 4 — recorded reason</p>
+        <p><code>address-not-matched</code></p>
+      </div>
+    </div>
+
+    <div class="stamp">
+      <div class="stamp__mark">Take this<br>to the sheriff</div>
+      <div>
+        <p>That office can answer for an address tarrow will not draw. This step is on every
+          sheet, including the ones where tarrow failed.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="lbl">End of D</p>
+<div style="max-width:60rem;margin:.6rem auto 3rem;padding:0 1.25rem;color:var(--ink-soft);font-size:.8125rem">
+  <p>Everything above is SVG with presentation attributes and a stylesheet — no inline
+  <code>style</code> on a shipped element, no script, no external request. Geometry here is
+  illustrative; the real drawing comes from the parcel boundaries already in Postgres.</p>
+</div>
