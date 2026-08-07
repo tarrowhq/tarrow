@@ -1,10 +1,10 @@
 ---
 name: privacy-verification
-description: The published procedure for checking tarrow's privacy claims from outside the containers, including how to make each check fail and what the checks deliberately do not cover.
+description: The published procedure for checking tarrow's privacy claims from outside the containers — the six claims, the nonce and script checks, how to make each check fail, and the interception bound the checks deliberately do not cover.
 kind: concept
 sources:
   - docs/privacy/verification.md
-verified_against: b5b247a6cb390ba505c674f0c77af551dd547949
+verified_against: 6d60a311a4e38c2e7520aa71dc141ac5bd014599
 ---
 
 # Privacy verification
@@ -21,12 +21,24 @@ Six claims are enumerated with their spec references: the searched address appea
 stream (FR-023), nor does the client IP (FR-023), an error says what failed but never what was
 searched (FR-027), every response carries a CSP permitting only tarrow's origin (FR-025),
 nothing in the page loads from a third-party origin (FR-026), and the query path makes no
-outbound call (FR-024).
+outbound call (FR-024). Claim 5 is now read as "every entry points back here" rather than "the
+list is short" — the page loads a handful of `.js` files under `/assets/`, all same-origin.
 
 A seventh claim is about the document itself: **§3 and §7 tell you how to make each check
 fail.** A check that cannot fail is not a check, and the document says you should not accept
 one. So each procedure is paired with an instruction for breaking the control and watching the
-check go red — turning off a PostgreSQL logging flag, removing the seal.
+check go red — turning off a PostgreSQL logging flag, removing the seal, adding
+`'unsafe-inline'` to `script-src`, or returning a constant from `nonce()` and watching the test
+that fetches a hundred nonces and asserts they never repeat go red.
+
+The script checks changed when TASK-0008.01 restored first-party JavaScript, and §3 says so in
+the document rather than quietly rewriting itself. The old step — "count the `<script>` tags:
+there are none" — was cheaper, and the document says plainly that losing it is a cost. Its
+replacement is still a terminal check: fetch the page twice and confirm the `'nonce-…'` differs
+every time (a repeated nonce means the policy is decoration and the check has failed), then
+confirm every `<script>` tag either has a relative `src=` under `/assets/` or carries a `nonce=`
+matching that same response's header. What did not change is that every byte comes from this
+origin and no third party appears anywhere in the page.
 
 Every check runs against **the composition**, from outside the containers, which is what makes
 the answers trustworthy and also what bounds them. The document is unusually direct about that

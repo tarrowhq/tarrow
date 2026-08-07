@@ -6,7 +6,7 @@ sources:
   - app/server/silence.ts
   - app/server/entry.ts
   - app/app/entry.server.tsx
-verified_against: b5b247a6cb390ba505c674f0c77af551dd547949
+verified_against: 6d60a311a4e38c2e7520aa71dc141ac5bd014599
 ---
 
 # Process output seal
@@ -61,3 +61,11 @@ The cost is stated plainly in the file: a fault in the running server is not dia
 from its output. That is the same trade `entry.ts` makes for uncaught exceptions and
 `app/app/entry.server.tsx` makes for render errors, for the same reason — an error report
 that *usually* omits the address is a control an outsider cannot check.
+
+`entry.server.tsx` now carries three changes to React Router's defaults, not two. The third,
+added when TASK-0008.01 restored `<Scripts />`, is `withoutErrorDetail`: the same datum this
+seal keeps out of the logs would otherwise leave through the hydration payload, since React
+Router serializes `staticHandlerContext` — including `No route matches URL "/search/<address>"`
+— into an inline script. It drops error messages and the `serverHandoffStream` that carries
+them verbatim, keeping only `status`/`statusText`. Closing one carrier and not the other would
+be worse than closing neither, because it would look fixed. See [[web-surface]].

@@ -1,12 +1,12 @@
 ---
 name: http-envelope
-description: The Node server that owns the HTTP port, the security headers set on every response, the CSP that forces a no-JavaScript client, and the error paths built so they cannot carry query context.
+description: The Node server that owns the HTTP port, the security headers set on every response, the two-policy CSP split — a per-response nonce for rendered documents, a script-free policy everywhere else — and the error paths built so they cannot carry query context.
 kind: component
 sources:
   - app/server/entry.ts
   - app/server/http.ts
   - app/server/static.ts
-verified_against: b5b247a6cb390ba505c674f0c77af551dd547949
+verified_against: 6d60a311a4e38c2e7520aa71dc141ac5bd014599
 ---
 
 # HTTP envelope
@@ -20,15 +20,37 @@ must import a generated bundle that no test can import and no typechecker can re
 ## How it works
 
 `withSecurityEnvelope` wraps the listener and calls `applySecurityHeaders` *before* the
-handler runs, so a route cannot drop the policy by passing its own header object to
-`writeHead`, and responses nobody wrote a route for (404, 405, framework-internal 500) carry
-it too. `SECURITY_HEADERS` sets the CSP plus `Referrer-Policy`, `Cache-Control: no-store`,
-`Permissions-Policy` (geolocation denied outright), and framing/isolation headers.
+handler runs, so a route cannot drop a header by passing its own object to `writeHead`, and
+responses nobody wrote a route for (404, 405, framework-internal 500) carry them too.
+`SECURITY_HEADERS` holds `Referrer-Policy`, `Cache-Control: no-store`, `Permissions-Policy`
+(geolocation denied outright), and framing/isolation headers.
 
-`CONTENT_SECURITY_POLICY` is a single string with `script-src 'self'` carrying no
-`'unsafe-inline'` and no nonce. That clause is why the application ships no client
-JavaScript — see [[web-surface]]. `form-action 'self'` means a typed address cannot be
-submitted elsewhere; `connect-src 'self'` stops the client half of the no-outbound rule.
+**The CSP is the one header `applySecurityHeaders` deliberately skips**, and the exception is
+the design. Node merges `setHeader` values over anything a later `writeHead` passes, so a
+policy set at this layer could not be superseded — and a rendered document needs a nonce this
+layer cannot mint, because it does not yet know whether the response will be a document. The
+split is therefore: `app/app/entry.server.tsx` sets the policy for anything it renders,
+`respondWithoutQueryContext` sets one for the failures this layer answers itself, and
+`server/static.ts` sets one for assets. Every path is covered, and `assertEnvelope` in
+`tests/http-headers.test.ts` proves it across 200, 404, 405, 400, 500, and an asset.
+
+There are two policies, and the stricter one is the default. `contentSecurityPolicy(nonce)`
+builds the document policy, whose `script-src` admits `'self'` plus one per-response
+`'nonce-…'` value; `nonce()` is 128 bits of `randomBytes` base64, minted once per response so
+it is neither guessable nor reused. It does **not** admit `'unsafe-inline'` — a nonce beside
+`'unsafe-inline'` admits everything and is worth nothing, and two tests hold that line.
+`CLIENT_ERROR_CONTENT_SECURITY_POLICY` is the script-free policy (`script-src 'none'`) used
+for the raw-socket `clientError` path, plain-text failures, and static assets: those bodies
+carry no script, so there is nothing for a nonce to admit and minting one would tell a reader
+some script had been authorised when none exists.
+
+This replaced a nonce-free `script-src 'self'` whose side effect was that hydration could not
+work at all, which left the application shipping no client JavaScript — a state that was never
+chosen and that no principle asked for (`docs/decisions/task-0008-01-nonce.md`). Every other
+directive is unchanged: `form-action 'self'` means a typed address cannot be submitted
+elsewhere, `connect-src 'self'` stops the client half of the no-outbound rule, `base-uri
+'none'` stops an injected `<base>` re-pointing relative URLs, and `frame-ancestors 'none'`
+stops embedding. See [[web-surface]].
 
 `Referrer-Policy` is `same-origin` and deliberately **not** `no-referrer`: under
 `no-referrer` Chromium serializes a cross-document form POST's origin as `null`, React

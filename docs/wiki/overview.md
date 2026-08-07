@@ -1,6 +1,6 @@
 ---
 name: overview
-description: tarrow's system shape — an ingest job and a query path over PostGIS, packaged as a container composition, built so that under-restriction and address retention are structurally impossible rather than avoided by care.
+description: tarrow's system shape — an ingest job and a query path over PostGIS, packaged as a container composition, built so under-restriction and address retention are structurally impossible rather than avoided by care; entry point for the two data planes and the three structural gates.
 kind: concept
 sources:
   - README.md
@@ -8,7 +8,7 @@ sources:
   - app/package.json
   - app/app/routes.ts
   - .specify/memory/constitution.md
-verified_against: b5b247a6cb390ba505c674f0c77af551dd547949
+verified_against: 6d60a311a4e38c2e7520aa71dc141ac5bd014599
 ---
 
 # Overview
@@ -43,9 +43,11 @@ resolved point has no parcel, and measures on a pessimistic bound. It connects a
 `tarrow_app`, a role with every write privilege revoked. See [[search-orchestration]],
 [[http-envelope]].
 
-The application ships **no client-side JavaScript at all** — `script-src 'self'` with no
-nonce, and no `<Scripts />` in the root document, so the form is a real `<form>` the browser
-submits itself. The address travels in a POST body, never a URL. See [[web-surface]].
+The application ships **first-party JavaScript only**, admitted by a per-response CSP nonce
+and never `'unsafe-inline'`. Nothing load-bearing waits for it: switch scripting off and the
+answer, the coverage manifest, and the sheriff step are all still there, because the form is a
+real `<form>` the browser submits itself. The address travels in a POST body, never a URL. See
+[[web-surface]], `docs/decisions/task-0008-01-nonce.md`.
 
 Three structural gates carry most of the safety argument:
 
