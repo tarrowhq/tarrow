@@ -1,0 +1,490 @@
+<title>tarrow redesign — Direction B: Register</title>
+<style>
+/* ==========================================================================
+   DIRECTION B — REGISTER
+   The coverage manifest stops being a section under the answer and becomes a
+   column beside it. Principle II says coverage is part of the answer; this
+   direction takes that literally in the layout.
+
+   Three voices: serif for what tarrow WRITES, sans for LABELS and structure,
+   mono for what tarrow READ. Georgia and Palatino are device-local, so no
+   font is fetched from anywhere.
+   ========================================================================== */
+:root {
+  --ground:      #fbfaf8;
+  --paper:       #ffffff;
+  --sunk:        #f2f1ed;
+  --ink:         #1d1c1a;
+  --ink-soft:    #5d5b56;
+  --rule:        #d8d5cd;
+  --rule-strong: #8f8b81;
+  --flagged:     #8e2f22;
+  --flagged-sunk:#f9efec;
+  --stopped:     #6f5416;
+  --stopped-sunk:#f7f1e2;
+  --aside:       #f4f3ef;
+
+  --serif: Charter, "Bitstream Charter", Georgia, "Palatino Linotype", Palatino, "Book Antiqua", serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --step--1: 0.8125rem;
+  --step-0:  1.0625rem;
+  --step-1:  1.25rem;
+  --step-2:  1.5rem;
+  --step-3:  2rem;
+  --step-4:  2.75rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:      #161513;
+    --paper:       #1c1b19;
+    --sunk:        #232220;
+    --ink:         #eae7e1;
+    --ink-soft:    #a8a49b;
+    --rule:        #38352f;
+    --rule-strong: #6b665c;
+    --flagged:     #efa598;
+    --flagged-sunk:#2b1a16;
+    --stopped:     #e2c485;
+    --stopped-sunk:#241f11;
+    --aside:       #201f1c;
+  }
+}
+:root[data-theme="dark"] {
+  --ground:      #161513;
+  --paper:       #1c1b19;
+  --sunk:        #232220;
+  --ink:         #eae7e1;
+  --ink-soft:    #a8a49b;
+  --rule:        #38352f;
+  --rule-strong: #6b665c;
+  --flagged:     #efa598;
+  --flagged-sunk:#2b1a16;
+  --stopped:     #e2c485;
+  --stopped-sunk:#241f11;
+  --aside:       #201f1c;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--ground); color: var(--ink);
+  font-family: var(--serif); font-size: var(--step-0); line-height: 1.65;
+  -webkit-text-size-adjust: 100%;
+}
+h1, h2, h3 { text-wrap: balance; }
+a { color: inherit; text-decoration: underline; text-underline-offset: 0.18em; }
+:focus-visible { outline: 3px solid var(--rule-strong); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* SPECIMEN CHROME — demo only ------------------------------------------- */
+.spec-head { background: var(--ink); color: var(--ground); padding: 2rem 1.5rem; }
+.spec-head__inner { max-width: 58rem; margin: 0 auto; display: grid; gap: 0.75rem; }
+.spec-head h1 { margin: 0; font-size: var(--step-3); letter-spacing: -0.015em; }
+.spec-head p { margin: 0; color: #b6b2a9; max-width: 62ch; }
+.spec-head dl { margin: 0.5rem 0 0; display: grid; grid-template-columns: auto 1fr;
+  gap: 0.35rem 1rem; font-family: var(--sans); font-size: var(--step--1); }
+.spec-head dt { color: #8e8a80; text-transform: uppercase; letter-spacing: 0.08em; }
+.spec-head dd { margin: 0; font-family: var(--mono); color: #dedad2; }
+.spec-label { max-width: 58rem; margin: 3.5rem auto 0; padding: 0 1.25rem;
+  font-family: var(--sans); font-size: var(--step--1); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-soft); display: flex; align-items: center; gap: 0.75rem; }
+.spec-label::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.screen { background: var(--paper); border: 1px solid var(--rule);
+  max-width: 58rem; margin: 0.75rem auto 0; }
+
+/* PAGE — the two-column register ----------------------------------------
+   Above 58rem: answer left, coverage right, both above the fold. Below it,
+   the aside falls under the answer in source order, which is already the
+   constitutional order. Nothing moves behind a breakpoint; it re-stacks. */
+.page { padding: 2rem 1.5rem 3.5rem; }
+@media (min-width: 58rem) {
+  .page { max-width: 58rem; padding: 2.5rem 2.5rem 4rem; }
+  .register { display: grid; grid-template-columns: 1fr 19rem; gap: 0 2.5rem; align-items: start; }
+  .register__aside { position: sticky; top: 2rem; }
+}
+
+/* MASTHEAD --------------------------------------------------------------- */
+.masthead { display: flex; align-items: baseline; justify-content: space-between;
+  gap: 1rem; flex-wrap: wrap; border-bottom: 1px solid var(--ink);
+  padding-bottom: 0.6rem; margin-bottom: 2rem; }
+.masthead__name { margin: 0; font-size: var(--step-2); font-weight: 600;
+  letter-spacing: -0.02em; font-variant: small-caps; }
+.masthead__name a { text-decoration: none; }
+.masthead__where { margin: 0; font-family: var(--sans); font-size: var(--step--1);
+  color: var(--ink-soft); }
+
+/* ANSWER ----------------------------------------------------------------- */
+.answer { margin-bottom: 2rem; }
+.answer__label { margin: 0 0 0.6rem; font-family: var(--sans); font-size: var(--step--1);
+  letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-soft);
+  border-top: 3px solid var(--rule-strong); padding-top: 0.5rem; }
+/* Serif display, large. This is the one sentence the reader came for. */
+.answer__headline { margin: 0 0 0.9rem; font-size: var(--step-3); font-weight: 600;
+  line-height: 1.15; letter-spacing: -0.02em; max-width: 22ch; }
+.answer p { margin: 0 0 0.8rem; max-width: 60ch; }
+.answer > :last-child { margin-bottom: 0; }
+.answer--flagged .answer__label { border-top-color: var(--flagged); color: var(--flagged); }
+.answer--flagged .answer__headline { color: var(--flagged); }
+.answer--measured .answer__label { border-top-color: var(--ink); }
+/* Refusal: the rule above the label goes DOUBLE and dashed, and the whole
+   block indents — it reads as an interruption in the register, not an entry. */
+.answer--stopped { border-left: 3px dashed var(--stopped); padding-left: 1.1rem; }
+.answer--stopped .answer__label { border-top-style: dashed; border-top-color: var(--stopped);
+  color: var(--stopped); }
+.answer--stopped .answer__headline { color: var(--stopped); }
+
+/* THE ASIDE — coverage, beside the answer. The signature. --------------- */
+.aside { background: var(--aside); border-top: 3px solid var(--ink);
+  padding: 1rem 1.1rem 1.2rem; }
+.aside__title { margin: 0 0 0.7rem; font-family: var(--sans); font-size: var(--step--1);
+  text-transform: uppercase; letter-spacing: 0.09em; font-weight: 700; }
+.ledger { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: 0.6rem; }
+.ledger li { font-size: 0.9375rem; line-height: 1.45; padding-left: 1.1rem; position: relative; }
+/* A struck-through box: "not checked", drawn rather than said twice. */
+.ledger li::before { content: "\00d7"; position: absolute; left: 0; top: 0;
+  font-family: var(--mono); color: var(--flagged); font-weight: 700; }
+.aside__checked { font-size: 0.9375rem; line-height: 1.45; margin: 0 0 0.8rem;
+  padding-top: 0.8rem; border-top: 1px solid var(--rule); }
+.aside__stamp { margin: 0; font-family: var(--mono); font-size: var(--step--1);
+  color: var(--ink-soft); }
+
+/* SECTIONS --------------------------------------------------------------- */
+.section { margin-bottom: 2rem; }
+.section__title { margin: 0 0 0.7rem; font-family: var(--sans); font-size: var(--step-0);
+  font-weight: 700; letter-spacing: 0.01em; padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--rule); }
+.prose p, .prose ul { margin: 0 0 0.8rem; max-width: 60ch; }
+.prose ul { padding-left: 1.15rem; }
+.prose li { margin-bottom: 0.4rem; }
+.prose > :last-child { margin-bottom: 0; }
+.val { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 0.875em; }
+
+/* PREMISES — a register entry, ruled, not boxed. ------------------------- */
+.premises { border-top: 1px solid var(--rule); padding: 0.85rem 0 0.9rem;
+  display: grid; grid-template-columns: 1fr auto; gap: 0.2rem 1.5rem; align-items: baseline; }
+.premises:last-of-type { border-bottom: 1px solid var(--rule); }
+.premises__name { margin: 0; font-size: var(--step-1); font-weight: 600; }
+.premises__distance { margin: 0; font-family: var(--mono);
+  font-variant-numeric: tabular-nums; font-size: var(--step-0); text-align: right; }
+.premises__where { margin: 0; grid-column: 1 / -1; font-family: var(--sans);
+  font-size: var(--step--1); color: var(--ink-soft); }
+.premises__bar { grid-column: 1 / -1; height: 3px; background: var(--sunk); margin-top: 0.4rem; }
+.premises__bar span { display: block; height: 100%; background: var(--flagged); }
+
+.disclosure { border: 1px solid var(--rule); padding: 0.7rem 0.9rem;
+  margin-bottom: 0.7rem; background: var(--sunk); }
+.disclosure > summary { cursor: pointer; font-family: var(--sans);
+  font-weight: 700; font-size: var(--step--1); }
+.disclosure > summary + * { margin-top: 0.75rem; }
+
+/* FORM ------------------------------------------------------------------- */
+.ask { max-width: 34rem; }
+.ask__question { margin: 0 0 1.3rem; font-size: var(--step-4); font-weight: 600;
+  line-height: 1.1; letter-spacing: -0.025em; }
+.field { display: block; }
+.field__label { display: block; font-family: var(--sans); font-weight: 700;
+  margin-bottom: 0.3rem; font-size: var(--step--1); text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--ink-soft); }
+.field__input { width: 100%; font: inherit; font-family: var(--mono); font-size: var(--step-0);
+  padding: 0.7rem 0.8rem; border: 1px solid var(--rule-strong); border-bottom-width: 3px;
+  background: var(--paper); color: var(--ink); }
+.button { font-family: var(--sans); font-size: var(--step-0); font-weight: 700;
+  margin-top: 0.9rem; padding: 0.65rem 1.4rem; border: 1px solid var(--ink);
+  background: var(--ink); color: var(--paper); cursor: pointer; }
+.notice { margin-top: 1.6rem; padding: 0.9rem 1.05rem; background: var(--stopped-sunk);
+  border-left: 4px solid var(--stopped); }
+.notice p { margin: 0; max-width: 58ch; }
+.notice p + p { margin-top: 0.4rem; color: var(--ink-soft); font-size: var(--step--1);
+  font-family: var(--sans); }
+.blurb { margin: 1.6rem 0 0; color: var(--ink-soft); font-family: var(--sans);
+  font-size: var(--step--1); max-width: 58ch; }
+.footnote { margin-top: 2.5rem; padding-top: 0.9rem; border-top: 1px solid var(--rule);
+  color: var(--ink-soft); font-family: var(--sans); font-size: var(--step--1); }
+.footnote p { max-width: 62ch; }
+code { font-family: var(--mono); font-size: 0.875em; }
+</style>
+
+<header class="spec-head">
+  <div class="spec-head__inner">
+    <h1>Direction B — Register</h1>
+    <p>
+      Principle II says coverage is part of the answer. This direction takes
+      that literally: the coverage manifest is not a section below the answer,
+      it is the column beside it — visible in the same glance, at the same
+      moment, never scrolled to. On a phone it re-stacks into the
+      constitutional order without moving anything behind a breakpoint.
+    </p>
+    <p>
+      Three voices, strictly kept: <strong>serif</strong> for every sentence
+      tarrow writes, <strong>sans</strong> for labels and structure,
+      <strong>mono</strong> for every value tarrow read. Charter and Georgia
+      are already on the reader's machine, so nothing is fetched.
+    </p>
+    <dl>
+      <dt>Ground</dt><dd>#fbfaf8 warm paper · #1d1c1a ink</dd>
+      <dt>Signal</dt><dd>#8e2f22 flagged · #6f5416 stopped</dd>
+      <dt>Type</dt><dd>Charter/Georgia written · system sans labels · mono read</dd>
+      <dt>Risk</dt><dd>a sticky coverage column that never lets the reader forget it</dd>
+    </dl>
+  </div>
+</header>
+
+<!-- ===================== SCREEN 1 — THE SEARCH ========================== -->
+<p class="spec-label">Screen 1 · the search</p>
+<div class="screen">
+  <main class="page">
+    <header class="masthead">
+      <p class="masthead__name">tarrow</p>
+    </header>
+    <div class="ask">
+      <h1 class="ask__question">How far is an address from a school?</h1>
+      <form>
+        <label class="field">
+          <span class="field__label">A street address in Summit County, Ohio</span>
+          <input class="field__input" type="text" autocomplete="off" spellcheck="false">
+        </label>
+        <button class="button" type="button">Check this address</button>
+      </form>
+      <div class="notice">
+        <p><strong>tarrow does not correct spelling, and it does not guess.</strong>
+          Type the address as it appears on a bill. If tarrow cannot find exactly what
+          you typed, it says so rather than answering about the wrong building.</p>
+        <p>For example <code>1464 Garman Rd, Akron, OH 44313</code></p>
+      </div>
+      <p class="blurb">tarrow covers <strong>Summit County, Ohio</strong> and checks
+        <strong>school premises only</strong>. It measures distances and decides nothing.
+        <a href="#">What tarrow checks, what it misses, and what happens to what you type</a></p>
+    </div>
+  </main>
+</div>
+
+<!-- ================== SCREEN 2 — OUTSIDE EVERY BUFFER =================== -->
+<p class="spec-label">Screen 2 · outside every buffer we checked</p>
+<div class="screen">
+  <main class="page">
+    <header class="masthead">
+      <p class="masthead__name"><a href="#">tarrow</a></p>
+      <p class="masthead__where">School-premises distances for Summit County, Ohio. A helper, not an authority.</p>
+    </header>
+
+    <div class="register">
+      <div class="register__main">
+        <div class="answer answer--measured">
+          <p class="answer__label">Result: outside every buffer we checked</p>
+          <h1 class="answer__headline">Outside every buffer we checked.</h1>
+          <p><strong>That is smaller than it sounds.</strong> No school premises
+            <em>that tarrow holds a boundary for</em> is within
+            <span class="val">304.8 m (1,000 ft)</span> of the parcel at this address.
+            That is the whole of the finding: a measurement, not a decision. What tarrow
+            did not look at is beside this. Read it before you rely on anything here,
+            and then make the phone call.</p>
+        </div>
+
+        <section class="section">
+          <h2 class="section__title">Your next step: the sheriff's office where you register</h2>
+          <div class="prose">
+            <p>That office enforces the distance rule and knows the local rules tarrow has
+              not loaded. Ask it about this exact address, and take three things so that it
+              is one specific question: the address as you typed it here; the name of every
+              school premises listed above, if any, with the distance tarrow measured to
+              each; and the fact that tarrow checked school premises only, and no city or
+              village rule at all.</p>
+            <p><strong>If that office and tarrow disagree, that office is right and tarrow
+              is wrong.</strong> <a href="#">What tarrow is, and what it is not</a>.</p>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2 class="section__title">No person has checked the rule tarrow applied</h2>
+          <div class="prose">
+            <p>tarrow read the statute and applied a number. Nobody has signed their name
+              to that reading inside tarrow, no citation or verification date is attached
+              to it as data, and no court has been asked whether the way tarrow measures is
+              the way the state measures.</p>
+          </div>
+          <details class="disclosure">
+            <summary>tarrow's own record of that gap, in full</summary>
+            <div class="prose"><p>The ledger's full statement is rendered here.</p></div>
+          </details>
+        </section>
+      </div>
+
+      <aside class="register__aside">
+        <div class="aside">
+          <h2 class="aside__title">What tarrow did not check</h2>
+          <ul class="ledger">
+            <li>Preschools, licensed child day-care centres, children's crisis care and
+              residential infant care are not loaded at all.</li>
+            <li>No municipal ordinance is loaded. Cities and villages in Summit County set
+              their own rules, and tarrow holds none of them.</li>
+          </ul>
+          <p class="aside__checked"><strong>What it did check:</strong> school premises in
+            Summit County, Ohio. <span class="val">318</span> of <span class="val">341</span>
+            have a real parcel boundary and were measured; <span class="val">23</span> have
+            no boundary and were not measured at all.</p>
+          <p class="aside__stamp">Data fetched 3 Aug 2026<br>Oldest layer 28 Jul 2026</p>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="footnote">
+      <p>tarrow did not write down the address you typed: not in a log, not in this page's
+        web address, not in a database, and not on its way anywhere else.
+        <a href="#">The procedure for checking it yourself</a>.</p>
+      <p><a href="#">Check another address</a></p>
+    </footer>
+  </main>
+</div>
+
+<!-- ================= SCREEN 3 — PREMISES WITHIN BUFFER ================== -->
+<p class="spec-label">Screen 3 · inside a buffer tarrow checked</p>
+<div class="screen">
+  <main class="page">
+    <header class="masthead">
+      <p class="masthead__name"><a href="#">tarrow</a></p>
+      <p class="masthead__where">School-premises distances for Summit County, Ohio. A helper, not an authority.</p>
+    </header>
+
+    <div class="register">
+      <div class="register__main">
+        <div class="answer answer--flagged">
+          <p class="answer__label">Result: inside a buffer tarrow checked</p>
+          <h1 class="answer__headline">Three school premises are within 304.8 m of this address.</h1>
+          <p>Here they are. Ohio's rule is written about the <em>premises</em> (the parcel
+            of land) rather than the building, so a school that owns several parcels appears
+            more than once. Repeated names are not a mistake.</p>
+        </div>
+
+        <section class="section">
+          <h2 class="section__title">What tarrow found inside the buffer (three)</h2>
+
+          <article class="premises">
+            <h3 class="premises__name">Firestone Park Elementary School</h3>
+            <p class="premises__distance">82.4 m · 270 ft</p>
+            <p class="premises__where">Parcel 6743119 · Akron · measured boundary to boundary</p>
+            <div class="premises__bar"><span style="width:27%"></span></div>
+          </article>
+
+          <article class="premises">
+            <h3 class="premises__name">Firestone Park Elementary School</h3>
+            <p class="premises__distance">128.1 m · 420 ft</p>
+            <p class="premises__where">Parcel 6743120 · Akron · measured boundary to boundary</p>
+            <div class="premises__bar"><span style="width:42%"></span></div>
+          </article>
+
+          <article class="premises">
+            <h3 class="premises__name">Saint Paul School</h3>
+            <p class="premises__distance">237.7 m · 780 ft</p>
+            <p class="premises__where">Parcel 6801442 · Akron · measured boundary to boundary</p>
+            <div class="premises__bar"><span style="width:78%"></span></div>
+          </article>
+
+          <details class="disclosure" style="margin-top:1rem">
+            <summary>How each distance was measured</summary>
+            <div class="prose"><p>Per-premises arithmetic and parcel resolution live here —
+              in the served HTML, one click away, never absent.</p></div>
+          </details>
+        </section>
+
+        <section class="section">
+          <h2 class="section__title">Your next step: the sheriff's office where you register</h2>
+          <div class="prose">
+            <p>That office enforces the distance rule and knows the local rules tarrow has
+              not loaded. Take the three names and distances above with you.</p>
+            <p><strong>If that office and tarrow disagree, that office is right and tarrow
+              is wrong.</strong></p>
+          </div>
+        </section>
+      </div>
+
+      <aside class="register__aside">
+        <div class="aside">
+          <h2 class="aside__title">What tarrow did not check</h2>
+          <ul class="ledger">
+            <li>Preschools, licensed child day-care centres, children's crisis care and
+              residential infant care are not loaded at all.</li>
+            <li>No municipal ordinance is loaded.</li>
+          </ul>
+          <p class="aside__checked"><strong>What it did check:</strong> school premises only.
+            <span class="val">318</span> of <span class="val">341</span> measured.</p>
+          <p class="aside__stamp">Data fetched 3 Aug 2026</p>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="footnote"><p><a href="#">Check another address</a></p></footer>
+  </main>
+</div>
+
+<!-- ==================== SCREEN 4 — COULD NOT LOCATE ===================== -->
+<p class="spec-label">Screen 4 · a refusal (no result)</p>
+<div class="screen">
+  <main class="page">
+    <header class="masthead">
+      <p class="masthead__name"><a href="#">tarrow</a></p>
+      <p class="masthead__where">School-premises distances for Summit County, Ohio. A helper, not an authority.</p>
+    </header>
+
+    <div class="register">
+      <div class="register__main">
+        <div class="answer answer--stopped">
+          <p class="answer__label">No result: tarrow could not find this address</p>
+          <h1 class="answer__headline">tarrow could not find this address, so it checked nothing.</h1>
+          <p>This is not an answer. tarrow does not know where this address is, so it
+            measured no distances and found nothing, neither near nor far.</p>
+        </div>
+
+        <section class="section">
+          <h2 class="section__title">Why this happens, and what to try</h2>
+          <div class="prose">
+            <ul>
+              <li><strong>The address is not in Summit County, Ohio.</strong> tarrow holds
+                no data for anywhere else, and it cannot tell an out-of-county address apart
+                from a misspelled one, so both land on this page.</li>
+              <li><strong>The county writes it differently.</strong> Try it as it appears on
+                a tax bill, a utility bill, or a lease.</li>
+              <li><strong>The county has not published a point for it.</strong> New
+                addresses, and some municipalities generally, are thinly covered.</li>
+            </ul>
+            <p>tarrow will not guess: it does not correct spelling, it does not fall back to
+              the middle of the street or the centre of the ZIP code, and it does not offer
+              the nearest parcel it happened to find instead. A confident answer about the
+              wrong building is more dangerous to you than no answer at all.</p>
+            <p><small>tarrow records the reason for this as <code>address-not-matched</code>.</small></p>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2 class="section__title">Your next step: the sheriff's office where you register</h2>
+          <div class="prose">
+            <p>The sheriff's office can answer for an address tarrow will not measure. This
+              step appears even when tarrow failed, because it is the recommended action
+              rather than a disclaimer.</p>
+          </div>
+        </section>
+      </div>
+
+      <aside class="register__aside">
+        <div class="aside">
+          <h2 class="aside__title">Nothing was checked</h2>
+          <ul class="ledger">
+            <li>No address was matched, so no layer was queried and no distance was measured.</li>
+            <li>Every standing gap still applies: no preschools, no day-care, no municipal
+              ordinance.</li>
+          </ul>
+          <p class="aside__stamp">No measurement performed</p>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="footnote"><p><a href="#">Check another address</a></p></footer>
+  </main>
+</div>
+
+<p class="spec-label">End of Direction B</p>
+<div style="max-width:58rem;margin:0.75rem auto 4rem;padding:0 1.25rem;color:var(--ink-soft);font-family:system-ui;font-size:0.8125rem">
+  <p>Note on the demo: the premises bars use inline <code>style</code> widths here. The
+  shipped implementation draws them in SVG with presentation attributes, because
+  <code>style-src 'self'</code> admits no inline style.</p>
+</div>
