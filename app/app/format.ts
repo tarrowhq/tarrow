@@ -39,6 +39,25 @@ export function metresAndFeet(value: number): string {
   return `${metres(value)} (${feet.toLocaleString("en-US")} feet)`;
 }
 
+/**
+ * Where a measured distance sits on the buffer scale, as a fraction in [0,1].
+ *
+ * This is presentation, in the same sense `metresAndFeet` is: it converts a
+ * number the server already decided into something a reader can take in at a
+ * glance. It compares nothing and concludes nothing -- 1 means "at or past the
+ * buffer", not "outside it", and the caller has no way to turn this into a
+ * sentence. The finding was made in server/search.ts and lives in the result's
+ * `kind`; the only thing this positions is a mark on a line.
+ *
+ * The clamp is deliberate. A premises measured beyond the buffer would push
+ * the mark off the end of the drawing, and a drawing that runs off its own
+ * axis is read as a rendering fault rather than as a distance.
+ */
+export function bufferFraction(value: number, bufferMetres: number): number {
+  if (!(bufferMetres > 0)) return 1;
+  return Math.min(1, Math.max(0, value / bufferMetres));
+}
+
 /** e.g. `4 August 2026`. Dates only -- a time of day would be a timestamp. */
 export function day(iso: string | null): string | null {
   if (iso === null) return null;

@@ -56,11 +56,26 @@
     --rule-strong: #9aa1ad;
     /* The four accents. Each is paired with a written label and a distinct
        border weight, because a reader who cannot distinguish them must still
-       be able to tell a flagged answer from a refusal. */
+       be able to tell a flagged answer from a refusal.
+
+       THERE IS ONE SATURATED COLOUR ON THIS SITE AND IT MEANS "FLAGGED".
+       The unflagged answer used to be green (#1f4d3a). Green says "go" in a
+       channel the copy rules never authorised: rule 1 forbids stating or
+       implying permission, app/tests/copy.test.ts scans the body text for
+       permission vocabulary, and a colour is not body text. The strongest
+       sentence tarrow may write is "outside every buffer we checked" -- a
+       measurement, not a verdict -- and the page should not say something
+       stronger in a channel the test cannot read.
+
+       Red against green is also the worst available pairing for the two most
+       consequential states under the commonest colour vision deficiency. So
+       the measured state is ink on paper with a heavy neutral rule, and
+       --flagged is the only saturated thing here. That is what makes it
+       mean something when it appears. */
     --flagged: #8d2b1f;
     --flagged-sunk: #fbf0ee;
-    --measured: #1f4d3a;
-    --measured-sunk: #eef4f1;
+    --measured: #16181d;
+    --measured-sunk: #f4f5f7;
     --stopped: #6b4a12;
     --stopped-sunk: #fbf5e9;
     --broken: #3d3f46;
@@ -77,8 +92,8 @@
       --rule-strong: #5d646f;
       --flagged: #f0a196;
       --flagged-sunk: #2a1a17;
-      --measured: #97d2b6;
-      --measured-sunk: #16241d;
+      --measured: #e9ebef;
+      --measured-sunk: #1c1f25;
       --stopped: #e8c483;
       --stopped-sunk: #26200f;
       --broken: #c2c6cd;
@@ -367,6 +382,53 @@
   .premises__distance {
     font-size: 1.0625rem;
     margin: 0 0 0.125rem;
+  }
+
+  /* TWO VOICES, AND WHICH IS WHICH.
+
+     Sans is every sentence tarrow WRITES. Mono is every value it READ -- a
+     distance, a date, a parcel id, the name of a source layer. The reader is
+     going to say some of these numbers down a phone to a sheriff's office,
+     and the ones they must not misread are the measured ones. Tabular figures
+     also make two distances directly comparable down the page, which is the
+     comparison the reader is actually making.
+
+     This is not decoration: it is the same distinction the file header draws
+     between what tarrow says and what tarrow found. */
+  .measured-value {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.9375em;
+  }
+
+  /* The distance scale. Borders and one mark: no fill, no zone, no colour
+     that could read as a verdict. See DistanceScale in result-view.tsx for
+     why it is SVG and what it deliberately does not say. */
+  .scale {
+    display: block;
+    width: 100%;
+    height: 0.75rem;
+    margin: 0 0 0.5rem;
+    overflow: visible;
+  }
+
+  .scale__axis,
+  .scale__end {
+    stroke: var(--rule-strong);
+    stroke-width: 0.5;
+    vector-effect: non-scaling-stroke;
+  }
+
+  /* The mark is a LINE, not a filled shape, for the same reason the axis is:
+     the viewBox is 100x10 but the drawn box is ~700x12, and
+     `preserveAspectRatio="none"` squashes it 7:1 horizontally. A stroke can
+     opt out of that via `vector-effect`; a fill cannot -- a circle here
+     renders as a smear the width of the axis. */
+  .scale__mark {
+    stroke: var(--flagged);
+    stroke-width: 3;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
   }
 
   .premises__where {

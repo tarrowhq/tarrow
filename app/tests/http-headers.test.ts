@@ -87,13 +87,30 @@ const EXPECTED_HEADERS: ReadonlyArray<readonly [string, string]> = [
   ["x-frame-options", "DENY"],
 ];
 
+/**
+ * The policy for anything that is not a rendered document: an asset, a raw
+ * 400, a 500 this layer answers itself. Identical to the document policy
+ * except that `script-src` is `'none'` -- these bodies carry no script, so
+ * there is nothing for a nonce to admit and minting one would tell a reader
+ * that some script here had been authorised.
+ */
+const EXPECTED_SCRIPTLESS_CSP =
+  "default-src 'self'; script-src 'none'; style-src 'self'; " +
+  "img-src 'self' data:; connect-src 'self'; base-uri 'none'; " +
+  "form-action 'self'; frame-ancestors 'none'";
+
 function assertEnvelope(where: string, headers: Headers): void {
   const csp = headers.get("content-security-policy") ?? "";
-  assert.match(
-    csp,
-    EXPECTED_CSP,
-    `${where}: the policy must be the runbook's, with this response's nonce`,
-  );
+  // Either policy is correct; which one depends on whether this response is a
+  // document. What is NOT acceptable is a third shape, or none at all.
+  if (csp !== EXPECTED_SCRIPTLESS_CSP) {
+    assert.match(
+      csp,
+      EXPECTED_CSP,
+      `${where}: the policy must be the runbook's -- with this response's ` +
+        "nonce if it is a document, or with script-src 'none' if it is not",
+    );
+  }
   for (const [name, expected] of EXPECTED_HEADERS) {
     assert.equal(
       headers.get(name),
@@ -220,7 +237,7 @@ describe("every response from the running server carries it", () => {
 
     assert.match(raw, /^HTTP\/1\.1 400 /, `expected a 400 response, got:\n${raw}`);
     assert.ok(
-      raw.includes(`Content-Security-Policy: ${EXPECTED_CSP}`),
+      raw.includes(`Content-Security-Policy: ${EXPECTED_SCRIPTLESS_CSP}`),
       "Node's default clientError handler answers 400 with no headers at all. " +
         `That would be the one response in this process without a policy on it.\n${raw}`,
     );

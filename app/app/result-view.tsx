@@ -73,7 +73,14 @@
 
 import type { ReactNode } from "react";
 
-import { count, day, metres, metresAndFeet, plural } from "./format.ts";
+import {
+  bufferFraction,
+  count,
+  day,
+  metres,
+  metresAndFeet,
+  plural,
+} from "./format.ts";
 import type {
   AmbiguityDeclaration,
   CoverageManifest,
@@ -574,6 +581,51 @@ function Ambiguity({ ambiguity }: { ambiguity: AmbiguityDeclaration }) {
  * boundary may not be the school's at all: that changes how far the number can
  * be trusted, so it stays visible.
  */
+/**
+ * The measured distance drawn against the buffer it was compared to.
+ *
+ * WHY A PICTURE AT ALL, on a page whose first rule is that it never implies
+ * permission. Because "127.9 m against a buffer of 304.8 m" is two numbers a
+ * frightened reader has to hold in their head and divide, and the thing they
+ * are actually asking is "how close". The line answers that without a word.
+ *
+ * WHAT IT DELIBERATELY DOES NOT DO. It has no colour coding, no zone, no
+ * "safe" end. The buffer is a tick with a number under it, and the mark is
+ * where the measurement fell. A premises outside the buffer would sit at the
+ * far end -- which is not the same as being clear, and the drawing says
+ * nothing about that either way, because this shape only ever renders
+ * premises that were already flagged.
+ *
+ * IT IS SVG AND NOT CSS. `style-src 'self'` admits no style attribute, so a
+ * CSS custom property cannot carry a computed value into the document. SVG
+ * presentation attributes are not CSS and are not covered by that policy.
+ * `aria-hidden` because the sentence above it already says the same thing,
+ * and a screen reader should hear it once.
+ */
+function DistanceScale({
+  distanceMeters,
+  bufferMeters,
+}: {
+  distanceMeters: number;
+  bufferMeters: number;
+}) {
+  const x = 2 + bufferFraction(distanceMeters, bufferMeters) * 96;
+  return (
+    <svg
+      className="scale"
+      viewBox="0 0 100 10"
+      preserveAspectRatio="none"
+      role="presentation"
+      aria-hidden="true"
+    >
+      <line x1="2" y1="5" x2="98" y2="5" className="scale__axis" />
+      <line x1="2" y1="1.5" x2="2" y2="8.5" className="scale__end" />
+      <line x1="98" y1="1.5" x2="98" y2="8.5" className="scale__end" />
+      <line x1={x} y1="0.5" x2={x} y2="9.5" className="scale__mark" />
+    </svg>
+  );
+}
+
 function Premises({ premises }: { premises: FlaggedPremises }) {
   const uncorroborated = premises.corroboration === "uncorroborated";
   const slack =
@@ -584,9 +636,18 @@ function Premises({ premises }: { premises: FlaggedPremises }) {
     <article className="premises">
       <h3 className="premises__name">{premises.name}</h3>
       <p className="premises__distance">
-        <strong>{metresAndFeet(premises.pessimisticDistanceMeters)}</strong> from
-        this address, against a buffer of {metresAndFeet(premises.bufferMeters)}
+        <strong className="measured-value">
+          {metresAndFeet(premises.pessimisticDistanceMeters)}
+        </strong>{" "}
+        from this address, against a buffer of{" "}
+        <span className="measured-value">
+          {metresAndFeet(premises.bufferMeters)}
+        </span>
       </p>
+      <DistanceScale
+        distanceMeters={premises.pessimisticDistanceMeters}
+        bufferMeters={premises.bufferMeters}
+      />
       <p className="premises__where">
         {where === "" ? "Address not published" : where} ·{" "}
         {schoolType(premises.schoolType)}
@@ -615,25 +676,39 @@ function Premises({ premises }: { premises: FlaggedPremises }) {
           <dd>{where === "" ? "not published" : where}</dd>
           <dt>Distance tarrow measured</dt>
           <dd>
-            <strong>{metresAndFeet(premises.distanceMeters)}</strong>, from the
+            <strong className="measured-value">
+              {metresAndFeet(premises.distanceMeters)}
+            </strong>
+            , from the
             nearest point of your parcel&rsquo;s boundary to the nearest point of
             this premises&rsquo; boundary
           </dd>
           <dt>Slack subtracted</dt>
           <dd>
-            {metresAndFeet(slack)}: {metres(premises.residenceUncertaintyMeters)}{" "}
-            for your parcel, {metres(premises.premisesUncertaintyMeters)} for
-            this premises
+            <span className="measured-value">{metresAndFeet(slack)}</span>:{" "}
+            <span className="measured-value">
+              {metres(premises.residenceUncertaintyMeters)}
+            </span>{" "}
+            for your parcel,{" "}
+            <span className="measured-value">
+              {metres(premises.premisesUncertaintyMeters)}
+            </span>{" "}
+            for this premises
           </dd>
           <dt>Distance compared against the buffer</dt>
           <dd>
-            <strong>{metresAndFeet(premises.pessimisticDistanceMeters)}</strong>,
-            against a buffer of {metresAndFeet(premises.bufferMeters)}
+            <strong className="measured-value">
+              {metresAndFeet(premises.pessimisticDistanceMeters)}
+            </strong>
+            , against a buffer of{" "}
+            <span className="measured-value">
+              {metresAndFeet(premises.bufferMeters)}
+            </span>
           </dd>
           <dt>How this boundary was established</dt>
           <dd>{PREMISES_BASIS[premises.measurementBasis]}</dd>
           <dt>Where this premises came from</dt>
-          <dd>{premises.layerId}</dd>
+          <dd className="measured-value">{premises.layerId}</dd>
         </dl>
       </details>
     </article>
@@ -981,18 +1056,33 @@ function Shape({ result }: { result: SearchResult }) {
 }
 
 /**
- * Every result page, whatever its shape, carries: the answer, the coverage
- * manifest, the unverified-rule disclosure, and the sheriff step. In that
- * order, all server-rendered, none of it behind JavaScript (spec FR-015).
+ * Every result page, whatever its shape, carries: the answer, the sheriff
+ * step, the coverage manifest, and the unverified-rule disclosure. All
+ * server-rendered, none of it behind JavaScript (spec FR-015).
+ *
+ * THE SHERIFF STEP MOVED UP, and the order is the argument. It used to sit
+ * fourth, below the manifest and the rule disclosure. But it is the one thing
+ * on this page the reader can DO -- rule 4 above calls it the recommended
+ * action rather than a disclaimer, the constitution's promise is "an hour of
+ * searching plus one confirming phone call", and TASK-0008 AC #4 asks for the
+ * registering agency to be identified and easy to reach. Rule 5 says length is
+ * a safety property: guidance a reader scrolls past has not been delivered,
+ * and putting the action fourth was the same mistake at a smaller scale.
+ *
+ * What did NOT move is the manifest. It stays above the fold, immediately
+ * under the answer and the action, because Principle II binds every result to
+ * state what was not checked. The comment on WhatWasNotChecked names moving it
+ * to /faq as the specific mistake to avoid; demoting it below the fold would
+ * be the same mistake by a slower route.
  */
 export function ResultPage({ result }: { result: SearchResult }) {
   return (
     <main className="page">
       <Masthead />
       <Shape result={result} />
+      <SheriffNextStep />
       <CoverageManifestView manifest={result.manifest} />
       <RuleNotVerified rule={result.manifest.ruleContent} />
-      <SheriffNextStep />
       <PrivacyFootnote />
     </main>
   );
