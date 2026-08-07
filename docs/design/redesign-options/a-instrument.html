@@ -81,8 +81,11 @@ a { color: inherit; text-decoration: underline; text-underline-offset: 0.2em; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
 /* SPECIMEN CHROME — demo only, never ships ------------------------------- */
+/* Fixed chrome, deliberately NOT themed: it is specimen furniture, not part of
+   either palette. Tokens here would flip with the theme while these literals
+   did not, washing the block out in dark mode. */
 .spec-head {
-  background: var(--ink); color: var(--ground);
+  background: #16181d; color: #f2f4f7;
   padding: 2rem 1.5rem;
 }
 .spec-head__inner { max-width: 46rem; margin: 0 auto; display: grid; gap: 0.75rem; }
