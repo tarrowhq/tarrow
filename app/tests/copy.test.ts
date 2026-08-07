@@ -764,13 +764,18 @@ describe("a refusal and a result differ by more than a sentence (User Story 3, A
 
 describe("none of it requires JavaScript (FR-015, SC-001, User Story 4 scenario 4)", () => {
   for (const name of EVERY_SHAPE) {
-    test(`${name} contains no script element of any kind`, () => {
+    test(`${name} puts nothing load-bearing behind script`, () => {
+      // These shapes are rendered without a server, so they carry no hydration
+      // bootstrap; what this asserts is that the RENDERER emits no script of
+      // its own. Every sentence, distance, and limitation on these ten shapes
+      // is in the markup a browser gets before any script runs -- which is
+      // what FR-015 and SC-001 actually require. Hydration is permitted (see
+      // docs/decisions/task-0008-01-nonce.md); depending on it here is not.
       assert.doesNotMatch(
         shape(name).body,
         /<script/i,
-        `${name} ships script. tarrow ships none: the CSP is script-src 'self' ` +
-          "with no nonce, so anything inline would be dead code, and a reader " +
-          "verifying the page should find nothing to audit.",
+        `${name} ships script from the renderer. The answer, the coverage ` +
+          "manifest, and the sheriff step must be readable with scripting off.",
       );
     });
 

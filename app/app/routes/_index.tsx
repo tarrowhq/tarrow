@@ -8,12 +8,12 @@
 // about REST; it is the reason the form works the way it does, and it should
 // not be "improved" into a query string.
 //
-// WHY THERE IS NO JAVASCRIPT HERE. There is none anywhere (app/root.tsx).
-// React Router's <Form> renders a plain <form method="post" action="/answer">
-// and the browser submits it natively, so this page works with scripting
-// switched off entirely -- which spec User Story 4 scenario 4 requires and
-// which, for this population, is a safety property rather than an ergonomic
-// one.
+// WHY THIS PAGE NEEDS NO JAVASCRIPT. React Router's <Form> renders a plain
+// <form method="post" action="/answer"> and the browser submits it natively,
+// so this page works with scripting switched off entirely -- which spec User
+// Story 4 scenario 4 requires and which, for this population, is a safety
+// property rather than an ergonomic one. The page does hydrate
+// (app/root.tsx); it just does not need to.
 //
 // WHY THIS PAGE IS A QUESTION, A BOX, AND TWO FOOTNOTES (TASK-0017)
 //

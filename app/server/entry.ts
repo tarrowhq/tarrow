@@ -19,7 +19,7 @@ import { createRequestListener } from "@react-router/node";
 
 import {
   bodyForClientError,
-  CONTENT_SECURITY_POLICY,
+  CLIENT_ERROR_CONTENT_SECURITY_POLICY,
   respondWithoutQueryContext,
   withSecurityEnvelope,
 } from "./http.ts";
@@ -72,7 +72,12 @@ server.on("clientError", (err: Error, socket: Socket) => {
     "HTTP/1.1 400 Bad Request\r\n" +
       "Content-Type: text/plain; charset=utf-8\r\n" +
       `Content-Length: ${body.length}\r\n` +
-      `Content-Security-Policy: ${CONTENT_SECURITY_POLICY}\r\n` +
+      // A nonce-free policy, deliberately. This body is one of three fixed
+      // plain-text constants and carries no script, so there is nothing here
+      // for a nonce to admit -- and minting one would suggest to a reader of
+      // this header that some script on this response was authorised. The
+      // rest of the policy is `contentSecurityPolicy`'s, minus that clause.
+      `Content-Security-Policy: ${CLIENT_ERROR_CONTENT_SECURITY_POLICY}\r\n` +
       "Referrer-Policy: same-origin\r\n" +
       "Cache-Control: no-store, no-cache, must-revalidate, private\r\n" +
       "X-Content-Type-Options: nosniff\r\n" +

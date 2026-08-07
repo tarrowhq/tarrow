@@ -27,10 +27,12 @@
  * `style-src 'self'` in the Content-Security-Policy is the runtime
  * enforcement. This file is the reason it never has to fire.
  *
- * THE SECOND RULE: nothing here may depend on JavaScript. tarrow ships none
- * (app/app/root.tsx). Progressive disclosure is <details>/<summary>, which
- * every browser opens natively, and the result shapes are told apart by
- * structure and text as well as by colour -- never by colour alone.
+ * THE SECOND RULE: nothing here may depend on JavaScript. Not because there is
+ * none -- the page hydrates (app/app/root.tsx) -- but because the answer has to
+ * be complete before any of it runs. Progressive disclosure is
+ * <details>/<summary>, which every browser opens natively, and the result
+ * shapes are told apart by structure and text as well as by colour, never by
+ * colour alone.
  */
 
 @import "tailwindcss";

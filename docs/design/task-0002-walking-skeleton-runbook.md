@@ -187,6 +187,18 @@ on the board, and this work moves with its parent.
   connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`.
   Fonts self-hosted or a system stack — a font pulled from a third-party origin is the
   single most likely accidental violation of AC #6.
+
+  > **AMENDED 2026-08-07 (TASK-0008.01).** `script-src` is now
+  > `script-src 'self' 'nonce-<per-response>'`. Every other directive above is unchanged and
+  > still binding.
+  >
+  > This clause is what made hydration impossible and left the application shipping no client
+  > JavaScript — a state this runbook itself records, at the 2026-08-04 checkpoint below, as
+  > having been required by no principle. AC #6 governs third-party *origins*; first-party
+  > script was never in question. `'unsafe-inline'` remains forbidden, and a nonce beside it
+  > would be worthless, so two tests hold that line.
+  >
+  > Reasoning and consequences: `docs/decisions/task-0008-01-nonce.md`.
 - **The manifest may never be gated behind hydration.** The coverage manifest (AC #2), the
   "outside every buffer we checked" phrasing, and the sheriff-confirmation guidance
   (AC #7) must be present in the **server-rendered document**. Progressive disclosure may
@@ -424,6 +436,15 @@ boxes described. The findings that mattered most were not in any box.
   per request, so no `sha256-` source expression can match; a nonce is the only route.
   Operator ruling: **keep zero JS for this slice**, and reopen the question at TASK-0008
   where a concrete disclosure design can justify it. Carded as **TASK-0008.01** (`5e31b7c`).
+
+  **Resolved 2026-08-07.** Reopened with a disclosure design in hand and decided the other
+  way: the nonce is adopted, hydration is restored, and the Lane 0 CSP clause above is
+  amended in place. Restoring `<Scripts />` immediately reproduced the P4 leak class through
+  a new carrier — RR7 serializes `staticHandlerContext` into an inline script, and on a 404
+  that context holds `No route matches URL "/search/<typed>"` — caught by `copy.test.ts` on
+  the first run and closed in `entry.server.tsx`. Worth recording that the prediction in this
+  entry was right about the mechanism. Full reasoning:
+  `docs/decisions/task-0008-01-nonce.md`.
 - **2026-08-04, orchestrator re-verification of P5.** 146/146 through the sanctioned
   profile, before and after the merge-in. All four result shapes fetched from the running
   container and checked on raw HTML: **0 `<script>` tags, 0 off-origin `src`/`href`,

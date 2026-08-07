@@ -129,7 +129,7 @@ describe("a real browser can actually use tarrow", () => {
     }
   });
 
-  test("no request leaves tarrow's own origin, and no script is loaded", async () => {
+  test("no request leaves tarrow's own origin, script included", async () => {
     const page = await browser.newPage();
     const offOrigin: string[] = [];
     const scripts: string[] = [];
@@ -152,11 +152,15 @@ describe("a real browser can actually use tarrow", () => {
         "A browser requested something off-origin. CSP should have blocked it; " +
           "that it was attempted at all is the defect.",
       );
+      // Script is permitted now (TASK-0008.01), but only tarrow's own. A
+      // bundle served from this origin is auditable from the repository that
+      // built it; one fetched from a CDN is a third party watching who reads a
+      // page about where they are allowed to live.
+      const offOriginScripts = scripts.filter((url) => !url.startsWith(ORIGIN));
       assert.deepEqual(
-        scripts,
+        offOriginScripts,
         [],
-        "tarrow ships no client JavaScript. A script request means something " +
-          "reintroduced it -- see TASK-0008.01 before allowing this.",
+        "a script was loaded from another origin",
       );
     } finally {
       await page.close();

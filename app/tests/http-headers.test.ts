@@ -18,7 +18,9 @@ import type { AddressInfo } from "node:net";
 import { describe, test } from "node:test";
 
 import {
-  CONTENT_SECURITY_POLICY,
+  CLIENT_ERROR_CONTENT_SECURITY_POLICY,
+  contentSecurityPolicy,
+  nonce,
   FAILURE_BODY,
   HEADER_OVERFLOW_BODY,
   TLS_ON_PLAIN_PORT_BODY,
@@ -51,28 +53,47 @@ async function rawExchange(payload: Buffer | string): Promise<string> {
 const ORIGIN = process.env.TARROW_APP_ORIGIN ?? "http://app:3000";
 
 /**
- * The policy, written out again here as a literal.
+ * The policy, written out again here as a literal, with the nonce as a slot.
  *
- * Deliberately NOT derived from the constant it is checking. A test that
+ * Deliberately NOT derived from the function it is checking. A test that
  * compares the served header to the same string the server built it from
  * passes whatever that string says, including after somebody quietly adds
  * 'unsafe-inline' to it. This literal is transcribed from
  * docs/design/task-0002-walking-skeleton-runbook.md, and the runbook is what
  * the operator signed off on.
+ *
+ * The runbook's Lane 0 string had a bare `script-src 'self'`. It was amended
+ * under TASK-0008.01 to add the nonce, explicitly and by the operator rather
+ * than by an implementer working around a gate -- see the amendment note in the
+ * runbook and docs/decisions/task-0008-01-nonce.md. Everything either side of
+ * that clause is unchanged, which is most of what these tests are here to hold.
  */
-const EXPECTED_CSP =
-  "default-src 'self'; script-src 'self'; style-src 'self'; " +
-  "img-src 'self' data:; connect-src 'self'; base-uri 'none'; " +
-  "form-action 'self'; frame-ancestors 'none'";
+const NONCE = /[A-Za-z0-9+/]{22,}={0,2}/;
+
+const EXPECTED_CSP = new RegExp(
+  "^default-src 'self'; " +
+    `script-src 'self' 'nonce-${NONCE.source}'; ` +
+    "style-src 'self'; " +
+    "img-src 'self' data:; " +
+    "connect-src 'self'; " +
+    "base-uri 'none'; " +
+    "form-action 'self'; " +
+    "frame-ancestors 'none'$",
+);
 
 const EXPECTED_HEADERS: ReadonlyArray<readonly [string, string]> = [
-  ["content-security-policy", EXPECTED_CSP],
   ["referrer-policy", "same-origin"],
   ["x-content-type-options", "nosniff"],
   ["x-frame-options", "DENY"],
 ];
 
 function assertEnvelope(where: string, headers: Headers): void {
+  const csp = headers.get("content-security-policy") ?? "";
+  assert.match(
+    csp,
+    EXPECTED_CSP,
+    `${where}: the policy must be the runbook's, with this response's nonce`,
+  );
   for (const [name, expected] of EXPECTED_HEADERS) {
     assert.equal(
       headers.get(name),
@@ -91,20 +112,52 @@ function assertEnvelope(where: string, headers: Headers): void {
 }
 
 describe("the served policy is the one the runbook specifies", () => {
-  test("the server's own constant matches the runbook, character for character", () => {
-    assert.equal(CONTENT_SECURITY_POLICY, EXPECTED_CSP);
+  test("the server's own policy matches the runbook, character for character", () => {
+    assert.match(contentSecurityPolicy("TESTNONCEVALUE0000000000"), EXPECTED_CSP);
   });
 
-  test("script-src admits no inline script and no nonce", () => {
-    assert.doesNotMatch(CONTENT_SECURITY_POLICY, /unsafe-inline/);
-    assert.doesNotMatch(CONTENT_SECURITY_POLICY, /unsafe-eval/);
-    assert.doesNotMatch(CONTENT_SECURITY_POLICY, /nonce-/);
+  test("script-src admits a nonce and nothing else beyond 'self'", () => {
+    const policy = contentSecurityPolicy("TESTNONCEVALUE0000000000");
     assert.doesNotMatch(
-      CONTENT_SECURITY_POLICY,
+      policy,
+      /unsafe-inline/,
+      "'unsafe-inline' admits ANY inline script, which is the hole a nonce " +
+        "exists to avoid opening. A nonce admits only what this server put in " +
+        "this document; 'unsafe-inline' admits what anybody else put there.",
+    );
+    assert.doesNotMatch(policy, /unsafe-eval/);
+    assert.doesNotMatch(
+      policy,
       /\*/,
       "a wildcard source in any directive re-opens the third-party load this " +
         "policy exists to close",
     );
+  });
+
+  test("a nonce is 128 bits of CSPRNG output, and never repeats", () => {
+    // The security property is unguessability. A short nonce, or one drawn
+    // from a predictable source, is decoration: an injected script that can
+    // guess the value runs. 16 bytes base64 is 22 characters before padding.
+    const seen = new Set<string>();
+    for (let i = 0; i < 100; i += 1) {
+      const value = nonce();
+      assert.match(
+        value,
+        new RegExp(`^${NONCE.source}$`),
+        "a nonce must be at least 128 bits, base64",
+      );
+      assert.ok(!seen.has(value), "a nonce must never repeat across responses");
+      seen.add(value);
+    }
+  });
+
+  test("the pre-request failure path serves no script at all", () => {
+    // entry.ts answers a malformed request line from a raw socket, before a
+    // ServerResponse exists. That body is a fixed plain-text constant, so the
+    // policy is stricter than the document one rather than looser.
+    assert.match(CLIENT_ERROR_CONTENT_SECURITY_POLICY, /script-src 'none'/);
+    assert.doesNotMatch(CLIENT_ERROR_CONTENT_SECURITY_POLICY, /nonce-/);
+    assert.doesNotMatch(CLIENT_ERROR_CONTENT_SECURITY_POLICY, /unsafe-inline/);
   });
 });
 
@@ -201,7 +254,11 @@ describe("every response from the running server carries it", () => {
         `a way out, not with the generic failure.\n${raw}`,
     );
     assert.ok(!raw.includes(FAILURE_BODY), "the generic body must not appear");
-    assert.ok(raw.includes(`Content-Security-Policy: ${CONTENT_SECURITY_POLICY}`));
+    assert.ok(
+      raw.includes(
+        `Content-Security-Policy: ${CLIENT_ERROR_CONTENT_SECURITY_POLICY}`,
+      ),
+    );
   });
 
   test("an oversized header block is explained", async () => {
@@ -218,7 +275,11 @@ describe("every response from the running server carries it", () => {
       `An overflow must name the cause and a way out.\n${raw}`,
     );
     assert.ok(!raw.includes(FAILURE_BODY), "the generic body must not appear");
-    assert.ok(raw.includes(`Content-Security-Policy: ${CONTENT_SECURITY_POLICY}`));
+    assert.ok(
+      raw.includes(
+        `Content-Security-Policy: ${CLIENT_ERROR_CONTENT_SECURITY_POLICY}`,
+      ),
+    );
     // Nothing from the request may come back. The parser read no URL and no
     // address; the only thing sent was the bloat, so its echo is what to hunt.
     assert.ok(
@@ -375,25 +436,44 @@ describe("the served document loads nothing from anywhere else", () => {
     );
     assert.doesNotMatch(
       html,
-      /<script(?![^>]*\bsrc=)/i,
-      "React Router's DEFAULT root error boundary emits an inline <script>. If " +
-        "this fires, app/app/root.tsx's ErrorBoundary stopped being used.",
+      /Hey developer/i,
+      "React Router's DEFAULT root error boundary emits a 'Hey developer' " +
+        "console tip as an inline script carrying no nonce, which a browser " +
+        "refuses. If this fires, app/app/root.tsx's ErrorBoundary stopped " +
+        "being used.",
     );
   });
 
-  test("the document contains no inline script", async () => {
-    const html = await (await fetch(`${ORIGIN}/`)).text();
-    // `script-src 'self'` blocks inline script, so an inline <script> in the
-    // document would be dead code that a browser refuses and a reader cannot
-    // account for. tarrow ships none: see app/app/root.tsx for why <Scripts />
-    // is not rendered.
-    assert.doesNotMatch(
-      html,
-      /<script(?![^>]*\bsrc=)/i,
-      "an inline <script> reached the served document. Under this policy a " +
-        "browser will not run it, which means the page works by accident " +
-        "rather than by design.",
-    );
+  test("every script in the document is admitted by the policy that carried it", async () => {
+    // The gate is no longer "there is no script" -- there is, and hydration
+    // needs it. It is that every script the document carries is one this
+    // response authorised: an inline block stamped with THIS response's nonce,
+    // or a same-origin src. Anything else is a script a browser would refuse,
+    // which means the page is working by accident rather than by design.
+    const res = await fetch(`${ORIGIN}/`);
+    const csp = res.headers.get("content-security-policy") ?? "";
+    const served = /'nonce-([A-Za-z0-9+/]+={0,2})'/.exec(csp)?.[1];
+    assert.ok(served, `no nonce in the served policy: ${csp}`);
+
+    const html = await res.text();
+    for (const [tag] of html.matchAll(/<script\b[^>]*>/gi)) {
+      const src = /\bsrc="([^"]*)"/.exec(tag)?.[1];
+      if (src !== undefined) {
+        assert.ok(
+          src.startsWith("/") && !src.startsWith("//"),
+          `a script is loaded from ${src}, which is off this origin`,
+        );
+        continue;
+      }
+      const stamped = /\bnonce="([^"]*)"/.exec(tag)?.[1];
+      assert.equal(
+        stamped,
+        served,
+        `an inline script carries ${stamped ?? "no nonce"} but the policy ` +
+          `admits ${served}. A browser refuses it, so whatever it does is ` +
+          `not happening.`,
+      );
+    }
   });
 
   test("the document declares no third-party preconnect or dns-prefetch", async () => {

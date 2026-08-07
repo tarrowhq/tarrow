@@ -64,11 +64,12 @@
 // result; every limitation comes from the coverage-gap ledger; the only
 // arithmetic is a unit conversion in app/format.ts.
 //
-// AND ONE ABOUT DELIVERY: there is no client-side JavaScript (app/root.tsx).
-// Progressive disclosure is <details>/<summary>, which opens natively. The
-// manifest, the outside-every-buffer phrasing, and the sheriff guidance are
-// all in the server-rendered document on every shape (spec FR-015) -- collapsed
-// is allowed, absent is not.
+// AND ONE ABOUT DELIVERY: nothing on this page may wait for script. The page
+// hydrates (app/root.tsx), but the manifest, the outside-every-buffer phrasing,
+// and the sheriff guidance are in the server-rendered document on every shape
+// (spec FR-015) -- collapsed is allowed, absent is not. Progressive disclosure
+// is <details>/<summary>, which opens natively, so a reader with scripting off
+// gets the whole answer rather than a degraded one.
 
 import type { ReactNode } from "react";
 

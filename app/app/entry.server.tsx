@@ -24,7 +24,9 @@
 //
 // Everything else in this file is React Router 7.18.2's default entry,
 // unmodified, so that a reviewer can diff it against `react-router reveal` and
-// see that the only changes are the two places an error is printed.
+// see exactly three changes: the error handler that prints nothing, the scrub
+// that keeps error text out of the hydration payload, and the nonce that the
+// policy and the script tags are both derived from.
 
 import { PassThrough } from "node:stream";
 
@@ -35,10 +37,12 @@ import { isbot } from "isbot";
 import type { RenderToPipeableStreamOptions } from "react-dom/server";
 import { renderToPipeableStream } from "react-dom/server";
 
+import { contentSecurityPolicy, nonce as documentNonce } from "../server/http.ts";
+
 export const streamTimeout = 5_000;
 
 /**
- * CHANGE 1 of 2. React Router calls this for every error it handles on the
+ * CHANGE 1 of 3. React Router calls this for every error it handles on the
  * server, and its default prints the error -- message, URL, and stack -- to
  * stderr.
  *
@@ -61,6 +65,67 @@ export const streamTimeout = 5_000;
  */
 export function handleError(): void {
   // Intentionally empty. See above.
+}
+
+/**
+ * CHANGE 2 of 3. Strip every error message before the router context is
+ * serialized into the document.
+ *
+ * THE LEAK THIS CLOSES, which is the same leak as CHANGE 1 through a different
+ * pipe. React Router's hydration bootstrap serializes `staticHandlerContext`
+ * into an inline <script> so the client can resume the server's render. On a
+ * request to a path that matches no route, that context holds:
+ *
+ *     Error: No route matches URL "/search/8675309%20ZZYZX%20..."
+ *
+ * -- so the searched address would be written into the page, into the browser's
+ * back-button cache, and onto the screen of whatever shared or library computer
+ * the reader is using. That is spec FR-027 and the exact datum Principle III
+ * says tarrow does not create as a record. app/tests/copy.test.ts caught it the
+ * moment <Scripts /> was restored.
+ *
+ * `root.tsx`'s ErrorBoundary already takes NOTHING from the error -- it never
+ * calls `useRouteError()` -- so nothing rendered needs these strings. The
+ * status and statusText are kept because the boundary's own copy is chosen from
+ * them, and neither can carry a URL.
+ */
+function withoutErrorDetail(context: EntryContext): EntryContext {
+  const { errors } = context.staticHandlerContext;
+  if (!errors || Object.keys(errors).length === 0) return context;
+
+  // Both carriers, because there are two and only closing one is worse than
+  // closing neither -- it looks fixed.
+  //
+  //   `errors` is what <ServerRouter> reads to render the boundary. Status and
+  //   statusText are kept (the boundary's copy is chosen from them and neither
+  //   can hold a URL); the message, which can, is dropped.
+  //
+  //   `serverHandoffStream` is the ReadableStream React Router serializes into
+  //   `streamController.enqueue(...)` for the client to resume from. It is
+  //   built before this function is reached and it holds the error message
+  //   verbatim, so scrubbing `errors` alone changes nothing on the wire.
+  //
+  // Dropping the stream costs this page nothing. root.tsx's ErrorBoundary is
+  // static JSX that takes nothing from the error, so there is no client state
+  // to resume; the document is already the whole answer, and the reader can
+  // still navigate away from it.
+  const scrubbed = Object.fromEntries(
+    Object.entries(errors).map(([routeId, error]) => {
+      const status = (error as { status?: unknown } | null)?.status;
+      return [
+        routeId,
+        typeof status === "number"
+          ? { status, statusText: "", internal: false, data: null }
+          : {},
+      ];
+    }),
+  );
+
+  return {
+    ...context,
+    serverHandoffStream: undefined,
+    staticHandlerContext: { ...context.staticHandlerContext, errors: scrubbed },
+  };
 }
 
 export default function handleRequest(
@@ -96,8 +161,28 @@ export default function handleRequest(
       streamTimeout + 1000,
     );
 
+    // CHANGE 3 of 3. The nonce, minted and committed to in the same place.
+    //
+    // Both halves are set here on purpose. React Router's hydration bootstrap
+    // is inline <script>, so the policy has to name a nonce and the tags have
+    // to carry the same one; producing them in one statement is what makes
+    // that a fact rather than an intention. server/http.ts already set a
+    // script-free policy on Node's ServerResponse for every path that is not a
+    // rendered document, and `writeHead` lets this one supersede it.
+    //
+    // `ServerRouter` passes the value to every nonce-aware component it
+    // renders -- <Scripts />, <ScrollRestoration /> -- so root.tsx does not
+    // thread it by hand. A tag stamped with anything else is refused by the
+    // browser, which is the property that makes this worth doing.
+    const nonce = documentNonce();
+    responseHeaders.set("Content-Security-Policy", contentSecurityPolicy(nonce));
+
     const { pipe, abort } = renderToPipeableStream(
-      <ServerRouter context={routerContext} url={request.url} />,
+      <ServerRouter
+        context={withoutErrorDetail(routerContext)}
+        url={request.url}
+        nonce={nonce}
+      />,
       {
         [readyOption]() {
           shellRendered = true;
