@@ -504,6 +504,7 @@ export async function collectSchoolGaps(client: PoolClient): Promise<DeclaredGap
       layerId: row.layer_id,
       subjectType: "school_premises",
       subjectRef: `${row.layer_id}:${row.source_ref}`,
+      label: `${row.name} (no boundary)`,
       description:
         `${row.name}${row.street ? ` (${row.street}${row.city ? `, ${row.city}` : ""})` : ""} ` +
         `could not be matched to a tax parcel, so tarrow holds no premises boundary ` +
@@ -518,6 +519,7 @@ export async function collectSchoolGaps(client: PoolClient): Promise<DeclaredGap
       layerId: row.layer_id,
       subjectType: "school_premises_match",
       subjectRef: `${row.layer_id}:${row.source_ref}`,
+      label: `${row.name} (boundary uncertain)`,
       description:
         `${row.name} was matched to a tax parcel that is not tax-exempt, which a ` +
         `school premises almost always is. The match came from a mailing-address ` +
@@ -534,10 +536,22 @@ export async function writeGaps(
   gaps: readonly DeclaredGap[],
 ): Promise<number> {
   for (const gap of gaps) {
+    // A gap with no label would reach the answer surface as a blank entry in
+    // the not-checked line -- a limitation rendered as nothing, which is the
+    // one thing Principle II forbids. The column is NOT NULL, so the database
+    // already refuses it; this turns that refusal into a message that names
+    // the offending gap instead of a constraint violation on an unnamed row.
+    if (!gap.label || !gap.description) {
+      throw new Error(
+        `coverage gap ${gap.subjectType}/${gap.subjectRef ?? "-"} is missing a ` +
+          `${!gap.label ? "label" : "description"}. Every gap needs both: a short ` +
+          `label for the answer surface and the full record for /faq.`,
+      );
+    }
     await client.query(
-      `INSERT INTO coverage_gaps (layer_id, subject_type, subject_ref, description)
-       VALUES ($1, $2, $3, $4)`,
-      [gap.layerId, gap.subjectType, gap.subjectRef, gap.description],
+      `INSERT INTO coverage_gaps (layer_id, subject_type, subject_ref, label, description)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [gap.layerId, gap.subjectType, gap.subjectRef, gap.label, gap.description],
     );
   }
   return gaps.length;

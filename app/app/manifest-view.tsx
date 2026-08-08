@@ -32,309 +32,65 @@
 // limitation somebody records at ingest reaches this surface without anyone
 // remembering to edit a list.
 
-import {
-  Card,
-  CardTitle,
-  Disclosure,
-  Eyebrow,
-  Measured,
-  Prose,
-} from "./cards.tsx";
-import { count, day, metresAndFeet, plural } from "./format.ts";
-import type {
-  CoverageManifest,
-  LoadedCoverageManifest,
-  ManifestRuleContent,
-  PremisesMeasurementBasis,
-} from "../server/result.ts";
+import { Card, CardTitle, Eyebrow, Prose } from "./cards.tsx";
+import { count } from "./format.ts";
+import type { CoverageManifest } from "../server/result.ts";
 
-const PREMISES_BASIS: Record<PremisesMeasurementBasis, string> = {
-  board_of_education_parcel:
-    "The county tax parcel recorded as exempt board-of-education property. " +
-    "A surveyed boundary and the county's own record of who owns it.",
-  named_exempt_parcel:
-    "A tax-exempt county parcel whose owner of record reads like a school. " +
-    "The boundary is surveyed; the reason tarrow treats it as a school is a " +
-    "match on the owner's name, which is a rule of thumb rather than a record.",
-  point_in_parcel:
-    "A published school location was turned into a map point from its mailing " +
-    "address, and that point falls inside this county parcel. The boundary " +
-    "measured is the parcel's surveyed boundary.",
-  point_near_parcel:
-    "A published school location was turned into a map point that falls " +
-    "inside no parcel at all. tarrow measured to the nearest parcel within " +
-    "5 m of it and widened the uncertainty to match.",
-  none:
-    "No boundary. tarrow holds a name for this premises and no shape for it, " +
-    "so it was never measured and was never given a made-up radius.",
-};
 
 /**
- * One coverage gap, alone on a screen.
+ * The gaps that make an answer honest, as ONE LINE on the finding card.
  *
- * The description is the ledger's own text. This component adds a position in
- * the sequence and nothing else -- it does not summarise, soften, or rank.
- */
-function GapCard({
-  description,
-  index,
-  total,
-}: {
-  description: string;
-  index: number;
-  total: number;
-}) {
-  return (
-    <Card kind="gap">
-      <Eyebrow>
-        Not checked · {index} of {count(total)}
-      </Eyebrow>
-      <CardTitle>{description}</CardTitle>
-    </Card>
-  );
-}
-
-/**
- * The gaps that make an unflagged answer honest: whole classes of facility and
- * whole jurisdictions tarrow did not look at.
+ * WHAT THIS REPLACED, AND WHY. Each of these was a full screen of its own,
+ * carrying the ledger's `description` -- a paragraph written for somebody
+ * auditing the instance, rendered to somebody trying to find out whether they
+ * can live somewhere. Five screens of it, between the reader and the rest of
+ * the answer.
  *
- * These are the entries `app/tests/copy.test.ts` requires to be VISIBLE --
- * rendered outside every <details> -- rather than merely present. Each gets a
- * card of its own.
+ * That was Principle II satisfied by volume, which is the same failure rule 5
+ * names from the other direction: text nobody reads was not delivered, whether
+ * it was skipped for being below the fold or for being a wall. So what survives
+ * here is the SHORTEST FORM THAT STILL CARRIES THE FACT -- a count and the
+ * ledger's own two-or-three-word `label` for each gap, on the same screen as
+ * the finding, linked to /faq where the full text lives.
+ *
+ * PRINCIPLE II IS NOT WEAKENED BY THIS. "Absence of a flag is meaningful only
+ * against a stated list of what was searched" requires the list to be STATED,
+ * not to be long, and this states it in the place a reader actually looks --
+ * beside the number, before they have moved anywhere. `app/tests/copy.test.ts`
+ * still requires each of these labels to be present and visible, outside every
+ * <details>, on every result.
+ *
+ * The labels come from the ledger, so a gap recorded at ingest reaches this
+ * line without anyone remembering to edit a list.
  */
-export function CoverageGapCards({
-  manifest,
-}: {
-  manifest: LoadedCoverageManifest;
-}) {
+export function CoverageLine({ manifest }: { manifest: CoverageManifest }) {
+  // A manifest that could not be read has no gap list to state. That is not a
+  // silent omission: the shapes where it happens render CoverageWithdrawnCard,
+  // which says so in full.
+  if (manifest.availability !== "read-from-data") return null;
   const headline = manifest.gaps.filter(
-    (g) => g.subjectType === "facility_class" || g.subjectType === "jurisdiction",
+    (g) =>
+      (g.subjectType === "facility_class" ||
+        g.subjectType === "jurisdiction") &&
+      // WHOLE KINDS OF PLACE, NOT DATA-QUALITY NOTES. "Two places share a
+      // name" is a real limitation and it belongs in the ledger and on /faq
+      // -- but it is a caveat about how tarrow reads its own sources, not a
+      // category of protected place it never looked at. On this line it sits
+      // beside "preschools and day-care" as if the two were comparable, which
+      // makes the ones that matter harder to weigh rather than easier.
+      g.subjectRef !== "shared_jurisdiction_names",
   );
+  if (headline.length === 0) return null;
   return (
-    <>
-      {headline.map((gap, i) => (
-        <GapCard
-          key={gap.id}
-          description={gap.description}
-          index={i + 1}
-          total={headline.length}
-        />
-      ))}
-    </>
-  );
-}
-
-/**
- * What tarrow DID check, and how old it is.
- *
- * The claim is on the card; the evidence -- the full ledger, the layer
- * registry, the boundary bases -- folds into disclosures. That is the collapse
- * rule: this card answers "how does tarrow know", which is the half that may
- * fold.
- */
-export function CoverageDetailCard({
-  manifest,
-}: {
-  manifest: LoadedCoverageManifest;
-}) {
-  const headline = manifest.gaps.filter(
-    (g) => g.subjectType === "facility_class" || g.subjectType === "jurisdiction",
-  );
-  const queried = manifest.layers.filter((l) => l.queried);
-  const newest = day(manifest.dataFetchedAt);
-  const oldest = day(manifest.oldestLayerFetchedAt);
-
-  return (
-    <Card kind="detail">
-      <Eyebrow>If you want the receipts</Eyebrow>
-      <CardTitle>What tarrow did check</CardTitle>
-      <Prose soft>
-        <p>
-          School premises in Summit County, Ohio.{" "}
-          <Measured>{count(manifest.premises.measurable)}</Measured> of the{" "}
-          <Measured>{count(manifest.premises.total)}</Measured> premises tarrow
-          holds have a real parcel boundary and were measured against, using a
-          buffer of <Measured>{metresAndFeet(manifest.bufferMeters)}</Measured>{" "}
-          from the nearest point of one parcel to the nearest point of the
-          other.{" "}
-          {manifest.premises.notMeasurable > 0 ? (
-            <>
-              <Measured>{count(manifest.premises.notMeasurable)}</Measured>{" "}
-              {plural(manifest.premises.notMeasurable, "has", "have")} no
-              boundary and{" "}
-              {plural(
-                manifest.premises.notMeasurable,
-                "was not measured at all",
-                "were not measured at all",
-              )}
-              ; tarrow does not invent a circle around a school it cannot draw.
-            </>
-          ) : (
-            <>
-              Every premises tarrow holds has a real boundary; none was
-              approximated by a circle.
-            </>
-          )}
-        </p>
-        <p>
-          <strong>How old this is.</strong> This copy of tarrow last fetched
-          data on {newest ?? "a date it cannot report"}, and its oldest layer
-          was fetched on {oldest ?? "a date it cannot report"}. No layer has
-          been checked by a person: every one reads{" "}
-          <span className="never">never human-verified</span> in the table
-          below. If you are looking at somebody else&rsquo;s copy of tarrow,
-          those dates are how you tell whether it has been left to go stale.
-        </p>
-      </Prose>
-
-      <Disclosure
-        summary={
-          <>
-            Every limitation tarrow knows about ({count(manifest.gaps.length)}),
-            including the {count(headline.length)} on their own screens
-          </>
-        }
-      >
-        <div className="scroller">
-          <table className="grid-table">
-            <thead>
-              <tr>
-                <th scope="col">What kind of limit</th>
-                <th scope="col">What it is</th>
-              </tr>
-            </thead>
-            <tbody>
-              {manifest.gaps.map((gap) => (
-                <tr key={gap.id}>
-                  <td>
-                    {gap.subjectType}
-                    {gap.subjectRef === null ? null : (
-                      <>
-                        <br />
-                        <small>{gap.subjectRef}</small>
-                      </>
-                    )}
-                  </td>
-                  <td>{gap.description}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Disclosure>
-
-      <Disclosure
-        summary={
-          <>
-            The data layers this answer was built from ({count(queried.length)}{" "}
-            queried of {count(manifest.layers.length)} registered), and when
-            each was last touched
-          </>
-        }
-      >
-        <div className="scroller">
-          {/* `data-table="layers"` is read by app/tests/copy.test.ts, which
-              checks that EVERY row of THIS table renders its verification date
-              as never-human-verified. A scan over the whole document would
-              count the sentence above as if it were a row, and would pass a
-              table that had quietly lost one (Principle V). */}
-          <table className="grid-table" data-table="layers">
-            <thead>
-              <tr>
-                <th scope="col">Layer</th>
-                <th scope="col">Rows</th>
-                <th scope="col">Queried for this answer</th>
-                <th scope="col">Data last fetched</th>
-                <th scope="col">Last checked by a person</th>
-              </tr>
-            </thead>
-            <tbody>
-              {manifest.layers.map((layer) => (
-                <tr key={layer.id}>
-                  <td>
-                    <strong>{layer.id}</strong>
-                    <br />
-                    {layer.description}
-                    {layer.notes === null ? null : (
-                      <>
-                        <br />
-                        <small>{layer.notes}</small>
-                      </>
-                    )}
-                    <br />
-                    <small>{layer.sourceUrl}</small>
-                  </td>
-                  <td>
-                    {layer.rowCount === null
-                      ? "not recorded"
-                      : count(layer.rowCount)}
-                  </td>
-                  <td>
-                    {layer.queried ? "yes" : "no, this layer contributed nothing"}
-                  </td>
-                  <td>{day(layer.fetchedAt) ?? "never loaded"}</td>
-                  <td>
-                    {layer.verifiedAt === null ? (
-                      <span className="never">never human-verified</span>
-                    ) : (
-                      day(layer.verifiedAt)
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Disclosure>
-
-      <Disclosure summary="How each school premises boundary was established, and how much slack tarrow gave for it">
-        <div className="scroller">
-          <table className="grid-table">
-            <thead>
-              <tr>
-                <th scope="col">How the boundary was established</th>
-                <th scope="col">Backed up by</th>
-                <th scope="col">Premises</th>
-                <th scope="col">Slack given in the school&rsquo;s favour</th>
-              </tr>
-            </thead>
-            <tbody>
-              {manifest.measurementBases.map((basis) => (
-                <tr key={`${basis.matchBasis}:${basis.matchCorroboration ?? "-"}`}>
-                  <td>
-                    <strong>{basis.matchBasis}</strong>
-                    <br />
-                    {PREMISES_BASIS[
-                      basis.matchBasis as PremisesMeasurementBasis
-                    ] ?? basis.matchBasis}
-                  </td>
-                  <td>
-                    {basis.matchCorroboration === "uncorroborated"
-                      ? "nothing: the parcel is not tax-exempt, which a school premises almost always is"
-                      : (basis.matchCorroboration ?? "not recorded")}
-                  </td>
-                  <td>{count(basis.premises)}</td>
-                  <td>
-                    {basis.uncertaintyMeters === null
-                      ? "not measurable, and never compared against the buffer"
-                      : metresAndFeet(basis.uncertaintyMeters)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <Prose soft>
-          <p>
-            Slack is subtracted from every measured distance before it is
-            compared against the buffer, never added. That makes a flag more
-            likely, not less. It is the direction Principle I requires: a school
-            tarrow flags that turns out not to count costs you a house you could
-            have had; a school tarrow misses could cost you your liberty.
-          </p>
-        </Prose>
-      </Disclosure>
-    </Card>
+    <p className="not-checked">
+      <a href="/faq">
+        <span className="not-checked__n">{count(headline.length)}</span>
+        <span className="not-checked__label">not checked</span>
+        <span className="not-checked__list">
+          {headline.map((g) => g.label).join(" · ")}
+        </span>
+      </a>
+    </p>
   );
 }
 
@@ -379,37 +135,12 @@ export function CoverageWithdrawnCard({ statement }: { statement: string }) {
  * human-verified rule record the constitution requires, and a reader must not
  * be able to leave this surface thinking the rule was checked.
  */
-export function RuleNotVerifiedCard({ rule }: { rule: ManifestRuleContent }) {
+export function RuleNotVerifiedLine() {
   return (
-    <Card kind="gap">
-      <Eyebrow>Not checked · the rule itself</Eyebrow>
-      <CardTitle>No person has checked the rule tarrow applied</CardTitle>
-      <Prose soft>
-        <p>
-          tarrow read the statute and applied a number. Nobody has signed their
-          name to that reading inside tarrow, no citation or verification date
-          is attached to it as data, and no court has been asked whether the way
-          tarrow measures is the way the state measures.
-        </p>
-      </Prose>
-      <Disclosure summary="tarrow&rsquo;s own record of that gap, in full">
-        <blockquote className="prose prose--soft">
-          <p>{rule.statement}</p>
-        </blockquote>
-      </Disclosure>
-    </Card>
-  );
-}
-
-/** Every card the coverage manifest contributes, in order. */
-export function CoverageCards({ manifest }: { manifest: CoverageManifest }) {
-  if (manifest.availability !== "read-from-data") {
-    return <CoverageWithdrawnCard statement={manifest.statement} />;
-  }
-  return (
-    <>
-      <CoverageGapCards manifest={manifest} />
-      <CoverageDetailCard manifest={manifest} />
-    </>
+    <p className="unverified">
+      <a href="/faq">
+        The 1,000 ft rule here is not verified rule data
+      </a>
+    </p>
   );
 }

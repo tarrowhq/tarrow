@@ -45,7 +45,7 @@ export const ADDRESS_POINTS: LayerSource = {
   description:
     "Summit County Address Points -- the county addressing authority's list of " +
     "addressable locations, maintained separately from the tax roll and feeding " +
-    "911 dispatch. DECISION §1: a typed address resolves against THIS layer.",
+    "911 dispatch. A typed address resolves against this layer.",
   sourceUrl: `${SUMMIT_GIS}/AddressPoints_DBC/FeatureServer/0`,
   jurisdiction: "Summit County, OH",
   query: {
@@ -58,7 +58,7 @@ export const ADDRESS_POINTS: LayerSource = {
     pageSize: 2000,
   },
   notes:
-    "Coverage is uneven across municipalities -- DECISION §7 records Cuyahoga " +
+    "Coverage is uneven across municipalities -- Cuyahoga " +
     "Falls showing 3,224 points for a city of ~50,000.",
   // DECISION §7: 30,426 duplicate and 26,660 empty ADDR_ID values exist in
   // the source. Nothing in tarrow keys on ADDR_ID -- address_points has a
@@ -72,8 +72,8 @@ export const PARCELS: LayerSource = {
   id: "summit_tax_parcels",
   description:
     "Summit County tax parcels. The unit of ownership and taxation, and the " +
-    "geometry both sides of the distance measurement are made of (DECISION §2: " +
-    "nearest boundary to nearest boundary, never centroid to centroid).",
+    "geometry both sides of the distance measurement are made of: nearest " +
+    "boundary to nearest boundary, never centroid to centroid.",
   sourceUrl: `${SUMMIT_GIS}/parcels_web_GEODATA_Tax_Parcels/FeatureServer/0`,
   jurisdiction: "Summit County, OH",
   query: {
@@ -85,7 +85,7 @@ export const PARCELS: LayerSource = {
   },
   notes:
     "usecd 200-series parcels are mineral rights -- overlapping subsurface " +
-    "polygons, excluded from measurement geometry per DECISION §6. siteaddress " +
+    "polygons, excluded from measurement geometry. siteaddress " +
     "carries no city and is not unique county-wide; municipality is derived by " +
     "spatial join instead.",
   // Measured 2026-08-04 over all 261,160 published parcels: parcelid has no
@@ -112,8 +112,7 @@ export const MUNICIPALITIES: LayerSource = {
     pageSize: 1000,
   },
   notes:
-    "Used to derive parcels.municipality (DECISION §6) and, later, to stack " +
-    "municipal residency ordinances (TASK-0007).",
+    "Used to derive which municipality a parcel sits in.",
 };
 
 // ---------------------------------------------------------------------------
@@ -287,6 +286,30 @@ export interface DeclaredGap {
   readonly layerId: string | null;
   readonly subjectType: string;
   readonly subjectRef: string | null;
+  /**
+   * Two or three words, for the person looking up an address.
+   *
+   * This is what reaches the answer surface. The reader is frightened, often
+   * on a deadline, sometimes on a library machine, and they will read a phrase
+   * where they will not read a paragraph. "Preschools and day-care" is the
+   * whole of what they need to know is missing.
+   *
+   * NOT a summary of `description`, and never a sentence. If a label needs a
+   * clause to make sense, the gap has not been understood well enough to
+   * state.
+   */
+  readonly label: string;
+  /**
+   * The full record: why the gap exists, what it means for an answer, what a
+   * self-hoster should know. Read by /faq and by anyone auditing the instance.
+   * Never rendered on the answer surface.
+   *
+   * NO ISSUE NUMBERS, NO INTERNAL TASK IDS, NO "NOT YET BUILT". This text is
+   * shipped to a member of the public who has no idea what our tracker is and
+   * should not be made to care. State what tarrow does not check, not what we
+   * plan to do about it: a gap is a fact about this instance's coverage, and
+   * it stays true whether or not anybody ever files a ticket.
+   */
   readonly description: string;
 }
 
@@ -309,14 +332,13 @@ export const DECLARED_GAPS: readonly DeclaredGap[] = [
     layerId: null,
     subjectType: "rule_content",
     subjectRef: "orc_2950_034_buffer_unverified",
+    label: "The rule itself",
     description:
       "The 1,000-foot (304.8 m) buffer this release applies is NOT verified rule " +
-      "data. Constitution Principle V requires every rule to carry, as data, its " +
-      "citation, a resolvable source URL, its effective date, the date a human " +
-      "last verified it, and who verified it. No such record exists yet: rule " +
-      "content is authored as reviewable files and compiled into the database by " +
-      "TASK-0003, which has not been built. The buffer is applied here from a " +
-      "reading of ORC 2950.034 that no human has signed off inside tarrow, and the " +
+      "data. Every rule should carry, as data, its citation, a resolvable source " +
+      "URL, its effective date, the date a person last verified it, and who " +
+      "verified it. No such record exists here. The buffer is applied from a " +
+      "reading of ORC 2950.034 that no person has signed off inside tarrow, and the " +
       "measurement method (nearest parcel boundary to nearest parcel boundary) is " +
       "tarrow's own over-restrictive reading of a statute that does not say how the " +
       "1,000 feet is measured. Neither has been checked against Ohio case law. " +
@@ -327,6 +349,7 @@ export const DECLARED_GAPS: readonly DeclaredGap[] = [
     layerId: SCHOOLS_PRIVATE_NCES.id,
     subjectType: "school_premises",
     subjectRef: "known_missing:st_vincent_st_mary_high_school",
+    label: "One known missing school",
     description:
       "St. Vincent-St. Mary High School, 15 N Maple St, Akron, is absent from " +
       "the federal survey this release draws nonpublic schools from, and its " +
@@ -339,6 +362,7 @@ export const DECLARED_GAPS: readonly DeclaredGap[] = [
     layerId: SCHOOLS_NAMED_EXEMPT_PARCELS.id,
     subjectType: "source_coverage",
     subjectRef: "owner_name_heuristic",
+    label: "Schools held under another name",
     description:
       "Some school premises are found by reading the tax roll's owner-of-record " +
       "for school words. A school whose property is held by a foundation, a " +
@@ -349,6 +373,7 @@ export const DECLARED_GAPS: readonly DeclaredGap[] = [
     layerId: SCHOOLS_PRIVATE_NCES.id,
     subjectType: "source_coverage",
     subjectRef: "chartered_nonpublic_authoritative_list",
+    label: "Some private schools",
     description:
       "Nonpublic schools come from the federal Private School Universe Survey, " +
       "a biennial voluntary survey. Ohio's authoritative list -- the Department " +
@@ -361,6 +386,7 @@ export const DECLARED_GAPS: readonly DeclaredGap[] = [
     layerId: SCHOOLS_PRIVATE_NCES.id,
     subjectType: "source_coverage",
     subjectRef: "chartering_status_not_distinguished",
+    label: "Private school charter status",
     description:
       "The nonpublic source does not record whether a school is chartered by " +
       "the Ohio state board, so tarrow cannot distinguish schools that meet ORC " +
@@ -371,6 +397,7 @@ export const DECLARED_GAPS: readonly DeclaredGap[] = [
     layerId: SCHOOLS_PUBLIC_NCES.id,
     subjectType: "source_coverage",
     subjectRef: "snapshot_year",
+    label: "Schools that recently moved or opened",
     description:
       "Public school locations are the 2024-25 federal snapshot and nonpublic " +
       "locations the 2023-24 snapshot. A school that opened, moved, or changed " +
@@ -380,6 +407,7 @@ export const DECLARED_GAPS: readonly DeclaredGap[] = [
     layerId: SCHOOLS_BOARD_PARCELS.id,
     subjectType: "source_coverage",
     subjectRef: "orc_2925_01_S_b_nonpublic",
+    label: "Some school-owned land",
     description:
       "ORC 2925.01(S)(b) extends school premises to other parcels owned or " +
       "leased by the school on which school functions occur -- athletic fields, " +
@@ -392,19 +420,21 @@ export const DECLARED_GAPS: readonly DeclaredGap[] = [
     layerId: null,
     subjectType: "facility_class",
     subjectRef: "orc_2950_034_non_school_classes",
+    label: "Preschools and day-care",
     description:
       "ORC 2950.034 protects preschools, licensed child day-care centres, " +
       "children's crisis care facilities, and residential infant care " +
       "facilities in addition to schools. This release loads school premises " +
-      "only. Those classes are not checked at all (TASK-0005).",
+      "only. Those classes are not checked at all.",
   },
   {
     layerId: null,
     subjectType: "jurisdiction",
     subjectRef: "municipal_ordinances",
+    label: "City and village rules",
     description:
       "Only the state buffer is applied. Summit County municipalities impose " +
-      "their own residency ordinances, none of which are loaded (TASK-0007). " +
+      "their own residency ordinances, none of which are loaded here. " +
       "An address outside every buffer here may still be barred by a local " +
       "ordinance.",
   },
@@ -412,6 +442,7 @@ export const DECLARED_GAPS: readonly DeclaredGap[] = [
     layerId: null,
     subjectType: "jurisdiction",
     subjectRef: "outside_summit_county",
+    label: "Anywhere outside Summit County",
     description:
       "Coverage is Summit County, Ohio only. No parcel, address, or school " +
       "data is loaded for any other county, and an address outside the county " +
@@ -421,10 +452,11 @@ export const DECLARED_GAPS: readonly DeclaredGap[] = [
     layerId: ADDRESS_POINTS.id,
     subjectType: "source_coverage",
     subjectRef: "uneven_municipal_coverage",
+    label: "Some newer addresses",
     description:
-      "Address point coverage is uneven across municipalities (DECISION §7 " +
-      "records Cuyahoga Falls carrying 3,224 points for a city of roughly " +
-      "50,000). An address the county has not published a point for cannot be " +
+      "Address point coverage is uneven across municipalities -- Cuyahoga " +
+      "Falls carries 3,224 points for a city of roughly 50,000. An address the " +
+      "county has not published a point for cannot be " +
       "resolved and is declined rather than approximated.",
   },
 ];

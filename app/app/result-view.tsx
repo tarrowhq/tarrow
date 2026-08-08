@@ -97,23 +97,19 @@
 // This file keeps the five shapes and the order they are assembled in, which
 // is the part that carries the argument.
 
-import { Card, CardTitle, Eyebrow, More, Prose } from "./cards.tsx";
+import { Card, CardTitle, Eyebrow, Measured, Prose } from "./cards.tsx";
 import {
   AmbiguityCard,
   FindingCard,
+  LookElsewhereCard,
   PremisesCard,
   ResidenceCard,
   SHERIFF_FOOTER,
   SheriffCard,
-  flaggedSteps,
 } from "./finding-view.tsx";
-import { count, metresAndFeet, plural } from "./format.ts";
-import {
-  CoverageCards,
-  CoverageWithdrawnCard,
-  RuleNotVerifiedCard,
-} from "./manifest-view.tsx";
-import type { CoverageManifest, SearchResult } from "../server/result.ts";
+import { count, feet, plural } from "./format.ts";
+import { CoverageLine, CoverageWithdrawnCard } from "./manifest-view.tsx";
+import type { SearchResult } from "../server/result.ts";
 
 // ---------------------------------------------------------------------------
 // The furniture every shape carries
@@ -143,31 +139,28 @@ export function Masthead() {
 }
 
 /**
- * The last card: what tarrow kept, which is nothing.
+ * THE LAST CARD, and it is a door rather than a paragraph.
  *
- * On a shared or library computer this is not a footnote in the legal sense --
- * it is the answer to "will the next person at this machine see what I typed".
+ * What was here before: a card headed "tarrow kept nothing", explaining across
+ * three paragraphs that the address was not logged, not in the URL, not in a
+ * database, and that the page is marked never to be stored -- with "check
+ * another address" as a small link at the bottom of it.
+ *
+ * Both halves of that were wrong. The privacy paragraph is tarrow explaining
+ * itself to somebody who did not ask, at the moment they have finished reading
+ * their answer; it is true, it is on /faq, and it does not belong on the way
+ * out. And the one thing a reader at the end of a deck actually wants to do --
+ * look up another address -- was a link inside a card about something else.
+ *
+ * So the last screen is the action, and nothing else.
  */
-export function PrivacyCard() {
+export function CheckAnotherCard() {
   return (
-    <Card kind="detail">
-      <Eyebrow>Before you go</Eyebrow>
-      <CardTitle>tarrow kept nothing</CardTitle>
-      <Prose soft>
-        <p>
-          tarrow did not write down the address you typed: not in a log, not in
-          this page&rsquo;s web address, not in a database, and not on its way
-          anywhere else. This page is also marked never to be stored by your
-          browser, which matters on a shared or library computer.
-        </p>
-        <p>
-          You are not asked to take that on trust:{" "}
-          <a href="/faq">the procedure for checking it yourself</a>.
-        </p>
-        <p>
-          <a href="/">Check another address</a>
-        </p>
-      </Prose>
+    <Card kind="act">
+      <CardTitle>Check another address</CardTitle>
+      <p className="act__go">
+        <a href="/">Start again</a>
+      </p>
     </Card>
   );
 }
@@ -226,23 +219,25 @@ function WithinBuffer({
   const n = result.premises.length;
   return (
     <>
+      {result.ambiguity === null ? null : (
+        <AmbiguityCard ambiguity={result.ambiguity} />
+      )}
+
       <FindingCard
         tone="flagged"
         label="Result: inside a buffer tarrow checked"
         count={count(n)}
-        unit={`school ${plural(
-          n,
-          "premises is",
-          "premises are",
-        )} within ${metresAndFeet(result.bufferMeters)} of this address`}
+        unit={`school ${plural(n, "premises", "premises")} within ${feet(
+          result.bufferMeters,
+        )} ft`}
         isNot={
           <>
-            Ohio&rsquo;s rule is written about the <em>premises</em> (the parcel
-            of land) rather than the building, so a school that owns several
-            parcels appears more than once. Repeated names are not a mistake.
+            Ohio counts the <em>land</em>, not the building, so one school can
+            appear more than once.
           </>
         }
-        more={plural(n, "The one tarrow found", "Each one tarrow found")}
+        coverage={<CoverageLine manifest={result.manifest} />}
+        more={plural(n, "The one", "Each one")}
       />
 
       {result.premises.map((p, i) => (
@@ -254,16 +249,9 @@ function WithinBuffer({
         />
       ))}
 
-      <SheriffCard
-        steps={flaggedSteps(result.premises)}
-        footer={SHERIFF_FOOTER}
-      />
+      <LookElsewhereCard premises={result.premises} />
 
       <ResidenceCard residence={result.residence} />
-
-      {result.ambiguity === null ? null : (
-        <AmbiguityCard ambiguity={result.ambiguity} />
-      )}
     </>
   );
 }
@@ -287,22 +275,25 @@ function OutsideEveryBuffer({
 }) {
   return (
     <>
+      {result.ambiguity === null ? null : (
+        <AmbiguityCard ambiguity={result.ambiguity} />
+      )}
+
       <FindingCard
         tone="measured"
         label="Result: outside every buffer we checked"
         count="0"
-        unit={`school premises within ${metresAndFeet(
+        unit={`of the schools we hold are within ${feet(
           result.bufferMeters,
-        )} — of the ones tarrow holds a boundary for`}
+        )} ft`}
         isNot={
           <>
-            <strong>That is smaller than it sounds.</strong> It is a
-            measurement, not a decision. Whole categories of place were never
-            checked at all — they are the next screens, and you should read
-            them before you rely on anything here.
+            <strong>Smaller than it sounds.</strong> A measurement, not a
+            decision.
           </>
         }
-        more="What tarrow did not check"
+        coverage={<CoverageLine manifest={result.manifest} />}
+        more="Your next step"
       />
 
       <SheriffCard
@@ -311,10 +302,6 @@ function OutsideEveryBuffer({
       />
 
       <ResidenceCard residence={result.residence} />
-
-      {result.ambiguity === null ? null : (
-        <AmbiguityCard ambiguity={result.ambiguity} />
-      )}
     </>
   );
 }
@@ -337,12 +324,10 @@ function Declined({
         tone="stopped"
         label="No result: tarrow stopped instead of measuring"
         count="—"
-        unit="tarrow will not give an answer for this address"
+        unit="tarrow will not answer for this address"
         isNot={
           <>
-            It measured no distances at all, so nothing here is a finding about
-            this address. It is not &ldquo;nothing nearby&rdquo;, and it is not
-            &ldquo;address not found&rdquo;.
+            Not &ldquo;nothing nearby&rdquo;. Nothing was measured at all.
           </>
         }
         more="Why tarrow stopped"
@@ -354,21 +339,11 @@ function Declined({
         <Prose soft>
           <p>{result.detail}</p>
           <p>
-            tarrow could have produced a number here. It refused because the
-            number would have been wrong in the dangerous direction: it would
-            tend to come out <em>too large</em>, and a distance that is too
-            large is exactly how an address gets treated as being outside a
-            buffer when it is not. Being annoying is recoverable; being wrong
-            that way is not.
+            A number here would have come out <em>too large</em>, which is how
+            an address gets treated as outside a buffer when it is not.
           </p>
-          <p>
-            That is not a reason to give up on the address. The sheriff&rsquo;s
-            office can answer for one tarrow will not measure.
-          </p>
-          <p>
-            <small>
-              tarrow records the reason for this as <code>{result.reason}</code>.
-            </small>
+          <p className="reason">
+            <Measured>{result.reason}</Measured>
           </p>
         </Prose>
       </Card>
@@ -408,49 +383,30 @@ function CouldNotLocate({
         unit="tarrow could not find this address, so it checked nothing"
         isNot={
           <>
-            <strong>This is not an answer.</strong> tarrow does not know where
-            this address is, so it measured no distances and found nothing,
-            neither near nor far.
+            <strong>Not an answer.</strong> Nothing was measured, near or far.
           </>
         }
-        more="Why this happens, and what to try"
+        more="What to try"
       />
 
       <Card kind="gap">
-        <Eyebrow>Why this happens, and what to try</Eyebrow>
+        <Eyebrow>What to try</Eyebrow>
         <CardTitle>Three likely reasons</CardTitle>
         <Prose soft>
-          <p>{result.detail}</p>
           <ul>
+            <li>It is outside Summit County, Ohio.</li>
             <li>
-              <strong>The address is not in Summit County, Ohio.</strong> tarrow
-              holds no data for anywhere else, and it cannot tell an
-              out-of-county address apart from a misspelled one, so both land
-              here.
+              The county writes it differently — try it as it appears on a bill:
+              road type (RD, ST, AVE), direction (N, W), unit number.
             </li>
-            <li>
-              <strong>The county writes it differently.</strong> Try it as it
-              appears on a tax bill, a utility bill, or a lease: the road type
-              (RD, ST, AVE), a direction (N, W), or a unit number can all be the
-              difference.
-            </li>
-            <li>
-              <strong>The county has not published a point for it.</strong> New
-              addresses, and some municipalities generally, are thinly covered.
-              tarrow says so rather than filling the hole in.
-            </li>
+            <li>The county has not published a point for it.</li>
           </ul>
           <p>
-            tarrow will not guess: it does not correct spelling, it does not
-            fall back to the middle of the street or the centre of the ZIP code,
-            and it does not offer the nearest parcel it happened to find
-            instead. A confident answer about the wrong building is more
-            dangerous to you than no answer at all.
+            tarrow does not correct spelling or fall back to a nearby point. A
+            confident answer about the wrong building is worse than none.
           </p>
-          <p>
-            <small>
-              tarrow records the reason for this as <code>{result.reason}</code>.
-            </small>
+          <p className="reason">
+            <Measured>{result.reason}</Measured>
           </p>
         </Prose>
       </Card>
@@ -483,9 +439,8 @@ function SearchFailed({
         unit="tarrow broke before it could check anything"
         isNot={
           <>
-            This is a fault in this copy of tarrow, not a finding about your
-            address. Nothing was measured and nothing was found. A broken page
-            is not a quiet address.
+            A fault here, not a finding about your address. A broken page is
+            not a quiet address.
           </>
         }
         more="What went wrong"
@@ -497,24 +452,24 @@ function SearchFailed({
         <Prose soft>
           <p>{result.detail}</p>
           <p>
-            Try again in a few minutes. If it keeps happening, this instance of
-            tarrow is broken and whoever runs it needs to look at it; until then
-            it can tell you nothing.
+            Try again in a few minutes. If it keeps happening, whoever runs this
+            copy needs to look at it.
           </p>
-          <p>
-            tarrow deliberately keeps no error report that could carry what you
-            typed, so there is no record of this failure holding your address
-            anywhere: not in a log, not in a crash report, not on the screen.
-            That is the trade it makes: a fault here is harder for its
-            maintainers to diagnose, and your address is not written down.
-          </p>
-          <p>
-            <small>
-              tarrow records the reason for this as <code>{result.reason}</code>.
-            </small>
+          <p className="reason">
+            <Measured>{result.reason}</Measured>
           </p>
         </Prose>
       </Card>
+
+      {/* A BROKEN TARROW MUST WITHDRAW ITS COVERAGE CLAIM RATHER THAN GO
+          QUIET. Every working answer carries a line saying what was not
+          checked; a failure carries none, and a reader who has seen the
+          working version could take that silence for "nothing to report".
+          This is the one shape where the manifest cannot be read at all, so
+          it says so. */}
+      {result.manifest.availability === "read-from-data" ? null : (
+        <CoverageWithdrawnCard statement={result.manifest.statement} />
+      )}
 
       <SheriffCard
         steps={sheriffStepsFor(result.kind)}
@@ -554,50 +509,51 @@ function Shape({ result }: { result: SearchResult }) {
   }
 }
 
-/** The coverage manifest's cards, whichever way it came back. */
-export function CoverageManifestView({
-  manifest,
-}: {
-  manifest: CoverageManifest;
-}) {
-  return <CoverageCards manifest={manifest} />;
-}
-
-export { CoverageWithdrawnCard, RuleNotVerifiedCard, SheriffCard };
+export { CoverageWithdrawnCard, SheriffCard };
 
 /**
- * Every result deck, whatever its shape, carries: the answer, the sheriff
- * step, the coverage manifest, and the unverified-rule disclosure. All
- * server-rendered, none of it behind JavaScript (spec FR-015).
+ * THE DECK, AND THE ORDER THAT MAKES IT AN ARGUMENT.
  *
- * THE ORDER IS THE ARGUMENT, and TASK-0022 did not change it.
+ *   ambiguity (only when the address means several parcels)
+ *   THE FINDING          the number, what it is not, and what was not checked
+ *   each premises        one screen each, flagged shapes only
+ *   the action           call the office, or -- when tarrow found schools --
+ *                        look somewhere else instead
+ *   measured from        the parcel, and the sentence that can invalidate it
+ *   check another        the way out
  *
- * The sheriff step comes second, immediately after the finding. It used to sit
- * fourth, below the manifest and the rule disclosure. But it is the one thing
- * on this surface the reader can DO -- rule 4 calls it the recommended action
- * rather than a disclaimer, the constitution's promise is "an hour of searching
- * plus one confirming phone call", and TASK-0008 AC #4 asks for the registering
- * agency to be identified and easy to reach.
+ * WHAT WAS REMOVED, AND WHY IT IS NOT A LOSS OF DISCLOSURE. The deck used to
+ * continue past "measured from" with five full-screen coverage gaps, a card of
+ * layer provenance, a card restating that the rule is unverified, and a card
+ * explaining that tarrow logs nothing. Every one was true. Together they were
+ * eight screens of tarrow talking about itself, arriving after the reader
+ * already had their answer, and a reader under a deadline read none of them.
  *
- * What did NOT move is the manifest. It follows the action directly, because
- * Principle II binds every result to state what was not checked. The comment on
- * manifest-view.tsx names moving it to /faq as the specific mistake to avoid;
- * demoting it to the end of the deck would be the same mistake by a slower
- * route.
+ * That is rule 5 turned on its own remedy: text nobody reads was not
+ * delivered, whether it is skipped for being below the fold or for being a
+ * wall. So the facts moved to where they are read -- what was not checked is
+ * ONE LINE beside the number, on the finding card, where a reader sees it in
+ * the same glance as the answer it qualifies. The full ledger, the provenance,
+ * the staleness dates, and the privacy account are on /faq, in full, for
+ * anyone who wants them.
  *
- * WHY THE SHAPE OWNS ITS OWN SHERIFF CARD. Each shape renders one, positioned
- * within its own cards, because what to carry into the phone call depends on
- * what tarrow found -- a flagged deck reads out the premises by name, and a
- * refusal says tarrow measured nothing. The obligation is identical on every
- * shape; only the words differ.
+ * PRINCIPLE II IS SATISFIED ON THE ANSWER, NOT DELEGATED TO A LINK. The line
+ * is on the card, rendered from the ledger, and copy.test.ts requires its
+ * labels to be present and outside every <details> on every result. Moving
+ * that line itself to /faq would be the violation manifest-view.tsx warns
+ * about; shortening it is not.
+ *
+ * WHY THE SHAPE OWNS ITS OWN ACTION CARD. What to do next depends on what
+ * tarrow found. A flagged answer recommends looking elsewhere and offers the
+ * call; every other shape recommends the call, because tarrow does not know
+ * and that office does. The obligation is identical on every shape; only the
+ * words differ.
  */
 export function ResultPage({ result }: { result: SearchResult }) {
   return (
     <main className="deck">
       <Shape result={result} />
-      <CoverageManifestView manifest={result.manifest} />
-      <RuleNotVerifiedCard rule={result.manifest.ruleContent} />
-      <PrivacyCard />
+      <CheckAnotherCard />
     </main>
   );
 }

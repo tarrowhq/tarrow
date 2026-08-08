@@ -243,19 +243,44 @@
      THE SIGNATURE ELEMENT. One idea gets one screen; the reader moves
      through a stack of them.
 
-     WHY `proximity` AND NOT `mandatory`. A card whose content is taller than
-     the viewport -- a long gap description at 360px, or at a large text size
-     -- must stay freely scrollable. `mandatory` fights the reader there and
-     can strand content off-screen where it is not delivered at all, which is
-     the exact failure rule 5 in result-view.tsx names. Snapping is an assist,
-     never a gate on reading.
+     ONE FLICK, ONE CARD. `mandatory` snapping means a scroll gesture of any
+     size lands on the next card rather than somewhere between two -- the
+     reader is never looking at the bottom of one idea and the top of the
+     next. With `scroll-behavior: smooth` the browser animates that itself,
+     so a wheel notch, a trackpad flick, Page Down, and the arrow keys all
+     produce the same single-card advance without a line of JavaScript.
+
+     THE ESCAPE HATCH IS `scroll-snap-stop: normal` PLUS THE OVERRIDE BELOW.
+     `mandatory` is dangerous for one specific case: a card TALLER than the
+     viewport can have its lower half snapped away from, stranding content a
+     reader never sees -- the exact failure rule 5 in result-view.tsx names.
+     So `.card--tall` opts out (see below), and any card whose content can
+     overflow carries it. Snapping must never become a gate on reading.
 
      WHY THE DECK IS THE PAGE and not a fixed-height scroller: a nested
      scroll container traps a reader who scrolls the document instead, and it
      depends on a viewport height it cannot know. The document itself snaps. */
-  .deck {
-    scroll-snap-type: y proximity;
+  /* THE SNAP LIVES ON :root, NOT ON .deck, AND THAT IS NOT A DETAIL.
+     `scroll-snap-type` only does anything on the element that actually
+     SCROLLS. `.deck` is a <main> in normal flow with `overflow: visible` --
+     it does not scroll; the document does. Declared here it was inert: the
+     property computed correctly on the element and the viewport ignored it,
+     because the viewport's scroll container is the root.
+
+     So the root carries the snap, and `.deck` is the marker that turns it on
+     -- `:root:has(.deck)` means the ask screen and /faq scroll normally while
+     an answer deck snaps, with no class on <html> and no script to add one. */
+  :root:has(.deck) {
+    scroll-snap-type: y mandatory;
     scroll-behavior: smooth;
+  }
+
+  /* Reduced motion means no ANIMATION, not no navigation: the jump still
+     happens, it just happens instantly. */
+  @media (prefers-reduced-motion: reduce) {
+    :root:has(.deck) {
+      scroll-behavior: auto;
+    }
   }
 
   /* A card is a full-viewport panel holding exactly one thing.
@@ -276,6 +301,20 @@
     padding: var(--s-5) var(--s-4);
     border-bottom: 1px solid var(--rule);
     background: var(--card);
+  }
+
+  /* THE ESCAPE HATCH. A card that can grow past the viewport -- an opened
+     disclosure, a long table, a large text size -- must not be snapped away
+     from mid-read. `scroll-snap-align: none` lets the reader scroll it
+     freely; the next card still snaps when they reach it.
+
+     `:has()` is the whole mechanism and it degrades correctly: a browser
+     without it simply keeps mandatory snapping on these cards, which is the
+     behaviour every card had a moment ago. Nothing is hidden either way. */
+  .card:has(details[open]),
+  .card:has(.scroller),
+  .card:has(table) {
+    scroll-snap-align: none;
   }
 
   /* The content column. A card is full-bleed; its words are not -- a line
@@ -580,6 +619,74 @@
     color: var(--ink-soft);
   }
 
+  /* ---- What was NOT checked, as one line ------------------------------
+     Principle II's whole delivery on the answer surface: a count, and the
+     ledger's own two-or-three-word labels, beside the number they qualify.
+
+     It was five full screens of paragraphs. The facts are identical; the
+     length is not, and length was the thing keeping them unread. Drawn as a
+     bordered strip rather than a sentence so the eye catches it as a
+     separate object from the finding above it. */
+  .not-checked {
+    margin: var(--s-3) 0 0;
+    padding: var(--s-2) 0 0;
+    border-top: 1px solid var(--rule);
+  }
+
+  .not-checked a {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0 var(--s-2);
+    align-items: baseline;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .not-checked a:hover .not-checked__label,
+  .not-checked a:focus-visible .not-checked__label {
+    text-decoration: underline;
+  }
+
+  .not-checked__n {
+    grid-row: span 2;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--stopped);
+  }
+
+  .not-checked__label {
+    font-family: var(--font-mono);
+    font-size: var(--t-eyebrow);
+    letter-spacing: var(--track-wide);
+    text-transform: uppercase;
+    color: var(--stopped);
+  }
+
+  .not-checked__list {
+    font-size: var(--t-detail);
+    color: var(--ink-soft);
+    line-height: 1.35;
+  }
+
+  /* The rule disclosure, as one line rather than a card of prose. */
+  .unverified {
+    margin: var(--s-2) 0 0;
+    font-size: var(--t-eyebrow);
+    font-family: var(--font-mono);
+    letter-spacing: 0.04em;
+    color: var(--ink-soft);
+  }
+
+  /* A machine-readable reason, shown as the value it is rather than wrapped
+     in a sentence explaining that tarrow records it. */
+  .reason {
+    margin: var(--s-2) 0 0;
+    opacity: 0.75;
+  }
+
   .card--flagged {
     background: var(--flagged-sunk);
     border-left: 6px solid var(--flagged);
@@ -624,6 +731,9 @@
      One school, one screen. The distance is the largest thing on it because
      it is what the reader came for and what they will read down the
      phone. */
+  /* THE FIGURE, AND THE UNIT AS A FOOTNOTE TO IT. The distance is what the
+     reader came for; "ft" is what it is measured in. They are not equally
+     important and are not drawn at equal size. Metres are in the fold. */
   .premises__distance {
     margin: 0;
     font-size: var(--t-measure);
@@ -634,10 +744,13 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .premises__alt {
-    margin: var(--s-1) 0 0;
-    font-family: var(--font-mono);
-    font-size: var(--t-detail);
+  .premises__unit {
+    font-size: 0.3em;
+    font-weight: 700;
+    letter-spacing: var(--track-wide);
+    text-transform: uppercase;
+    margin-left: 0.35em;
+    vertical-align: 0.35em;
     color: var(--ink-soft);
   }
 
@@ -792,10 +905,26 @@
 
   .act__footer {
     margin: 0;
-    font-size: var(--t-body);
-    font-weight: 700;
+    font-size: var(--t-detail);
     padding-top: var(--s-2);
     border-top: 1px solid var(--rule-strong);
+  }
+
+  /* The way out, drawn as a destination rather than a footnote. */
+  .act__go {
+    margin: var(--s-3) 0 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  /* The sentence on the measured-from card that can invalidate everything
+     above it. Full ink, not soft: it is a condition on the answer, not a
+     caption. */
+  .residence__check {
+    margin: var(--s-2) 0 0;
+    font-size: var(--t-body);
+    font-weight: 700;
   }
 
   /* ---- The detail card ------------------------------------------------

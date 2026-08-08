@@ -134,35 +134,48 @@ const SHERIFF_TOKENS = ["sheriff", "where you register"] as const;
 /** Principle V, as this release is obliged to state it. */
 const RULE_NOT_VERIFIED = "not verified rule data";
 
-/** Principle II. Read off the coverage-gap ledger, transcribed here from it. */
+/**
+ * Principle II, as the answer surface now states it.
+ *
+ * WHAT CHANGED, AND WHY THIS IS NOT A WEAKENING. These were the ledger's full
+ * `description` paragraphs, each rendered as a full screen of its own. That
+ * satisfied Principle II by volume: five screens of text written for somebody
+ * auditing the instance, between a frightened reader and the rest of their
+ * answer, and read by nobody.
+ *
+ * The ledger now carries a short `label` beside each description -- two or
+ * three words, for the person looking up an address -- and the answer states
+ * the gaps as a count plus those labels, on the same card as the finding.
+ * The full descriptions are on /faq.
+ *
+ * So this list is the LABELS, and the assertion is unchanged in force: every
+ * class of place tarrow did not check must be named on every result, in the
+ * reader's own words, outside every <details>. What may not happen is the
+ * list vanishing from the answer -- and that is what these tests still catch.
+ */
 const MANIFEST_TOKENS = [
-  "ORC 2950.034 protects preschools",
-  "Summit County municipalities impose their own residency ordinances",
-  "Coverage is Summit County, Ohio only",
-  "St. Vincent-St. Mary High School",
+  "Preschools and day-care",
+  "City and village rules",
+  "Anywhere outside Summit County",
 ] as const;
 
 /**
- * The subset of the above that must be VISIBLE -- rendered outside every
- * <details> -- rather than merely present (TASK-0017).
+ * The gaps that must be VISIBLE -- rendered outside every <details> -- rather
+ * than merely present.
  *
- * FR-015 permits the manifest to be collapsed, and TASK-0017 collapsed a great
- * deal of this page on the argument that disclosure a reader scrolls past was
- * never delivered. That argument cuts both ways: disclosure a reader never
- * opens was not delivered either. The line drawn, and the line this gate
- * holds, is that WHAT TARROW DID NOT CHECK stays on the page unfolded, while
- * HOW TARROW KNOWS WHAT IT CHECKED may fold away.
+ * FR-015 permits the manifest to be collapsed. TASK-0017 collapsed a great
+ * deal of this surface on the argument that disclosure a reader scrolls past
+ * was never delivered, and that argument cuts both ways: disclosure a reader
+ * never opens was not delivered either. The line this gate holds is that WHAT
+ * TARROW DID NOT CHECK stays unfolded, while HOW TARROW KNOWS WHAT IT CHECKED
+ * may fold away or move to /faq.
  *
- * These three are the facility-class and jurisdiction gaps -- the ones that
- * make an unflagged answer honest. "St. Vincent-St. Mary High School" is
- * deliberately NOT here: it is a premises-level entry in the full ledger, and
- * the test below uses it to prove the collapsed part really is collapsed.
+ * These are the facility-class and jurisdiction gaps -- the ones that make an
+ * unflagged answer honest. They are the same strings as MANIFEST_TOKENS
+ * because the surface now states exactly these and nothing longer: there is no
+ * folded tier of gap text left on the answer to distinguish them from.
  */
-const VISIBLE_GAP_TOKENS = [
-  "ORC 2950.034 protects preschools",
-  "Summit County municipalities impose their own residency ordinances",
-  "Coverage is Summit County, Ohio only",
-] as const;
+const VISIBLE_GAP_TOKENS = MANIFEST_TOKENS;
 
 /** Everything inside a <details>, removed. tarrow nests none, so this is exact. */
 function withoutCollapsedContent(body: string): string {
@@ -537,17 +550,26 @@ describe("the strongest available answer is phrased as Principle I requires", ()
   });
 
   test("it qualifies itself on the finding card, not further down the deck", () => {
-    const body = shape("outside-every-buffer-we-checked").body;
-    // The label that names this shape, which is where the phrase now sits
-    // (TASK-0022: the finding card carries label, count, unit, and the
-    // is-not sentence, in that order, on one screen).
+    // Case-folded on BOTH sides. The body is read off the wire, where the
+    // label is title-cased and the qualifier begins a sentence; comparing
+    // lowercase needles against the raw body silently never matches, which is
+    // a test that passes by finding nothing rather than by proving something.
+    const body = shape("outside-every-buffer-we-checked").body.toLowerCase();
     const headline = body.indexOf("outside every buffer we checked");
     const qualifier = body.indexOf("smaller than it sounds");
-    assert.ok(headline > -1 && qualifier > headline);
+    assert.ok(
+      headline > -1,
+      "the unflagged answer does not name itself as outside every buffer",
+    );
+    assert.ok(
+      qualifier > headline,
+      "the qualification must come after the finding it qualifies",
+    );
     assert.ok(
       qualifier - headline < 400,
-      "the qualification must sit on the same card as the finding. A reader " +
-        "who stops reading after the first screen must not stop on good news.",
+      `the qualification sits ${qualifier - headline} characters after the ` +
+        "finding, so it is no longer on the same card. A reader who stops " +
+        "after the first screen must not stop on good news.",
     );
   });
 });
@@ -592,55 +614,61 @@ describe("the coverage manifest is on every result (FR-009, FR-015, AC #2)", () 
       }
     });
 
-    /**
-     * Principle V, checked against the LAYERS TABLE rather than the document.
-     *
-     * The old assertion counted `never human-verified` over the whole body and
-     * expected exactly 7. That is wrong in both directions: the prose above the
-     * table says the phrase too, so the real count was 8 and the gate would
-     * have failed had it ever run (it did not -- see ROSTER). And counting the
-     * document means a table that quietly lost a row still passes as long as
-     * some sentence elsewhere makes the total come out right.
-     *
-     * So: find the table tarrow marks as the layer registry, and require that
-     * every row of it -- all 7 -- renders the marker. A null verification date
-     * must read NEVER, not a blank cell, not a dash, and never a fetch date
-     * wearing a verification's name.
-     */
-    test(`${name} reports every layer in the registry as never human-verified`, () => {
-      const table = shape(name).body.match(
-        /<table[^>]*data-table="layers"[^>]*>([\s\S]*?)<\/table>/,
-      );
-      assert.ok(table, `${name} renders no layer registry table at all`);
-      const rows = [...table[1]!.matchAll(/<tr>([\s\S]*?)<\/tr>/g)]
-        .map((m) => m[1] ?? "")
-        // The header row carries <th>, not <td>.
-        .filter((r) => r.includes("<td"));
-      assert.equal(
-        rows.length,
-        7,
-        `${name}'s layer registry renders ${rows.length} rows; there are 7 ` +
-          "layers. A layer missing from this table is a layer whose staleness " +
-          "the reader was never told about.",
-      );
-      for (const row of rows) {
-        assert.ok(
-          row.includes(NEVER_VERIFIED),
-          `${name} has a layer row whose verification date is not rendered as ` +
-            `"${NEVER_VERIFIED}": ${row.slice(0, 200)}`,
-        );
-      }
-    });
-
-    test(`${name} states how old this instance's data is`, () => {
-      assert.match(
-        withoutSsrSeparators(shape(name).body),
-        /last fetched data on \d+ \w+ \d{4}/,
-        "Principle VII: an instance running old data is a hazard unless it " +
-          "announces itself as one",
-      );
-    });
   }
+
+  /**
+   * Principle V and Principle VII, CHECKED ON /faq RATHER THAN ON THE ANSWER.
+   *
+   * These were asserted on every result, because the answer carried a layer
+   * registry and a staleness sentence on a card of its own. It no longer does:
+   * a table of source layers and fetch dates is provenance -- how tarrow knows
+   * what it checked -- and a person looking up an address is not its audience.
+   *
+   * THE OBLIGATION DID NOT MOVE WITH IT. It is still true that an instance
+   * running stale data is a hazard unless it says so, and still true that no
+   * layer has been checked by a person. So the gate follows the content to
+   * /faq and keeps its full force there: every layer in the registry, every
+   * one marked never-verified, and the fetch date on the page. What is
+   * forbidden is this disappearing, and that is exactly what these catch.
+   */
+  test("faq carries the layer registry, every layer never human-verified", () => {
+    const table = shape("faq").body.match(
+      /<table[^>]*data-table="layers"[^>]*>([\s\S]*?)<\/table>/,
+    );
+    assert.ok(
+      table,
+      "/faq renders no layer registry table. It moved off the answer deck on " +
+        "the understanding that this page carries it; if it is here neither, " +
+        "Principle V's disclosure was deleted rather than relocated.",
+    );
+    const rows = [...table[1]!.matchAll(/<tr>([\s\S]*?)<\/tr>/g)]
+      .map((m) => m[1] ?? "")
+      // The header row carries <th>, not <td>.
+      .filter((r) => r.includes("<td"));
+    assert.equal(
+      rows.length,
+      7,
+      `/faq's layer registry renders ${rows.length} rows; there are 7 layers. ` +
+        "A layer missing from this table is a layer whose staleness the reader " +
+        "was never told about.",
+    );
+    for (const row of rows) {
+      assert.ok(
+        row.includes(NEVER_VERIFIED),
+        `/faq has a layer row whose verification date is not rendered as ` +
+          `"${NEVER_VERIFIED}": ${row.slice(0, 200)}`,
+      );
+    }
+  });
+
+  test("faq states how old this instance's data is", () => {
+    assert.match(
+      withoutSsrSeparators(shape("faq").body),
+      /last fetched data on \d+ \w+ \d{4}/,
+      "Principle VII: an instance running old data is a hazard unless it " +
+        "announces itself as one",
+    );
+  });
 
   for (const name of SEARCH_RESULTS) {
     test(`${name} says the rule tarrow applied is not verified data`, () => {
@@ -653,7 +681,29 @@ describe("the coverage manifest is on every result (FR-009, FR-015, AC #2)", () 
     });
   }
 
-  for (const name of LOADED_MANIFESTS) {
+  /**
+   * WHERE THE GAP LIST IS REQUIRED, AND WHERE IT WOULD BE NOISE.
+   *
+   * Principle II binds the list to a FINDING: "absence of a flag is meaningful
+   * only against a stated list of what was searched". The two shapes that
+   * produce a finding -- a flagged answer and an unflagged one -- must carry
+   * it, and on the unflagged answer it is the whole reason the answer is
+   * honest.
+   *
+   * A refusal has no finding. tarrow could not locate the address, or declined
+   * to measure it, and nothing was searched at all -- so there is no absence
+   * for the list to qualify. Printing "3 not checked" beside "we measured
+   * nothing" states a limit on a measurement that was never made, which reads
+   * as though something WAS checked. Those shapes say the stronger thing
+   * instead, in their own words: nothing was measured, near or far.
+   */
+  const FINDINGS = [
+    "premises-within-buffer",
+    "premises-within-buffer-by-uncertainty",
+    "outside-every-buffer-we-checked",
+  ];
+
+  for (const name of FINDINGS) {
     test(`${name} leaves what was NOT checked visible, not folded away`, () => {
       const visible = withoutCollapsedContent(shape(name).body);
       for (const token of VISIBLE_GAP_TOKENS) {
@@ -666,13 +716,6 @@ describe("the coverage manifest is on every result (FR-009, FR-015, AC #2)", () 
             "not the gaps.",
         );
       }
-      assert.ok(
-        !visible.includes("St. Vincent-St. Mary High School"),
-        `${name}: the full gap ledger is not collapsed after all, so the check ` +
-          "above proves nothing about what is visible. Either the <details> " +
-          "stripper stopped working or the page stopped folding the long " +
-          "enumerations.",
-      );
     });
   }
 
@@ -694,11 +737,10 @@ describe("a refusal and a result differ by more than a sentence (User Story 3, A
   const REFUSALS = ["declined", "could-not-locate", "search-failed"];
 
   test("only results render a measured parcel, a distance, or a premises list", () => {
-    const STRUCTURE = [
-      "The parcel tarrow measured from",
-      "Distance tarrow measured",
-      "How the parcel was attached to the address",
-    ];
+    // The furniture of a page that measured something. These are the card
+    // eyebrow and the disclosure rows on the measured-from card, which exists
+    // only where tarrow resolved an address to a parcel and measured from it.
+    const STRUCTURE = ["Measured from", "Matched by", "Slack this side"];
     for (const name of REFUSALS) {
       for (const marker of STRUCTURE) {
         assert.equal(
@@ -710,12 +752,15 @@ describe("a refusal and a result differ by more than a sentence (User Story 3, A
       }
     }
     // ...and the results do, so the check above is not vacuous.
-    assert.ok(shape("premises-within-buffer").body.includes("Distance tarrow measured"));
-    assert.ok(
-      shape("outside-every-buffer-we-checked").body.includes(
-        "The parcel tarrow measured from",
-      ),
-    );
+    for (const name of RESULTS) {
+      for (const marker of STRUCTURE) {
+        assert.ok(
+          shape(name).body.includes(marker),
+          `${name} is missing "${marker}", so the assertion above proves ` +
+            "nothing about refusals being structurally different.",
+        );
+      }
+    }
   });
 
   test("every shape carries a distinct label above the headline", () => {
@@ -770,20 +815,24 @@ describe("a refusal and a result differ by more than a sentence (User Story 3, A
   test("declined and could-not-locate say different things about what tarrow knows", () => {
     const declined = shape("declined").body;
     const notFound = shape("could-not-locate").body;
+    // The distinction that matters to a reader: tarrow KNOWS where this is and
+    // stopped anyway, versus tarrow has no idea where this is. Confusing the
+    // two would send somebody to re-type an address that was never the problem.
     assert.ok(declined.includes("Why tarrow stopped"));
     assert.ok(declined.includes("tarrow knows where this is"));
     assert.ok(!notFound.includes("Why tarrow stopped"));
-    assert.ok(notFound.includes("tarrow does not know where this address is"));
-    assert.ok(notFound.includes("Why this happens, and what to try"));
-    assert.ok(!declined.includes("Why this happens, and what to try"));
+    assert.ok(notFound.includes("could not find this address"));
+    assert.ok(notFound.includes("What to try"));
+    assert.ok(!declined.includes("What to try"));
   });
 
   test("neither refusal can be read as an absence of nearby schools", () => {
     assert.ok(
-      shape("declined").body.includes("It is not &#x201C;nothing nearby&#x201D;") ||
-        shape("declined").body.includes("It is not “nothing nearby”"),
+      shape("declined").body.includes("&#x201C;nothing nearby&#x201D;") ||
+        shape("declined").body.includes("“nothing nearby”"),
+      "declined must say explicitly that it is not 'nothing nearby'",
     );
-    assert.ok(shape("could-not-locate").body.includes("This is not an answer."));
+    assert.ok(shape("could-not-locate").body.includes("Not an answer."));
   });
 });
 

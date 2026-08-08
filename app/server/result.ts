@@ -125,6 +125,9 @@ export interface ManifestGap {
   readonly layerId: string | null;
   readonly subjectType: string;
   readonly subjectRef: string | null;
+  /** Two or three words, for the answer surface. Never a sentence. */
+  readonly label: string;
+  /** The full record, for /faq. Never rendered on the answer surface. */
   readonly description: string;
   readonly discoveredAt: string | null;
 }

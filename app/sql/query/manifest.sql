@@ -48,6 +48,7 @@ gap_rows AS (
            g.layer_id,
            g.subject_type,
            g.subject_ref,
+           g.label,
            g.description,
            g.discovered_at
       FROM coverage_gaps g

@@ -40,6 +40,23 @@ export function metresAndFeet(value: number): string {
 }
 
 /**
+ * e.g. `420` -- feet alone, with no unit and no second unit beside it.
+ *
+ * For the ONE display number on a card, where the unit is set separately at a
+ * smaller size and the metres are in the fold. Ohio's statute is written in
+ * feet, so feet is the figure a reader is checking themselves against and the
+ * one they will say down a phone.
+ *
+ * This rounds, and rounding is safe here for the same reason `metresAndFeet`
+ * is: server/search.ts has already decided, and no comparison downstream reads
+ * this string. `metresAndFeet` remains the precise form and is what the
+ * disclosure shows.
+ */
+export function feet(value: number): string {
+  return Math.round(value / METRES_PER_FOOT).toLocaleString("en-US");
+}
+
+/**
  * Where a measured distance sits on the buffer scale, as a fraction in [0,1].
  *
  * This is presentation, in the same sense `metresAndFeet` is: it converts a

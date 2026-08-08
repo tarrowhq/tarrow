@@ -30,7 +30,7 @@ import { useActionData } from "react-router";
 import type { SearchResult } from "../../server/result.ts";
 import { search } from "../../server/search.ts";
 import { FindingCard, SHERIFF_FOOTER, SheriffCard } from "../finding-view.tsx";
-import { PrivacyCard, ResultPage } from "../result-view.tsx";
+import { CheckAnotherCard, ResultPage } from "../result-view.tsx";
 
 interface AnswerData {
   readonly result: SearchResult;
@@ -80,7 +80,7 @@ function NothingWasSubmitted() {
         ]}
         footer={SHERIFF_FOOTER}
       />
-      <PrivacyCard />
+      <CheckAnotherCard />
     </main>
   );
 }
