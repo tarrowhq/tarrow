@@ -24,11 +24,22 @@
 
 name: publish images
 
-# A release on a `v*` tag is published by dispatching this workflow WITH THAT
-# TAG SELECTED AS THE REF, not by a tag-push trigger. The `paths` filter below
-# would apply to a tag push too, so tagging a commit that happens not to touch
-# app/ or docker/ would silently publish nothing -- which is the one moment
-# somebody is definitely expecting a publish. Dispatch has no such filter.
+# HOW THIS IS ENTERED, AND WHY A RELEASE DOES NOT COME IN THROUGH `push`.
+#
+#   push to main     continuous publishing of `sha-<short>`, filtered by
+#                    `paths` -- a commit touching only docs has nothing new to
+#                    build.
+#   workflow_call    a RELEASE, invoked by release.yml when a `v*` tag is
+#                    pushed. A reusable call carries no `paths` filter at all.
+#   workflow_dispatch  re-running a publish by hand.
+#
+# The filter is the reason for the split. `paths` applies to a tag push exactly
+# as it does to a branch push, so a `tags: ["v*"]` entry beside the branch
+# filter would inherit it -- and a release cut from a commit that happens not
+# to touch app/ or docker/ would silently publish nothing, at the one moment
+# somebody is definitely expecting a publish. Routing releases through
+# `workflow_call` gives them an unfiltered entry point without weakening the
+# filter that keeps main from rebuilding on every docs commit.
 on:
   push:
     branches: [main]
@@ -38,10 +49,20 @@ on:
       - "docker-compose.yml"
       - "docker-compose.deploy.yml"
       - ".github/workflows/publish-images.yml"
+  # Called by .github/workflows/release.yml on a `v*` tag. A reusable call
+  # carries NO paths filter, which is the whole reason releases go through it
+  # rather than through a `tags:` entry above: `paths` applies to a tag push
+  # too, so a release cut from a commit that happens not to touch app/ or
+  # docker/ would silently publish nothing -- at the one moment somebody is
+  # definitely expecting a publish.
+  workflow_call:
   workflow_dispatch:
 
 permissions:
   contents: read
+  # `contents: write` is needed only by the `release` job, which creates the
+  # GitHub Release. It is granted there rather than here so that every other
+  # job in this workflow keeps read-only access to the repository.
   packages: write
 
 jobs:
