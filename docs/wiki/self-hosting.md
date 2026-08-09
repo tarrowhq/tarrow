@@ -7,7 +7,7 @@ sources:
   - .env.deploy.example
   - docs/deploy/self-hosting.md
   - .github/workflows/publish-images.yml
-verified_against: b5b247a6cb390ba505c674f0c77af551dd547949
+verified_against: 1a89f6a6b8d3710c3c6e9bc142b1f0485163d676
 ---
 
 # Self-hosting
@@ -40,6 +40,17 @@ care. The `parity` job in `.github/workflows/publish-images.yml` resolves both f
 
 Usage is `cp .env.deploy.example .env`, set the tag and both passwords, then
 `docker compose -f docker-compose.deploy.yml up -d` and the `etl` profile run.
+
+**Which tag to set.** Every build publishes an immutable `sha-<short>`; a build from a `v*`
+tag also publishes the plain version (`v0.1.0` -> `0.1.0`). Either is a valid pin and neither
+moves. There is no `latest`.
+
+Releases are cut by pushing a tag: `.github/workflows/release.yml` calls the publish workflow,
+waits for the smoke test that stands this composition up from the images it just built, and
+only then creates the GitHub Release. It enters `publish-images.yml` through `workflow_call`
+rather than a `tags:` trigger because that workflow filters its push trigger by `paths`, and a
+paths filter applies to a tag push too -- a release cut from a commit that happened not to
+touch `app/` or `docker/` would otherwise publish nothing at all.
 
 `docs/deploy/self-hosting.md` carries the full procedure, and its *What a reverse proxy can
 see* section must be read before exposing anything: tarrow keeps the searched address out of

@@ -9,7 +9,7 @@ sources:
   - specs/002-repoint-tarrowhq-org/spec.md
   - README.md
   - CLAUDE.md
-verified_against: 6d60a311a4e38c2e7520aa71dc141ac5bd014599
+verified_against: 1a89f6a6b8d3710c3c6e9bc142b1f0485163d676
 ---
 
 # Work planning
@@ -26,6 +26,20 @@ when the breakdown needs tracking of its own — independent status, its own not
 person doing it. When it is merely a work list, it stays in the parent's plan or Definition of
 Done, because records are for work that needs to move on the board and checklists are for work
 that only needs to get done.
+
+**A PR that touches pinned wiki sources carries the wiki refresh with it.** `docs/wiki/` is
+what the next person or agent reads to orient before changing anything, so a note that no
+longer matches its sources is worse than no note. `/grounding-wiki:wiki-update` runs BEFORE the
+PR is opened and the refresh lands in that same PR;
+`.github/workflows/wiki-freshness.yml` runs `scripts/check-wiki-freshness.mjs` on every pull
+request and fails it otherwise.
+
+That gate is vendored into the repository rather than invoked from the plugin, because the
+plugin's copy lives in a versioned per-user cache that CI cannot reach. It replaced an
+enforcement that existed only in prose: CLAUDE.md asserted the gate ran in CI while no script
+and no workflow existed, and the corpus went stale across two merges without a red check.
+Never bump a pin without reading the diff -- the pin is a claim that somebody verified the
+content at that commit, and a false claim there hides the staleness instead of showing it.
 
 **Every PR leaves main deployable and the application working.** No PR leaves the system
 half-migrated or dependent on a follow-up to function. The consequence stated plainly: a
