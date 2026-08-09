@@ -9,7 +9,25 @@ CREATE TABLE coverage_gaps (
     layer_id       text REFERENCES layers (id),
     subject_type   text NOT NULL,  -- e.g. 'school_premises', 'facility_class', 'municipality'
     subject_ref    text,           -- free-form identifier of the specific gap
-    description    text NOT NULL,  -- manifest-ready: what's missing, and why
+    -- TWO AUDIENCES, TWO COLUMNS.
+    --
+    -- `label` is what a person looking up an address reads: two or three
+    -- words naming the thing that was not checked. "Preschools and day-care".
+    -- "City and village rules". It goes on the answer surface, where the
+    -- reader is frightened and under time pressure and will read a phrase but
+    -- not a paragraph.
+    --
+    -- `description` is the full record: why the gap exists, what it means for
+    -- an answer, what a self-hoster should know. It is read by /faq and by
+    -- anyone auditing the instance.
+    --
+    -- They were one column, and the one column was written for the second
+    -- audience. The result was a paragraph of internal reasoning rendered to
+    -- somebody who wanted to know whether they could live somewhere. A short
+    -- label is not a summary of the long text -- it is the same fact stated
+    -- for the person who has to act on it.
+    label          text NOT NULL,
+    description    text NOT NULL,
     discovered_at  timestamptz NOT NULL DEFAULT now()
 );
 
@@ -17,3 +35,11 @@ COMMENT ON TABLE coverage_gaps IS
     'Every known absence, recorded as data. The coverage manifest (Phase '
     '3) renders this table directly -- Constitution Principle II forbids '
     'coverage being inferred from silence.';
+
+COMMENT ON COLUMN coverage_gaps.label IS
+    'Two or three words, for the person looking up an address. Rendered on '
+    'the answer surface. Never a sentence.';
+
+COMMENT ON COLUMN coverage_gaps.description IS
+    'The full record, for /faq and for anyone auditing this instance. Never '
+    'rendered on the answer surface.';

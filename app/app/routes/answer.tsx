@@ -29,12 +29,8 @@ import { useActionData } from "react-router";
 
 import type { SearchResult } from "../../server/result.ts";
 import { search } from "../../server/search.ts";
-import {
-  Masthead,
-  PrivacyFootnote,
-  ResultPage,
-  SheriffNextStep,
-} from "../result-view.tsx";
+import { FindingCard, SHERIFF_FOOTER, SheriffCard } from "../finding-view.tsx";
+import { CheckAnotherCard, ResultPage } from "../result-view.tsx";
 
 interface AnswerData {
   readonly result: SearchResult;
@@ -60,24 +56,31 @@ export async function action({
 /** A GET to this route: nothing was submitted, so nothing was checked. */
 function NothingWasSubmitted() {
   return (
-    <main className="page">
-      <Masthead />
-      <div className="answer answer--broken">
-        <p className="answer__label">No result: nothing was submitted</p>
-        <h1 className="answer__headline">
-          No address reached tarrow, so nothing was checked.
-        </h1>
-        <div className="prose">
-          <p>
-            You have arrived at the answer page without an address, usually
-            from a bookmark, a refresh, or a back button. tarrow measured nothing
-            and is saying nothing about any address.{" "}
+    <main className="deck">
+      <FindingCard
+        tone="broken"
+        label="No result: nothing was submitted"
+        count="—"
+        unit="No address reached tarrow, so nothing was checked"
+        isNot={
+          <>
+            You have arrived at the answer page without an address, usually from
+            a bookmark, a refresh, or a back button. tarrow measured nothing and
+            is saying nothing about any address.{" "}
             <a href="/">Start a search</a>.
-          </p>
-        </div>
-      </div>
-      <SheriffNextStep />
-      <PrivacyFootnote />
+          </>
+        }
+        more="What to do instead"
+      />
+      <SheriffCard
+        steps={[
+          "Give the address exactly as you typed it.",
+          "Say tarrow measured nothing, because no address reached it.",
+          "Ask them to check it against the state's school distance rule.",
+        ]}
+        footer={SHERIFF_FOOTER}
+      />
+      <CheckAnotherCard />
     </main>
   );
 }

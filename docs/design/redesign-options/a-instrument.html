@@ -1,0 +1,551 @@
+<title>tarrow redesign — Direction A: Instrument</title>
+<style>
+/* ==========================================================================
+   DIRECTION A — INSTRUMENT
+   tarrow drawn as the measuring device it is.
+
+   TOKENS ------------------------------------------------------------------
+   Light is the base palette. Dark redefines only tokens, under both the
+   system guard and the explicit-choice guard, so all three viewer states
+   resolve one complete set.
+   ========================================================================== */
+:root {
+  --ground:      #f6f8fa;
+  --paper:       #ffffff;
+  --sunk:        #eceff4;
+  --ink:         #161a21;
+  --ink-soft:    #5b6371;
+  --rule:        #ccd3dd;
+  --rule-strong: #8b94a3;
+  --flagged:     #9d2b1a;
+  --flagged-sunk:#fbefec;
+  --stopped:     #7a5712;
+  --stopped-sunk:#faf3e4;
+  --tick:        #a8b1bf;
+
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --step--1: 0.8125rem;
+  --step-0:  1rem;
+  --step-1:  1.1875rem;
+  --step-2:  1.4375rem;
+  --step-3:  1.875rem;
+  --step-4:  2.5rem;
+}
+:root:not([data-theme="light"]) { }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:      #12151a;
+    --paper:       #191d24;
+    --sunk:        #21262f;
+    --ink:         #e6e9ee;
+    --ink-soft:    #a2aab8;
+    --rule:        #333a45;
+    --rule-strong: #626c7c;
+    --flagged:     #f0a596;
+    --flagged-sunk:#2c1a16;
+    --stopped:     #e5c584;
+    --stopped-sunk:#251f10;
+    --tick:        #4c5563;
+  }
+}
+:root[data-theme="dark"] {
+  --ground:      #12151a;
+  --paper:       #191d24;
+  --sunk:        #21262f;
+  --ink:         #e6e9ee;
+  --ink-soft:    #a2aab8;
+  --rule:        #333a45;
+  --rule-strong: #626c7c;
+  --flagged:     #f0a596;
+  --flagged-sunk:#2c1a16;
+  --stopped:     #e5c584;
+  --stopped-sunk:#251f10;
+  --tick:        #4c5563;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+}
+h1, h2, h3 { text-wrap: balance; }
+a { color: inherit; text-decoration: underline; text-underline-offset: 0.2em; }
+:focus-visible { outline: 3px solid var(--rule-strong); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* SPECIMEN CHROME — demo only, never ships ------------------------------- */
+/* Fixed chrome, deliberately NOT themed: it is specimen furniture, not part of
+   either palette. Tokens here would flip with the theme while these literals
+   did not, washing the block out in dark mode. */
+.spec-head {
+  background: #16181d; color: #f2f4f7;
+  padding: 2rem 1.5rem;
+}
+.spec-head__inner { max-width: 46rem; margin: 0 auto; display: grid; gap: 0.75rem; }
+.spec-head h1 { margin: 0; font-size: var(--step-3); letter-spacing: -0.02em; }
+.spec-head p { margin: 0; color: #b9c1cd; max-width: 60ch; }
+.spec-head dl { margin: 0.5rem 0 0; display: grid; grid-template-columns: auto 1fr; gap: 0.35rem 1rem; font-size: var(--step--1); }
+.spec-head dt { color: #8d97a5; text-transform: uppercase; letter-spacing: 0.08em; }
+.spec-head dd { margin: 0; font-family: var(--mono); color: #dde2e9; }
+.spec-label {
+  max-width: 46rem; margin: 3.5rem auto 0; padding: 0 1.25rem;
+  font-family: var(--mono); font-size: var(--step--1); letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--ink-soft);
+  display: flex; align-items: center; gap: 0.75rem;
+}
+.spec-label::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.screen { background: var(--paper); border: 1px solid var(--rule); border-radius: 2px;
+  max-width: 46rem; margin: 0.75rem auto 0; }
+
+/* THE MEASUREMENT RAIL — the signature ------------------------------------
+   A ruled axis down the left of every page, ticked at regular intervals.
+   Sections hang off it. It is the page admitting what it is: a thing that
+   measures. Below 40rem it collapses to a single top rule and the ticks go,
+   because a rail that squeezes the text is decoration.               */
+.page { padding: 1.75rem 1.5rem 3rem; }
+@media (min-width: 40rem) {
+  .page {
+    display: grid;
+    grid-template-columns: 2.75rem 1fr;
+    gap: 0 1.5rem;
+    padding: 2rem 2rem 4rem;
+  }
+  .rail {
+    grid-row: 1 / -1;
+    border-right: 1px solid var(--rule);
+    position: relative;
+  }
+  .rail::before {
+    content: "";
+    position: absolute; inset: 0 -1px 0 auto; width: 8px;
+    background-image: repeating-linear-gradient(
+      to bottom, var(--tick) 0 1px, transparent 1px 1.5rem);
+  }
+  .rail__cap {
+    position: absolute; top: 0; right: -1px; width: 1.25rem; height: 2px;
+    background: var(--rule-strong);
+  }
+  .page > *:not(.rail) { grid-column: 2; }
+}
+.rail { display: none; }
+@media (min-width: 40rem) { .rail { display: block; } }
+
+/* MASTHEAD ---------------------------------------------------------------- */
+.masthead { border-bottom: 2px solid var(--ink); padding-bottom: 0.75rem; margin-bottom: 1.75rem; }
+.masthead__name {
+  margin: 0; font-family: var(--mono); font-size: var(--step-1);
+  font-weight: 600; letter-spacing: 0.02em;
+}
+.masthead__name a { text-decoration: none; }
+.masthead__where { margin: 0.15rem 0 0; color: var(--ink-soft); font-size: var(--step--1); }
+
+/* ANSWER BLOCK ------------------------------------------------------------
+   Tone is carried by FOUR channels at once: label wording, headline, border
+   weight, and border style. Never colour alone — greyscale must still tell a
+   refusal from a result. */
+.answer { border-left: 6px solid var(--rule-strong); padding: 0 0 0 1.125rem; margin-bottom: 2rem; }
+.answer__label {
+  margin: 0 0 0.5rem; font-family: var(--mono); font-size: var(--step--1);
+  letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-soft);
+}
+/* The headline is set in MONO. The headline is a measurement, and the page
+   should not dress a measurement up as a sentence. */
+.answer__headline {
+  margin: 0 0 0.75rem; font-family: var(--mono); font-size: var(--step-3);
+  font-weight: 600; line-height: 1.2; letter-spacing: -0.03em;
+}
+.answer p { margin: 0 0 0.75rem; max-width: 62ch; }
+.answer > :last-child { margin-bottom: 0; }
+.answer--flagged { border-left-color: var(--flagged); }
+.answer--flagged .answer__label, .answer--flagged .answer__headline { color: var(--flagged); }
+.answer--measured { border-left-color: var(--ink); }
+/* Refusals are DASHED, and structurally carry no residence and no distance. */
+.answer--stopped { border-left-style: dashed; border-left-color: var(--stopped); }
+.answer--stopped .answer__label, .answer--stopped .answer__headline { color: var(--stopped); }
+
+/* SECTIONS ---------------------------------------------------------------- */
+.section { margin-bottom: 2rem; }
+.section__title {
+  margin: 0 0 0.75rem; font-size: var(--step-1); font-weight: 700;
+  letter-spacing: -0.005em; padding-bottom: 0.35rem; border-bottom: 1px solid var(--rule);
+}
+.prose p, .prose ul { margin: 0 0 0.8rem; max-width: 62ch; }
+.prose ul { padding-left: 1.15rem; }
+.prose li { margin-bottom: 0.4rem; }
+.prose > :last-child { margin-bottom: 0; }
+.val { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 0.9375em; }
+
+/* THE SHARED SCALE — the signature, second half ---------------------------
+   Every flagged premises plots on ONE axis, not one scale each, because the
+   comparison the reader is making is between them. Ticks are labelled in the
+   units they will read down the phone. No fill, no zone, no colour that
+   could read as a verdict. */
+.scale { margin: 0 0 1.25rem; }
+.scale__frame { position: relative; height: 3.25rem; border-bottom: 1px solid var(--rule-strong); }
+.scale__tick { position: absolute; bottom: 0; width: 1px; height: 6px; background: var(--tick); }
+.scale__tick--major { height: 11px; background: var(--rule-strong); }
+.scale__edge { position: absolute; bottom: 0; top: 0; width: 2px; background: var(--ink); }
+.scale__mark { position: absolute; bottom: 0; width: 2px; height: 26px; background: var(--flagged); }
+.scale__dot { position: absolute; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--flagged); transform: translate(-4px, 0); }
+.scale__labels { display: flex; justify-content: space-between;
+  font-family: var(--mono); font-size: var(--step--1); color: var(--ink-soft); padding-top: 0.3rem; }
+.scale__caption { margin: 0.25rem 0 0; font-size: var(--step--1); color: var(--ink-soft); }
+
+/* PREMISES ---------------------------------------------------------------- */
+.premises { border: 1px solid var(--rule); border-radius: 2px; padding: 0.9rem 1rem;
+  margin-bottom: 0.75rem; background: var(--paper); }
+.premises__name { margin: 0 0 0.15rem; font-size: var(--step-1); font-weight: 700; }
+.premises__distance { margin: 0 0 0.1rem; font-size: var(--step-1); }
+.premises__where { margin: 0 0 0.6rem; color: var(--ink-soft); font-size: var(--step--1); }
+
+/* DISCLOSURE — provenance folds; gaps never do. */
+.disclosure { border: 1px solid var(--rule); border-radius: 2px; padding: 0.7rem 0.9rem;
+  margin-bottom: 0.7rem; background: var(--sunk); }
+.disclosure > summary { cursor: pointer; font-weight: 700; font-size: var(--step--1); }
+.disclosure > summary + * { margin-top: 0.75rem; }
+
+/* GAPS — always visible, drawn as an interruption in the rail's rhythm. */
+.gaps { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: 0.5rem; }
+.gaps li { border-left: 3px solid var(--stopped); padding-left: 0.75rem; }
+
+/* FORM -------------------------------------------------------------------- */
+.ask__question { margin: 0 0 1.25rem; font-size: var(--step-4); font-weight: 700;
+  line-height: 1.15; letter-spacing: -0.03em; max-width: 16ch; }
+.field { display: block; }
+.field__label { display: block; font-weight: 700; margin-bottom: 0.3rem; font-size: var(--step--1);
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); }
+.field__input { width: 100%; font: inherit; font-family: var(--mono); font-size: var(--step-1);
+  padding: 0.7rem 0.8rem; border: 2px solid var(--ink); border-radius: 2px;
+  background: var(--paper); color: var(--ink); }
+.button { font: inherit; font-size: var(--step-0); font-weight: 700; margin-top: 0.9rem;
+  padding: 0.7rem 1.4rem; border: 2px solid var(--ink); border-radius: 2px;
+  background: var(--ink); color: var(--paper); cursor: pointer; }
+.notice { margin-top: 1.5rem; padding: 0.85rem 1rem; border: 1px solid var(--rule);
+  border-left: 5px solid var(--stopped); border-radius: 2px; background: var(--stopped-sunk); }
+.notice p { margin: 0; max-width: 60ch; }
+.notice p + p { margin-top: 0.4rem; color: var(--ink-soft); font-size: var(--step--1); }
+.blurb { margin: 1.5rem 0 0; color: var(--ink-soft); font-size: var(--step--1); max-width: 60ch; }
+.footnote { margin-top: 2.5rem; padding-top: 0.9rem; border-top: 1px solid var(--rule);
+  color: var(--ink-soft); font-size: var(--step--1); }
+.footnote p { max-width: 62ch; }
+code { font-family: var(--mono); font-size: 0.9em; }
+</style>
+
+<header class="spec-head">
+  <div class="spec-head__inner">
+    <h1>Direction A — Instrument</h1>
+    <p>
+      tarrow drawn as the measuring device it is, rather than as a website that
+      happens to report distances. The headline of every answer is set in mono,
+      because the headline is a measurement and dressing it as a sentence
+      overstates it. A ruled measurement rail runs down the page and every
+      section hangs off it.
+    </p>
+    <p>
+      The signature is the <strong>shared scale</strong>: when more than one
+      premises is flagged, they plot on one axis rather than one scale each,
+      because the comparison the reader is actually making is between them.
+    </p>
+    <dl>
+      <dt>Ground</dt><dd>#f6f8fa cool paper · #161a21 ink</dd>
+      <dt>Signal</dt><dd>#9d2b1a flagged · #7a5712 stopped · nothing else saturated</dd>
+      <dt>Type</dt><dd>system sans written · system mono read · mono display</dd>
+      <dt>Risk</dt><dd>a mono headline at 30px</dd>
+    </dl>
+  </div>
+</header>
+
+<!-- ===================== SCREEN 1 — THE SEARCH ========================== -->
+<p class="spec-label">Screen 1 · the search</p>
+<div class="screen">
+  <main class="page">
+    <div class="rail"><span class="rail__cap"></span></div>
+
+    <header class="masthead">
+      <p class="masthead__name">tarrow</p>
+    </header>
+
+    <h1 class="ask__question">How far is an address from a school?</h1>
+
+    <form>
+      <label class="field">
+        <span class="field__label">A street address in Summit County, Ohio</span>
+        <input class="field__input" type="text" name="address" value="" autocomplete="off" spellcheck="false">
+      </label>
+      <button class="button" type="button">Check this address</button>
+    </form>
+
+    <div class="notice">
+      <p><strong>tarrow does not correct spelling, and it does not guess.</strong>
+        Type the address as it appears on a bill. If tarrow cannot find exactly what
+        you typed, it says so rather than answering about the wrong building.</p>
+      <p>For example <code>1464 Garman Rd, Akron, OH 44313</code></p>
+    </div>
+
+    <p class="blurb">
+      tarrow covers <strong>Summit County, Ohio</strong> and checks
+      <strong>school premises only</strong>. It measures distances and decides nothing.
+      <a href="#">What tarrow checks, what it misses, and what happens to what you type</a>
+    </p>
+  </main>
+</div>
+
+<!-- ================== SCREEN 2 — OUTSIDE EVERY BUFFER =================== -->
+<p class="spec-label">Screen 2 · outside every buffer we checked</p>
+<div class="screen">
+  <main class="page">
+    <div class="rail"><span class="rail__cap"></span></div>
+
+    <header class="masthead">
+      <p class="masthead__name"><a href="#">tarrow</a></p>
+      <p class="masthead__where">School-premises distances for Summit County, Ohio. A helper, not an authority.</p>
+    </header>
+
+    <div class="answer answer--measured">
+      <p class="answer__label">Result: outside every buffer we checked</p>
+      <h1 class="answer__headline">Outside every buffer we checked.</h1>
+      <p><strong>That is smaller than it sounds.</strong> No school premises
+        <em>that tarrow holds a boundary for</em> is within
+        <span class="val">304.8 m (1,000 ft)</span> of the parcel at this address.
+        That is the whole of the finding: a measurement, not a decision. What tarrow
+        did not look at is listed below. Read it before you rely on anything here,
+        and then make the phone call.</p>
+    </div>
+
+    <section class="section">
+      <h2 class="section__title">Your next step: the sheriff's office where you register</h2>
+      <div class="prose">
+        <p>That office enforces the distance rule and knows the local rules tarrow has
+          not loaded. Ask it about this exact address, and take three things so that it
+          is one specific question: the address as you typed it here; the name of every
+          school premises listed above, if any, with the distance tarrow measured to
+          each; and the fact that tarrow checked school premises only, and no city or
+          village rule at all.</p>
+        <p><strong>If that office and tarrow disagree, that office is right and tarrow
+          is wrong.</strong> <a href="#">What tarrow is, and what it is not</a>.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section__title">What tarrow did not check</h2>
+      <ul class="gaps">
+        <li>Preschools, licensed child day-care centres, children's crisis care and
+          residential infant care are not loaded at all.</li>
+        <li>No municipal ordinance is loaded. Cities and villages in Summit County set
+          their own rules, and tarrow holds none of them.</li>
+      </ul>
+      <div class="prose">
+        <p><strong>What it did check:</strong> school premises in Summit County, Ohio.
+          <span class="val">318</span> of the <span class="val">341</span> premises tarrow
+          holds have a real parcel boundary and were measured against, using a buffer of
+          <span class="val">304.8 m (1,000 ft)</span> from the nearest point of one parcel
+          to the nearest point of the other. <span class="val">23</span> have no boundary
+          and were not measured at all; tarrow does not invent a circle around a school it
+          cannot draw.</p>
+        <p><strong>How old this is.</strong> This copy of tarrow last fetched data on
+          <span class="val">3 August 2026</span>; its oldest layer is from
+          <span class="val">28 July 2026</span>.</p>
+      </div>
+      <details class="disclosure">
+        <summary>Which layers were queried, and where each came from</summary>
+        <div class="prose"><p>Provenance tables live here — present in the served HTML,
+          one click from the reader, never absent. What tarrow did not check stays
+          visible; how tarrow knows what it checked collapses.</p></div>
+      </details>
+    </section>
+
+    <section class="section">
+      <h2 class="section__title">No person has checked the rule tarrow applied</h2>
+      <div class="prose">
+        <p>tarrow read the statute and applied a number. Nobody has signed their name to
+          that reading inside tarrow, no citation or verification date is attached to it
+          as data, and no court has been asked whether the way tarrow measures is the way
+          the state measures.</p>
+      </div>
+      <details class="disclosure">
+        <summary>tarrow's own record of that gap, in full</summary>
+        <div class="prose"><p>The ledger's full statement is rendered here.</p></div>
+      </details>
+    </section>
+
+    <footer class="footnote">
+      <p>tarrow did not write down the address you typed: not in a log, not in this
+        page's web address, not in a database, and not on its way anywhere else.
+        <a href="#">The procedure for checking it yourself</a>.</p>
+      <p><a href="#">Check another address</a></p>
+    </footer>
+  </main>
+</div>
+
+<!-- ================= SCREEN 3 — PREMISES WITHIN BUFFER ================== -->
+<p class="spec-label">Screen 3 · inside a buffer tarrow checked</p>
+<div class="screen">
+  <main class="page">
+    <div class="rail"><span class="rail__cap"></span></div>
+
+    <header class="masthead">
+      <p class="masthead__name"><a href="#">tarrow</a></p>
+      <p class="masthead__where">School-premises distances for Summit County, Ohio. A helper, not an authority.</p>
+    </header>
+
+    <div class="answer answer--flagged">
+      <p class="answer__label">Result: inside a buffer tarrow checked</p>
+      <h1 class="answer__headline">Three school premises are within 304.8 m (1,000 ft) of this address.</h1>
+      <p>Here they are. Ohio's rule is written about the <em>premises</em> (the parcel
+        of land) rather than the building, so a school that owns several parcels appears
+        more than once. Repeated names are not a mistake.</p>
+    </div>
+
+    <section class="section">
+      <h2 class="section__title">What tarrow found inside the buffer (three)</h2>
+
+      <!-- THE SIGNATURE: one axis, all three premises. -->
+      <div class="scale">
+        <div class="scale__frame">
+          <span class="scale__tick scale__tick--major" style="left: 0%"></span>
+          <span class="scale__tick" style="left: 10%"></span>
+          <span class="scale__tick" style="left: 20%"></span>
+          <span class="scale__tick scale__tick--major" style="left: 25%"></span>
+          <span class="scale__tick" style="left: 30%"></span>
+          <span class="scale__tick" style="left: 40%"></span>
+          <span class="scale__tick scale__tick--major" style="left: 50%"></span>
+          <span class="scale__tick" style="left: 60%"></span>
+          <span class="scale__tick" style="left: 70%"></span>
+          <span class="scale__tick scale__tick--major" style="left: 75%"></span>
+          <span class="scale__tick" style="left: 80%"></span>
+          <span class="scale__tick" style="left: 90%"></span>
+          <span class="scale__edge" style="left: 100%"></span>
+          <span class="scale__mark" style="left: 27%"></span>
+          <span class="scale__dot"  style="left: 27%; bottom: 26px"></span>
+          <span class="scale__mark" style="left: 42%"></span>
+          <span class="scale__dot"  style="left: 42%; bottom: 26px"></span>
+          <span class="scale__mark" style="left: 78%"></span>
+          <span class="scale__dot"  style="left: 78%; bottom: 26px"></span>
+        </div>
+        <div class="scale__labels">
+          <span>0 m</span><span>the address</span><span>304.8 m — buffer edge</span>
+        </div>
+        <p class="scale__caption">All three plotted on one axis, so the distances are
+          comparable to each other and to the buffer edge.</p>
+      </div>
+
+      <article class="premises">
+        <h3 class="premises__name">Firestone Park Elementary School</h3>
+        <p class="premises__distance"><span class="val">82.4 m (270 ft)</span> from this address</p>
+        <p class="premises__where">Parcel 6743119 · Akron</p>
+        <details class="disclosure">
+          <summary>How this distance was measured</summary>
+          <div class="prose"><p>Parcel boundary to parcel boundary, nearest point to
+            nearest point. The pessimistic distance is shown — never the raw measurement.</p></div>
+        </details>
+      </article>
+
+      <article class="premises">
+        <h3 class="premises__name">Firestone Park Elementary School</h3>
+        <p class="premises__distance"><span class="val">128.1 m (420 ft)</span> from this address</p>
+        <p class="premises__where">Parcel 6743120 · Akron</p>
+      </article>
+
+      <article class="premises">
+        <h3 class="premises__name">Saint Paul School</h3>
+        <p class="premises__distance"><span class="val">237.7 m (780 ft)</span> from this address</p>
+        <p class="premises__where">Parcel 6801442 · Akron</p>
+      </article>
+    </section>
+
+    <section class="section">
+      <h2 class="section__title">Your next step: the sheriff's office where you register</h2>
+      <div class="prose">
+        <p>That office enforces the distance rule and knows the local rules tarrow has not
+          loaded. Ask it about this exact address, and take the three names and distances
+          above with you.</p>
+        <p><strong>If that office and tarrow disagree, that office is right and tarrow is
+          wrong.</strong></p>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section__title">What tarrow did not check</h2>
+      <ul class="gaps">
+        <li>Preschools, licensed child day-care centres, children's crisis care and
+          residential infant care are not loaded at all.</li>
+        <li>No municipal ordinance is loaded.</li>
+      </ul>
+    </section>
+
+    <footer class="footnote">
+      <p><a href="#">Check another address</a></p>
+    </footer>
+  </main>
+</div>
+
+<!-- ==================== SCREEN 4 — COULD NOT LOCATE ===================== -->
+<p class="spec-label">Screen 4 · a refusal (no result)</p>
+<div class="screen">
+  <main class="page">
+    <div class="rail"><span class="rail__cap"></span></div>
+
+    <header class="masthead">
+      <p class="masthead__name"><a href="#">tarrow</a></p>
+      <p class="masthead__where">School-premises distances for Summit County, Ohio. A helper, not an authority.</p>
+    </header>
+
+    <div class="answer answer--stopped">
+      <p class="answer__label">No result: tarrow could not find this address</p>
+      <h1 class="answer__headline">tarrow could not find this address, so it checked nothing.</h1>
+      <p>This is not an answer. tarrow does not know where this address is, so it
+        measured no distances and found nothing, neither near nor far.</p>
+    </div>
+
+    <section class="section">
+      <h2 class="section__title">Why this happens, and what to try</h2>
+      <div class="prose">
+        <ul>
+          <li><strong>The address is not in Summit County, Ohio.</strong> tarrow holds no
+            data for anywhere else, and it cannot tell an out-of-county address apart from
+            a misspelled one, so both land on this page.</li>
+          <li><strong>The county writes it differently.</strong> Try it as it appears on a
+            tax bill, a utility bill, or a lease: the road type (RD, ST, AVE), a direction
+            (N, W), or a unit number can all be the difference.</li>
+          <li><strong>The county has not published a point for it.</strong> New addresses,
+            and some municipalities generally, are thinly covered. tarrow says so rather
+            than filling the hole in.</li>
+        </ul>
+        <p>tarrow will not guess: it does not correct spelling, it does not fall back to
+          the middle of the street or the centre of the ZIP code, and it does not offer the
+          nearest parcel it happened to find instead. A confident answer about the wrong
+          building is more dangerous to you than no answer at all.</p>
+        <p><small>tarrow records the reason for this as <code>address-not-matched</code>.</small></p>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section__title">Your next step: the sheriff's office where you register</h2>
+      <div class="prose">
+        <p>The sheriff's office can answer for an address tarrow will not measure. This
+          step appears even when tarrow failed, because it is the recommended action
+          rather than a disclaimer.</p>
+      </div>
+    </section>
+
+    <footer class="footnote">
+      <p><a href="#">Check another address</a></p>
+    </footer>
+  </main>
+</div>
+
+<p class="spec-label">End of Direction A</p>
+<div style="max-width:46rem;margin:0.75rem auto 4rem;padding:0 1.25rem;color:var(--ink-soft);font-size:0.8125rem">
+  <p>Note on the demo: inline <code>style</code> attributes position the scale ticks here
+  for legibility of the specimen. The shipped implementation cannot use them —
+  <code>style-src 'self'</code> admits no inline style — so the scale is drawn in SVG with
+  presentation attributes, as <code>DistanceScale</code> already is today.</p>
+</div>

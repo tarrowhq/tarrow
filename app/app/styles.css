@@ -1,5 +1,17 @@
 /* tarrow's only stylesheet, served from tarrow's own origin.
  *
+ * THE SYSTEM THIS FILE IMPLEMENTS is written down in
+ * docs/design/tarrow-design-system.md, established by TASK-0022 from direction
+ * E ("One Card") and the decision record beside it. Read that first. The
+ * signature element is the CARD: one idea gets one screen, and the reader moves
+ * through a deck of them. Everything below serves that.
+ *
+ * If a value here and the design note disagree, the note is wrong until
+ * somebody fixes it -- change the note, then change this file. A token whose
+ * stated meaning and actual use have drifted apart is worse than no token,
+ * because the next editor trusts it.
+ *
+ * ===========================================================================
  * THE ONE RULE THIS FILE EXISTS UNDER: nothing here may cause the reader's
  * browser to contact anybody but tarrow.
  *
@@ -29,10 +41,28 @@
  *
  * THE SECOND RULE: nothing here may depend on JavaScript. Not because there is
  * none -- the page hydrates (app/app/root.tsx) -- but because the answer has to
- * be complete before any of it runs. Progressive disclosure is
- * <details>/<summary>, which every browser opens natively, and the result
- * shapes are told apart by structure and text as well as by colour, never by
- * colour alone.
+ * be complete before any of it runs. The deck is CSS scroll-snap and nothing
+ * else; with scripting off it is a long page with big sections, which is the
+ * whole answer. Progressive disclosure is <details>/<summary>, which every
+ * browser opens natively, and the result shapes are told apart by structure and
+ * text as well as by colour, never by colour alone.
+ *
+ * THE THIRD RULE: no inline style, anywhere in the application. `style-src
+ * 'self'` admits no `style=` attribute and no inline <style>, and unlike
+ * script-src it carries no nonce, so there is nothing to relax. Anything that
+ * needs a computed value in the document uses SVG presentation attributes,
+ * which are not CSS and are not covered by that policy -- see DistanceScale and
+ * BufferBar in result-view.tsx.
+ * ===========================================================================
+ *
+ * THE LAYERS, in order, and nothing sits outside them:
+ *
+ *   @theme       the two font stacks
+ *   base         tokens, element defaults, focus
+ *   primitives   composable pieces that do not know what they hold
+ *   components   named surfaces built from primitives
+ *
+ * A rule that fits no layer does not get an exception; it gets a primitive.
  */
 
 @import "tailwindcss";
@@ -46,71 +76,102 @@
     "Liberation Mono", monospace;
 }
 
+/* ==========================================================================
+   BASE — the tokens, and what every element does before anything styles it
+   ========================================================================== */
+
 @layer base {
   :root {
-    --ink: #16181d;
-    --ink-soft: #4a505c;
-    --paper: #ffffff;
-    --paper-sunk: #f4f5f7;
-    --rule: #d3d7de;
-    --rule-strong: #9aa1ad;
-    /* The four accents. Each is paired with a written label and a distinct
-       border weight, because a reader who cannot distinguish them must still
-       be able to tell a flagged answer from a refusal.
+    /* ---- Ground and ink ------------------------------------------------
+       ONE COMMITTED WORLD. tarrow's surface is dark in every viewer theme,
+       and this is the one place the system deliberately ignores
+       prefers-color-scheme.
 
-       THERE IS ONE SATURATED COLOUR ON THIS SITE AND IT MEANS "FLAGGED".
-       The unflagged answer used to be green (#1f4d3a). Green says "go" in a
-       channel the copy rules never authorised: rule 1 forbids stating or
-       implying permission, app/tests/copy.test.ts scans the body text for
+       The reason is the reader: a phone at night, or a library machine with
+       somebody standing behind them. A single world means the contrast of
+       every state was verified once and cannot be broken by a theme the page
+       does not control. Every colour is painted explicitly -- nothing here
+       borrows a ground from the host. */
+    --bg: #0e1013;
+    --card: #171a1f;
+    --card-2: #1e222a;
+    --ink: #f3f5f8;
+    --ink-soft: #9aa3b2;
+    --ink-invert: #0e1013;
+    --rule: #2c313a;
+    --rule-strong: #55606f;
+
+    /* ---- The state accents ---------------------------------------------
+       TWO SATURATED COLOURS, EACH MEANING EXACTLY ONE THING.
+
+       --flagged: something is inside a buffer tarrow checked.
+       --stopped: tarrow did not answer, or did not check.
+
+       THE MEASURED STATE IS INK, AND NEVER GREEN. The unflagged answer was
+       green in an earlier system (#1f4d3a). Green says "go" in a channel the
+       copy rules never authorised: rule 1 in result-view.tsx forbids stating
+       or implying permission, app/tests/copy.test.ts scans the body text for
        permission vocabulary, and a colour is not body text. The strongest
        sentence tarrow may write is "outside every buffer we checked" -- a
-       measurement, not a verdict -- and the page should not say something
-       stronger in a channel the test cannot read.
+       measurement, not a verdict -- and the page must not say something
+       stronger in a channel no test can read.
 
        Red against green is also the worst available pairing for the two most
        consequential states under the commonest colour vision deficiency. So
-       the measured state is ink on paper with a heavy neutral rule, and
-       --flagged is the only saturated thing here. That is what makes it
-       mean something when it appears. */
-    --flagged: #8d2b1f;
-    --flagged-sunk: #fbf0ee;
-    --measured: #16181d;
-    --measured-sunk: #f4f5f7;
-    --stopped: #6b4a12;
-    --stopped-sunk: #fbf5e9;
-    --broken: #3d3f46;
-    --broken-sunk: #f1f2f4;
-  }
+       the measured state is ink on the card ground with a heavy neutral rule.
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --ink: #e9ebef;
-      --ink-soft: #a8aebb;
-      --paper: #14161a;
-      --paper-sunk: #1c1f25;
-      --rule: #343941;
-      --rule-strong: #5d646f;
-      --flagged: #f0a196;
-      --flagged-sunk: #2a1a17;
-      --measured: #e9ebef;
-      --measured-sunk: #1c1f25;
-      --stopped: #e8c483;
-      --stopped-sunk: #26200f;
-      --broken: #c2c6cd;
-      --broken-sunk: #1e2025;
-    }
+       COLOUR NEVER CARRIES A DISTINCTION ALONE. Every state is also told
+       apart by its label, its headline, its border treatment, and which cards
+       exist at all. Verified in greyscale; copy.test.ts asserts the
+       structural half. */
+    --flagged: #ff6b4a;
+    --flagged-sunk: #2a1310;
+    --stopped: #f0b429;
+    --stopped-sunk: #241b07;
+    --measured: #f3f5f8;
+    --measured-sunk: #1c2027;
+    --broken: #c2c6cd;
+    --broken-sunk: #1b1d22;
+
+    /* ---- Type scale ----------------------------------------------------
+       Fluid, so the finding is enormous on a phone without overflowing a
+       narrow one. Every viewport unit has a floor and a ceiling. */
+    --t-finding: clamp(3.6rem, 19vw, 5.5rem);
+    --t-measure: clamp(2.6rem, 14vw, 3.6rem);
+    --t-card-h: clamp(1.375rem, 5.5vw, 1.75rem);
+    --t-lede: 1.0625rem;
+    --t-body: 0.9375rem;
+    --t-detail: 0.875rem;
+    --t-eyebrow: 0.6875rem;
+
+    --track-tight: -0.03em;
+    --track-wide: 0.12em;
+
+    /* ---- Spacing rhythm ------------------------------------------------
+       A value outside this scale is a bug in the system, not a refinement
+       of it. */
+    --s-1: 0.35rem;
+    --s-2: 0.7rem;
+    --s-3: 1.1rem;
+    --s-4: 1.75rem;
+    --s-5: 2.75rem;
+
+    /* The surface is drawn with hairlines and edges, not rounded chips: a
+       card is a full screen, and a rounded full screen reads as a modal. */
+    --radius: 0;
   }
 
   html {
     font-family: var(--font-sans);
     color: var(--ink);
-    background: var(--paper);
-    line-height: 1.6;
+    background: var(--bg);
+    line-height: 1.5;
     -webkit-text-size-adjust: 100%;
   }
 
   body {
     margin: 0;
+    background: var(--bg);
   }
 
   code,
@@ -120,124 +181,46 @@
     font-family: var(--font-mono);
   }
 
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
   /* UNDERLINED, EXPLICITLY. Tailwind's preflight sets `text-decoration:
      inherit` on anchors, which resolves to none -- so with `color: inherit`
      as well, a link is drawn exactly like body text and is invisible as a
-     link. That was survivable while the interface had almost no links; after
-     TASK-0017 the route to everything tarrow does not check is a link, and a
-     reader who cannot see it does not follow it. Colour is not used to carry
-     it, here or anywhere else in this file. */
+     link. Colour is not used to carry it, here or anywhere else in this
+     file. */
   a {
     color: inherit;
     text-decoration: underline;
     text-underline-offset: 0.2em;
   }
 
+  /* Visible on every interactive element, against the dark ground. --flagged
+     is the highest-contrast accent available and is used here for visibility
+     rather than for meaning; a focus ring states nothing about a result. */
   :focus-visible {
-    outline: 3px solid var(--rule-strong);
-    outline-offset: 2px;
-  }
-}
-
-@layer components {
-  .page {
-    max-width: 46rem;
-    margin: 0 auto;
-    padding: 2rem 1.25rem 5rem;
+    outline: 3px solid var(--flagged);
+    outline-offset: 3px;
   }
 
-  /* The search page. One question, one box, and nothing competing with them.
-     Narrower than an answer and vertically centred on larger screens, so the
-     field is where the eye lands rather than the end of a wall of text. */
-  .page--ask {
-    max-width: 34rem;
-    padding-top: 3rem;
-  }
-
-  @media (min-height: 44rem) {
-    .page--ask {
-      padding-top: 12vh;
+  /* Motion is optional. The scroll hint is the only animation on the surface
+     and it stops entirely, as does smooth scrolling. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
     }
   }
 
-  .masthead {
-    border-bottom: 1px solid var(--rule);
-    padding-bottom: 1rem;
-    margin-bottom: 2rem;
-  }
-
-  .masthead--ask {
-    border-bottom: 0;
-    padding-bottom: 0;
-    margin-bottom: 1.75rem;
-  }
-
-  .masthead__name {
-    font-size: 1.375rem;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    margin: 0;
-  }
-
-  .masthead--ask .masthead__name {
-    font-size: 2.25rem;
-    letter-spacing: -0.03em;
-  }
-
-  /* The wordmark links home from every page but the home page. It is not
-     drawn as a link: an underline on the masthead reads as navigation
-     furniture and competes with the one link on the page that matters. */
-  .masthead__name a {
-    text-decoration: none;
-  }
-
-  .masthead__where {
-    color: var(--ink-soft);
-    font-size: 0.9375rem;
-    margin: 0.125rem 0 0;
-  }
-
-  .ask__question {
-    font-size: 1.5rem;
-    font-weight: 800;
-    line-height: 1.25;
-    letter-spacing: -0.02em;
-    margin: 0 0 0.5rem;
-  }
-
-  /* The don't-guess notice. Drawn at full text colour with a heavy rule, so
-     it reads as part of the instrument rather than as fine print -- it is the
-     only thing on the search page competing with the field, deliberately. */
-  .notice {
-    margin-top: 1.75rem;
-    padding: 0.9375rem 1.125rem;
-    border: 1px solid var(--rule);
-    border-left: 5px solid var(--stopped);
-    border-radius: 3px;
-    background: var(--stopped-sunk);
-  }
-
-  .notice p {
-    margin: 0;
-  }
-
-  /* Compound selector, not !important: `.notice p` above already sets the
-     margin, and a bare `.notice__example` loses to it on specificity. */
-  .notice .notice__example {
-    margin-top: 0.5rem;
-    color: var(--ink-soft);
-    font-size: 0.875rem;
-  }
-
-  .ask__blurb {
-    margin: 1.75rem 0 0;
-    color: var(--ink-soft);
-    font-size: 0.9375rem;
-  }
-
-  /* Available to a screen reader, absent from the layout. Used for the
-     address field's label, which the question above it duplicates visually.
-     No `display: none` -- that would take it from assistive technology too. */
+  /* Available to a screen reader, absent from the layout. No `display: none`
+     -- that would take it from assistive technology too. */
   .visually-hidden {
     position: absolute;
     width: 1px;
@@ -249,166 +232,597 @@
     white-space: nowrap;
     border: 0;
   }
+}
 
-  .section {
-    margin-top: 2.5rem;
+/* ==========================================================================
+   PRIMITIVES — composable pieces that do not know what they hold
+   ========================================================================== */
+
+@layer components {
+  /* ---- The deck -------------------------------------------------------
+     THE SIGNATURE ELEMENT. One idea gets one screen; the reader moves
+     through a stack of them.
+
+     ONE FLICK, ONE CARD. `mandatory` snapping means a scroll gesture of any
+     size lands on the next card rather than somewhere between two -- the
+     reader is never looking at the bottom of one idea and the top of the
+     next. With `scroll-behavior: smooth` the browser animates that itself,
+     so a wheel notch, a trackpad flick, Page Down, and the arrow keys all
+     produce the same single-card advance without a line of JavaScript.
+
+     THE ESCAPE HATCH IS `scroll-snap-stop: normal` PLUS THE OVERRIDE BELOW.
+     `mandatory` is dangerous for one specific case: a card TALLER than the
+     viewport can have its lower half snapped away from, stranding content a
+     reader never sees -- the exact failure rule 5 in result-view.tsx names.
+     So `.card--tall` opts out (see below), and any card whose content can
+     overflow carries it. Snapping must never become a gate on reading.
+
+     WHY THE DECK IS THE PAGE and not a fixed-height scroller: a nested
+     scroll container traps a reader who scrolls the document instead, and it
+     depends on a viewport height it cannot know. The document itself snaps. */
+  /* THE SNAP LIVES ON :root, NOT ON .deck, AND THAT IS NOT A DETAIL.
+     `scroll-snap-type` only does anything on the element that actually
+     SCROLLS. `.deck` is a <main> in normal flow with `overflow: visible` --
+     it does not scroll; the document does. Declared here it was inert: the
+     property computed correctly on the element and the viewport ignored it,
+     because the viewport's scroll container is the root.
+
+     So the root carries the snap, and `.deck` is the marker that turns it on
+     -- `:root:has(.deck)` means the ask screen and /faq scroll normally while
+     an answer deck snaps, with no class on <html> and no script to add one. */
+  :root:has(.deck) {
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
   }
 
-  .section__title {
-    font-size: 1.125rem;
-    font-weight: 700;
-    letter-spacing: -0.005em;
-    margin: 0 0 0.75rem;
-    padding-bottom: 0.375rem;
+  /* Reduced motion means no ANIMATION, not no navigation: the jump still
+     happens, it just happens instantly. */
+  @media (prefers-reduced-motion: reduce) {
+    :root:has(.deck) {
+      scroll-behavior: auto;
+    }
+  }
+
+  /* A card is a full-viewport panel holding exactly one thing.
+
+     `min-height: 100svh` -- small viewport height -- so a mobile browser's
+     retracting toolbar cannot make a card taller than what the reader can
+     see. `auto` height beyond that: content longer than the screen extends
+     the card rather than being clipped. Nothing on this surface is ever
+     hidden by its own container. */
+  .card {
+    scroll-snap-align: start;
+    scroll-margin-top: 0;
+    min-height: 100svh;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: var(--s-5) var(--s-4);
     border-bottom: 1px solid var(--rule);
+    background: var(--card);
+  }
+
+  /* THE ESCAPE HATCH. A card that can grow past the viewport -- an opened
+     disclosure, a long table, a large text size -- must not be snapped away
+     from mid-read. `scroll-snap-align: none` lets the reader scroll it
+     freely; the next card still snaps when they reach it.
+
+     `:has()` is the whole mechanism and it degrades correctly: a browser
+     without it simply keeps mandatory snapping on these cards, which is the
+     behaviour every card had a moment ago. Nothing is hidden either way. */
+  .card:has(details[open]),
+  .card:has(.scroller),
+  .card:has(table) {
+    scroll-snap-align: none;
+  }
+
+  /* The content column. A card is full-bleed; its words are not -- a line
+     length beyond ~34rem is unreadable, and centring the column keeps the
+     card working from 360px to a desktop without a second layout. */
+  .card__body {
+    width: 100%;
+    max-width: 30rem;
+    margin: 0 auto;
+  }
+
+  @media (min-width: 48rem) {
+    .card {
+      padding: var(--s-5) var(--s-5);
+    }
+  }
+
+  /* ---- Eyebrow: the mono uppercase label above a card's content -------- */
+  .eyebrow {
+    margin: 0 0 var(--s-2);
+    font-family: var(--font-mono);
+    font-size: var(--t-eyebrow);
+    letter-spacing: var(--track-wide);
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  /* ---- Card headline and body ----------------------------------------- */
+  .card__title {
+    margin: 0 0 var(--s-2);
+    font-size: var(--t-card-h);
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
   }
 
   .prose p {
-    margin: 0 0 0.875rem;
+    margin: 0 0 var(--s-2);
+    font-size: var(--t-body);
   }
 
   .prose ul {
-    margin: 0 0 0.875rem;
-    padding-left: 1.25rem;
+    margin: 0 0 var(--s-2);
+    padding-left: var(--s-3);
+    font-size: var(--t-body);
   }
 
   .prose li {
-    margin-bottom: 0.4375rem;
+    margin-bottom: var(--s-1);
   }
 
   .prose > :last-child {
     margin-bottom: 0;
   }
 
-  /* ---------------------------------------------------------------------
-     The answer banner. Its MODIFIER is the whole point: the five result
-     shapes differ in border weight, background, label wording, and which
-     sections follow -- not in one changed sentence.
-     --------------------------------------------------------------------- */
-
-  .answer {
-    border: 1px solid var(--rule-strong);
-    border-left-width: 10px;
-    border-radius: 3px;
-    padding: 1.25rem 1.25rem 1.375rem;
-    background: var(--paper-sunk);
+  .prose--soft p,
+  .prose--soft ul {
+    color: var(--ink-soft);
   }
 
-  .answer__label {
-    display: block;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    margin: 0 0 0.5rem;
-  }
-
-  .answer__headline {
-    font-size: 1.625rem;
-    font-weight: 800;
-    line-height: 1.25;
-    letter-spacing: -0.02em;
-    margin: 0 0 0.75rem;
-  }
-
-  .answer--flagged {
-    border-color: var(--flagged);
-    background: var(--flagged-sunk);
-  }
-  .answer--flagged .answer__label,
-  .answer--flagged .answer__headline {
-    color: var(--flagged);
-  }
-
-  .answer--measured {
-    border-color: var(--measured);
-    background: var(--measured-sunk);
-  }
-  .answer--measured .answer__label,
-  .answer--measured .answer__headline {
-    color: var(--measured);
-  }
-
-  /* Both no-answer shapes are drawn as an INTERRUPTION: dashed, not solid,
-     so a reader skimming sees at a glance that the page is not a result. */
-  .answer--stopped {
-    border-style: dashed;
-    border-left-style: solid;
-    border-color: var(--stopped);
-    background: var(--stopped-sunk);
-  }
-  .answer--stopped .answer__label,
-  .answer--stopped .answer__headline {
-    color: var(--stopped);
-  }
-
-  .answer--broken {
-    border-style: dashed;
-    border-left-style: solid;
-    border-color: var(--broken);
-    background: var(--broken-sunk);
-  }
-  .answer--broken .answer__label,
-  .answer--broken .answer__headline {
-    color: var(--broken);
-  }
-
-  .callout {
-    border: 1px solid var(--rule);
-    border-left: 5px solid var(--rule-strong);
-    border-radius: 3px;
-    background: var(--paper-sunk);
-    padding: 1rem 1.125rem;
-    margin: 1.25rem 0 0;
-  }
-
-  .premises {
-    border: 1px solid var(--rule);
-    border-radius: 3px;
-    padding: 1rem 1.125rem;
-    margin-bottom: 0.875rem;
-    background: var(--paper);
-  }
-
-  .premises__name {
-    font-size: 1.0625rem;
-    font-weight: 700;
-    margin: 0 0 0.25rem;
-  }
-
-  /* The number the reader came for, and the number they will read down the
-     phone. It is the pessimistic distance -- the one actually compared
-     against the buffer -- never the raw measurement. */
-  .premises__distance {
-    font-size: 1.0625rem;
-    margin: 0 0 0.125rem;
-  }
-
-  /* TWO VOICES, AND WHICH IS WHICH.
+  /* ---- The measured value --------------------------------------------
+     TWO VOICES, AND WHICH IS WHICH.
 
      Sans is every sentence tarrow WRITES. Mono is every value it READ -- a
      distance, a date, a parcel id, the name of a source layer. The reader is
      going to say some of these numbers down a phone to a sheriff's office,
-     and the ones they must not misread are the measured ones. Tabular figures
-     also make two distances directly comparable down the page, which is the
-     comparison the reader is actually making.
+     and the ones they must not misread are the measured ones. Tabular
+     figures also make two distances directly comparable down the page, which
+     is the comparison the reader is actually making.
 
-     This is not decoration: it is the same distinction the file header draws
-     between what tarrow says and what tarrow found. */
+     This is not decoration: it is the same distinction the result-view.tsx
+     header draws between what tarrow says and what tarrow found. */
   .measured-value {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     font-size: 0.9375em;
   }
 
-  /* The distance scale. Borders and one mark: no fill, no zone, no colour
-     that could read as a verdict. See DistanceScale in result-view.tsx for
-     why it is SVG and what it deliberately does not say. */
+  /* ---- Disclosure: how tarrow knows, folded ---------------------------
+     The collapse rule, in CSS. What tarrow did NOT check gets its own cards
+     and never folds. How tarrow knows what it checked folds in here --
+     present in the served document always, never absent from it (FR-015). */
+  .disclosure {
+    border-top: 1px solid var(--rule);
+    padding-top: var(--s-2);
+    margin-top: var(--s-3);
+  }
+
+  .disclosure > summary {
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: var(--t-eyebrow);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .disclosure > summary + * {
+    margin-top: var(--s-2);
+  }
+
+  .scroller {
+    overflow-x: auto;
+  }
+
+  /* ---- Fact list ------------------------------------------------------ */
+  .facts {
+    margin: 0;
+    display: grid;
+    grid-template-columns: minmax(9rem, auto) 1fr;
+    gap: var(--s-1) var(--s-2);
+    font-size: var(--t-detail);
+  }
+
+  .facts dt {
+    color: var(--ink-soft);
+  }
+
+  .facts dd {
+    margin: 0;
+  }
+
+  @media (max-width: 30rem) {
+    .facts {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+
+    .facts dt {
+      margin-top: var(--s-2);
+      font-family: var(--font-mono);
+      font-size: var(--t-eyebrow);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+  }
+
+  /* ---- Tables --------------------------------------------------------- */
+  .grid-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--t-detail);
+    text-align: left;
+  }
+
+  .grid-table th,
+  .grid-table td {
+    border-bottom: 1px solid var(--rule);
+    padding: var(--s-1) var(--s-2) var(--s-1) 0;
+    vertical-align: top;
+  }
+
+  .grid-table th {
+    color: var(--ink-soft);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  /* Principle V's marker. Drawn in the flagged accent because a fetch date
+     standing in for a verification date is the failure this word exists to
+     prevent, and it should be the loudest thing in the table. */
+  .never {
+    color: var(--flagged);
+    font-weight: 700;
+  }
+
+  /* ---- Callout: something that changes how far the answer can be trusted */
+  .callout {
+    margin: var(--s-3) 0 0;
+    padding: var(--s-2) var(--s-3);
+    border-left: 4px solid var(--stopped);
+    background: var(--stopped-sunk);
+  }
+
+  .callout p {
+    margin: 0 0 var(--s-1);
+    font-size: var(--t-body);
+  }
+
+  .callout > :last-child {
+    margin-bottom: 0;
+  }
+
+  /* ---- Form field ----------------------------------------------------- */
+  .field {
+    display: block;
+    margin-top: var(--s-3);
+  }
+
+  .field__label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: var(--t-eyebrow);
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: var(--s-1);
+  }
+
+  .field__input {
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
+    font-family: var(--font-mono);
+    font-size: var(--t-lede);
+    padding: var(--s-2) var(--s-2);
+    border: 0;
+    border-bottom: 2px solid var(--ink);
+    border-radius: var(--radius);
+    background: var(--card-2);
+    color: var(--ink);
+  }
+
+  .button {
+    width: 100%;
+    font: inherit;
+    font-size: var(--t-lede);
+    font-weight: 800;
+    margin-top: var(--s-2);
+    padding: var(--s-2) var(--s-3);
+    border: 2px solid var(--ink);
+    border-radius: var(--radius);
+    background: var(--ink);
+    color: var(--ink-invert);
+    cursor: pointer;
+  }
+
+  /* ---- The scroll hint ------------------------------------------------
+     The only moving thing on the surface, and the only thing that tells a
+     reader the deck continues. It is a hint, not a control: everything below
+     is reachable by ordinary scrolling whether or not this is seen. */
+  .more {
+    margin: var(--s-4) 0 0;
+    display: flex;
+    align-items: center;
+    gap: var(--s-1);
+    font-family: var(--font-mono);
+    font-size: var(--t-eyebrow);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .more__arrow {
+    display: block;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-right: 2px solid var(--ink-soft);
+    border-bottom: 2px solid var(--ink-soft);
+    transform: rotate(45deg);
+    animation: nudge 2.4s ease-in-out infinite;
+  }
+
+  @keyframes nudge {
+    0%,
+    100% {
+      transform: rotate(45deg) translate(0, 0);
+      opacity: 0.55;
+    }
+    50% {
+      transform: rotate(45deg) translate(2px, 2px);
+      opacity: 1;
+    }
+  }
+
+  /* ==========================================================================
+     COMPONENTS — named surfaces built from the primitives above
+     ========================================================================== */
+
+  /* ---- The finding card -----------------------------------------------
+     The answer, alone on a screen, with nothing competing with it.
+
+     Its MODIFIER is the whole point: the result shapes differ in ground,
+     accent, label wording, headline, and which cards follow -- not in one
+     changed sentence. The greyscale distinction is carried by the eyebrow
+     text, the headline, and the border treatment below. */
+  .finding__count {
+    margin: 0;
+    font-size: var(--t-finding);
+    line-height: 0.88;
+    letter-spacing: -0.045em;
+    font-weight: 800;
+  }
+
+  .finding__unit {
+    margin: var(--s-1) 0 0;
+    font-size: var(--t-lede);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  /* What the finding is NOT. Immediately under the headline, on the same
+     screen, before the reader has scrolled anywhere -- rule 2: an absence of
+     flags is not good news, and the sentence saying so may not be below the
+     fold. */
+  .finding__is-not {
+    margin: var(--s-3) 0 0;
+    padding-top: var(--s-2);
+    border-top: 1px solid var(--rule);
+    font-size: var(--t-body);
+    color: var(--ink-soft);
+  }
+
+  /* ---- What was NOT checked, as one line ------------------------------
+     Principle II's whole delivery on the answer surface: a count, and the
+     ledger's own two-or-three-word labels, beside the number they qualify.
+
+     It was five full screens of paragraphs. The facts are identical; the
+     length is not, and length was the thing keeping them unread. Drawn as a
+     bordered strip rather than a sentence so the eye catches it as a
+     separate object from the finding above it. */
+  .not-checked {
+    margin: var(--s-3) 0 0;
+    padding: var(--s-2) 0 0;
+    border-top: 1px solid var(--rule);
+  }
+
+  .not-checked a {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0 var(--s-2);
+    align-items: baseline;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .not-checked a:hover .not-checked__label,
+  .not-checked a:focus-visible .not-checked__label {
+    text-decoration: underline;
+  }
+
+  .not-checked__n {
+    grid-row: span 2;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--stopped);
+  }
+
+  .not-checked__label {
+    font-family: var(--font-mono);
+    font-size: var(--t-eyebrow);
+    letter-spacing: var(--track-wide);
+    text-transform: uppercase;
+    color: var(--stopped);
+  }
+
+  .not-checked__list {
+    font-size: var(--t-detail);
+    color: var(--ink-soft);
+    line-height: 1.35;
+  }
+
+  /* The rule disclosure, as one line rather than a card of prose. */
+  .unverified {
+    margin: var(--s-2) 0 0;
+    font-size: var(--t-eyebrow);
+    font-family: var(--font-mono);
+    letter-spacing: 0.04em;
+    color: var(--ink-soft);
+  }
+
+  /* A machine-readable reason, shown as the value it is rather than wrapped
+     in a sentence explaining that tarrow records it. */
+  .reason {
+    margin: var(--s-2) 0 0;
+    opacity: 0.75;
+  }
+
+  .card--flagged {
+    background: var(--flagged-sunk);
+    border-left: 6px solid var(--flagged);
+  }
+
+  .card--flagged .finding__count,
+  .card--flagged .eyebrow {
+    color: var(--flagged);
+  }
+
+  .card--measured {
+    background: var(--measured-sunk);
+    border-left: 6px solid var(--measured);
+  }
+
+  /* BOTH NO-ANSWER SHAPES ARE DRAWN AS AN INTERRUPTION: a dashed edge, not a
+     solid one, so a reader skimming sees at a glance that the page is not a
+     result. This is the non-textual half of "a refusal and a result must be
+     unmistakable apart", and copy.test.ts asserts the class that carries
+     it. */
+  .card--stopped {
+    background: var(--stopped-sunk);
+    border-left: 6px dashed var(--stopped);
+  }
+
+  .card--stopped .finding__count,
+  .card--stopped .eyebrow {
+    color: var(--stopped);
+  }
+
+  .card--broken {
+    background: var(--broken-sunk);
+    border-left: 6px dashed var(--broken);
+  }
+
+  .card--broken .finding__count,
+  .card--broken .eyebrow {
+    color: var(--broken);
+  }
+
+  /* ---- The premises card ----------------------------------------------
+     One school, one screen. The distance is the largest thing on it because
+     it is what the reader came for and what they will read down the
+     phone. */
+  /* THE FIGURE, AND THE UNIT AS A FOOTNOTE TO IT. The distance is what the
+     reader came for; "ft" is what it is measured in. They are not equally
+     important and are not drawn at equal size. Metres are in the fold. */
+  .premises__distance {
+    margin: 0;
+    font-size: var(--t-measure);
+    line-height: 0.95;
+    letter-spacing: -0.035em;
+    font-weight: 800;
+    color: var(--flagged);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .premises__unit {
+    font-size: 0.3em;
+    font-weight: 700;
+    letter-spacing: var(--track-wide);
+    text-transform: uppercase;
+    margin-left: 0.35em;
+    vertical-align: 0.35em;
+    color: var(--ink-soft);
+  }
+
+  .premises__name {
+    margin: var(--s-3) 0 var(--s-1);
+    font-size: var(--t-lede);
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .premises__where {
+    margin: 0;
+    font-size: var(--t-detail);
+    color: var(--ink-soft);
+  }
+
+  /* ---- The buffer bar -------------------------------------------------
+     This distance against the rule it was compared to, in one glance.
+
+     WHY A PICTURE AT ALL, on a surface whose first rule is that it never
+     implies permission: because "127.9 m against a buffer of 304.8 m" is two
+     numbers a frightened reader has to hold in their head and divide, and
+     the thing they are actually asking is "how close".
+
+     WHAT IT DELIBERATELY DOES NOT DO. No zone, no "safe" end, no colour that
+     could read as a verdict. The buffer is a tick with a number under it and
+     the fill is where the measurement fell. This shape only ever renders
+     premises that were ALREADY flagged by the server, so the drawing makes
+     no comparison of its own.
+
+     IT IS SVG, NOT CSS WIDTHS. `style-src 'self'` admits no style attribute,
+     so a CSS custom property cannot carry a computed value into the
+     document. SVG presentation attributes are not CSS and are not covered by
+     that policy. */
+  .bar {
+    display: block;
+    width: 100%;
+    height: 0.5rem;
+    margin: var(--s-3) 0 0;
+    overflow: visible;
+  }
+
+  .bar__track {
+    fill: var(--card-2);
+  }
+
+  .bar__fill {
+    fill: var(--flagged);
+  }
+
+  .bar__end {
+    stroke: var(--ink);
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .bar__labels {
+    margin: var(--s-1) 0 0;
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: var(--t-eyebrow);
+    color: var(--ink-soft);
+  }
+
+  /* The distance scale: the same measurement drawn inside a disclosure, at
+     detail size. Borders and one mark, no fill. */
   .scale {
     display: block;
     width: 100%;
     height: 0.75rem;
-    margin: 0 0 0.5rem;
+    margin: var(--s-1) 0;
     overflow: visible;
   }
 
@@ -420,10 +834,10 @@
   }
 
   /* The mark is a LINE, not a filled shape, for the same reason the axis is:
-     the viewBox is 100x10 but the drawn box is ~700x12, and
-     `preserveAspectRatio="none"` squashes it 7:1 horizontally. A stroke can
-     opt out of that via `vector-effect`; a fill cannot -- a circle here
-     renders as a smear the width of the axis. */
+     the viewBox is 100x10 but the drawn box is much wider, and
+     `preserveAspectRatio="none"` squashes it horizontally. A stroke can opt
+     out of that via `vector-effect`; a fill cannot -- a circle here renders
+     as a smear the width of the axis. */
   .scale__mark {
     stroke: var(--flagged);
     stroke-width: 3;
@@ -431,133 +845,213 @@
     vector-effect: non-scaling-stroke;
   }
 
-  .premises__where {
-    color: var(--ink-soft);
-    font-size: 0.9375rem;
-    margin: 0 0 0.75rem;
+  /* ---- The gap card ---------------------------------------------------
+     What tarrow did NOT check. One per screen, unmissable, never folded.
+
+     Principle II, structurally: an absence of flags is meaningful only
+     against a stated list of what was searched. On a scrolling document that
+     list competed with the answer and lost. Here each gap is a screen the
+     reader moves through. */
+  .card--gap {
+    background: var(--card);
+    border-left: 6px solid var(--stopped);
   }
 
-  .premises > .disclosure {
-    margin-bottom: 0;
+  .card--gap .eyebrow {
+    color: var(--stopped);
   }
 
-  .facts {
-    margin: 0;
-    display: grid;
-    grid-template-columns: minmax(11rem, auto) 1fr;
-    gap: 0.3125rem 1rem;
-    font-size: 0.9375rem;
-  }
-
-  .facts dt {
-    color: var(--ink-soft);
-  }
-
-  .facts dd {
-    margin: 0;
-  }
-
-  @media (max-width: 34rem) {
-    .facts {
-      grid-template-columns: 1fr;
-      gap: 0 0;
-    }
-    .facts dt {
-      margin-top: 0.5rem;
-      font-size: 0.8125rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-  }
-
-  .disclosure {
-    border: 1px solid var(--rule);
-    border-radius: 3px;
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.75rem;
-    background: var(--paper);
-  }
-
-  .disclosure > summary {
-    cursor: pointer;
-    font-weight: 700;
-    font-size: 0.9375rem;
-  }
-
-  .disclosure > summary + * {
-    margin-top: 0.875rem;
-  }
-
-  .scroller {
-    overflow-x: auto;
-  }
-
-  .grid-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.875rem;
-    text-align: left;
-  }
-
-  .grid-table th,
-  .grid-table td {
-    border-bottom: 1px solid var(--rule);
-    padding: 0.5rem 0.625rem 0.5rem 0;
-    vertical-align: top;
-  }
-
-  .grid-table th {
-    color: var(--ink-soft);
-    font-weight: 700;
-    white-space: nowrap;
-  }
-
-  .never {
-    color: var(--flagged);
-    font-weight: 700;
-  }
-
-  .field {
-    display: block;
-    margin-top: 1.5rem;
-  }
-
-  .field__label {
-    display: block;
-    font-weight: 700;
-    margin-bottom: 0.25rem;
-  }
-
-  .field__input {
-    width: 100%;
-    box-sizing: border-box;
-    font: inherit;
-    font-size: 1.0625rem;
-    padding: 0.6875rem 0.75rem;
-    border: 2px solid var(--rule-strong);
-    border-radius: 3px;
-    background: var(--paper);
-    color: var(--ink);
-  }
-
-  .button {
-    font: inherit;
-    font-size: 1.0625rem;
-    font-weight: 700;
-    margin-top: 1rem;
-    padding: 0.75rem 1.5rem;
-    border: 2px solid var(--ink);
-    border-radius: 3px;
+  /* ---- The action card ------------------------------------------------
+     The one thing on this surface the reader can DO. Reversed ink so it
+     reads as the instruction rather than as another disclosure. */
+  .card--act {
     background: var(--ink);
-    color: var(--paper);
-    cursor: pointer;
+    color: var(--ink-invert);
+  }
+
+  .card--act .eyebrow {
+    color: var(--rule-strong);
+  }
+
+  .card--act a {
+    color: var(--ink-invert);
+  }
+
+  .card--act :focus-visible {
+    outline-color: var(--ink-invert);
+  }
+
+  .say {
+    list-style: none;
+    margin: 0 0 var(--s-3);
+    padding: 0;
+    display: grid;
+    gap: var(--s-2);
+  }
+
+  .say li {
+    display: grid;
+    grid-template-columns: 1.2rem 1fr;
+    gap: var(--s-1);
+    font-family: var(--font-mono);
+    font-size: var(--t-detail);
+    line-height: 1.45;
+  }
+
+  .say__n {
+    color: var(--rule-strong);
+    font-weight: 400;
+  }
+
+  .act__footer {
+    margin: 0;
+    font-size: var(--t-detail);
+    padding-top: var(--s-2);
+    border-top: 1px solid var(--rule-strong);
+  }
+
+  /* The way out, drawn as a destination rather than a footnote. */
+  .act__go {
+    margin: var(--s-3) 0 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  /* The sentence on the measured-from card that can invalidate everything
+     above it. Full ink, not soft: it is a condition on the answer, not a
+     caption. */
+  .residence__check {
+    margin: var(--s-2) 0 0;
+    font-size: var(--t-body);
+    font-weight: 700;
+  }
+
+  /* ---- The detail card ------------------------------------------------
+     How tarrow knows what it checked. The claim is visible on the card; the
+     evidence folds into the disclosure. */
+  .card--detail {
+    background: var(--card);
+  }
+
+  /* ---- The ask screen -------------------------------------------------
+     One question, one box, and nothing competing with them. Not a deck:
+     there is one card, because there is one idea. */
+  .ask__title {
+    margin: 0 0 var(--s-1);
+    font-size: clamp(1.75rem, 8vw, 2.25rem);
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: var(--track-tight);
+  }
+
+  .ask__sub {
+    margin: 0 0 var(--s-3);
+    font-size: var(--t-body);
+    color: var(--ink-soft);
+  }
+
+  .ask__blurb {
+    margin: var(--s-3) 0 0;
+    font-size: var(--t-detail);
+    color: var(--ink-soft);
+  }
+
+  /* ---- The document --------------------------------------------------
+     /faq is a REFERENCE DOCUMENT, not a deck, and this is the one surface
+     in the system that is not made of cards.
+
+     That is deliberate rather than an omission. A deck is for an answer a
+     reader is being walked through one idea at a time, under pressure. /faq
+     is the opposite: somebody has chosen to go and read the explanation, and
+     they need to scan it, find the part they came for, and re-read it.
+     Snapping a reference text into full screens would make it worse.
+
+     It shares every token and every primitive with the deck -- same ground,
+     same two voices, same rhythm -- so it reads as the same product. Only the
+     container differs. */
+  .page {
+    max-width: 42rem;
+    margin: 0 auto;
+    padding: var(--s-5) var(--s-4) var(--s-5);
+  }
+
+  .masthead {
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: var(--s-2);
+    margin-bottom: var(--s-4);
+  }
+
+  .masthead__name {
+    font-size: 1.375rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+
+  /* The wordmark links home from every page but the home page. It is not
+     drawn as a link: an underline on the masthead reads as navigation
+     furniture and competes with the links on the page that matter. */
+  .masthead__name a {
+    text-decoration: none;
+  }
+
+  .masthead__where {
+    margin: var(--s-1) 0 0;
+    font-size: var(--t-detail);
+    color: var(--ink-soft);
+  }
+
+  .doc__title {
+    margin: 0 0 var(--s-4);
+    font-size: clamp(1.75rem, 8vw, 2.25rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: var(--track-tight);
+  }
+
+  .section {
+    margin-top: var(--s-5);
+  }
+
+  .section__title {
+    margin: 0 0 var(--s-2);
+    padding-bottom: var(--s-1);
+    border-bottom: 1px solid var(--rule);
+    font-size: var(--t-card-h);
+    font-weight: 800;
+    letter-spacing: -0.015em;
   }
 
   .footnote {
-    margin-top: 3rem;
-    padding-top: 1rem;
+    margin-top: var(--s-5);
+    padding-top: var(--s-3);
     border-top: 1px solid var(--rule);
     color: var(--ink-soft);
-    font-size: 0.875rem;
+    font-size: var(--t-detail);
+  }
+
+  /* The don't-guess notice. The only thing on the search screen competing
+     with the field, deliberately: tarrow answers about the address it
+     matched or it answers about nothing, and a reader who assumes it will
+     helpfully find the nearest thing is a reader who can be answered about
+     the wrong building. */
+  .notice {
+    margin: var(--s-3) 0 0;
+    padding: var(--s-2) var(--s-3);
+    border-left: 4px solid var(--stopped);
+    background: var(--stopped-sunk);
+  }
+
+  .notice p {
+    margin: 0;
+    font-size: var(--t-body);
+  }
+
+  .notice .notice__example {
+    margin-top: var(--s-1);
+    font-family: var(--font-mono);
+    font-size: var(--t-detail);
+    color: var(--ink-soft);
   }
 }

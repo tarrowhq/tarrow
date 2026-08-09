@@ -150,11 +150,12 @@ async function main(): Promise<void> {
           layerId: MUNICIPALITIES.id,
           subjectType: "jurisdiction",
           subjectRef: "shared_jurisdiction_names",
+          label: "Two places share a name",
           description:
             `${shared.map((r) => r.name).join(", ")} name both a municipality and a ` +
             `township in Summit County. A result naming one of them does not by itself ` +
-            `say which jurisdiction's rules apply -- which will matter once municipal ` +
-            `ordinances are loaded (TASK-0007).`,
+            `say which jurisdiction's rules apply. Municipal ` +
+            `ordinances are not loaded here.`,
         });
       }
       summary.push(`municipalities: ${counts.loaded}`);
@@ -186,6 +187,7 @@ async function main(): Promise<void> {
           layerId: PARCELS.id,
           subjectType: "source_records",
           subjectRef: "parcels_without_geometry",
+          label: "A few parcels have no map shape",
           description:
             `${counts.droppedNoGeometry} of ${counts.staged} county parcel records carry no ` +
             `usable polygon and are absent from measurement geometry. An address on ` +
@@ -197,10 +199,11 @@ async function main(): Promise<void> {
           layerId: MUNICIPALITIES.id,
           subjectType: "source_coverage",
           subjectRef: "parcels_outside_published_boundaries",
+          label: "Parcels outside any city boundary",
           description:
             `${unassigned} parcels fall outside every published jurisdiction boundary, so ` +
             `tarrow cannot say which municipality they are in. Municipal ordinances are ` +
-            `not yet applied at all, but this will limit them when they are (TASK-0007).`,
+            `not applied at all here, and this would limit them if they were.`,
         });
       }
     });
@@ -241,6 +244,7 @@ async function main(): Promise<void> {
           layerId: ADDRESS_POINTS.id,
           subjectType: "source_records",
           subjectRef: "address_points_without_normalized_form",
+          label: "A few unreadable addresses",
           description:
             `${norm.unnormalizable} published address points carry no usable address ` +
             `label, so no typed address can ever match them. A search for one of those ` +
@@ -251,6 +255,7 @@ async function main(): Promise<void> {
         layerId: ADDRESS_POINTS.id,
         subjectType: "source_records",
         subjectRef: "addr_id_not_unique",
+        label: "Duplicate county address ids",
         description:
           `The county address layer's ADDR_ID is not a key: ${audit.duplicated} of ` +
           `${audit.total} points share a duplicated value and ${audit.empty} carry none. ` +
@@ -262,6 +267,7 @@ async function main(): Promise<void> {
           layerId: ADDRESS_POINTS.id,
           subjectType: "source_records",
           subjectRef: "address_points_without_geometry",
+          label: "Some addresses have no map point",
           description:
             `${counts.droppedNoGeometry} published address points carry no coordinate and ` +
             `cannot be resolved. Those addresses are declined, never approximated.`,

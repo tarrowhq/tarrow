@@ -33,6 +33,9 @@ import type { ReactNode } from "react";
 import type { LinksFunction } from "react-router";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 
+import { Card, CardTitle, Eyebrow, Prose } from "./cards.tsx";
+import { FindingCard, SheriffCard } from "./finding-view.tsx";
+import { CoverageWithdrawnCard } from "./manifest-view.tsx";
 import styles from "./styles.css?url";
 
 export const links: LinksFunction = () => [
@@ -112,71 +115,61 @@ export default function Root() {
  */
 export function ErrorBoundary() {
   return (
-    <main className="page">
-      <header className="masthead">
-        <p className="masthead__name">
-          <a href="/">tarrow</a>
-        </p>
-        <p className="masthead__where">
-          School-premises distances for Summit County, Ohio. A helper, not an
-          authority.
-        </p>
-      </header>
-
-      <div className="answer answer--broken">
-        <p className="answer__label">No result: tarrow could not answer</p>
-        <h1 className="answer__headline">
-          tarrow could not answer, and nothing was checked.
-        </h1>
-        <div className="prose">
-          <p>
+    <main className="deck">
+      <FindingCard
+        tone="broken"
+        label="No result: tarrow could not answer"
+        count="—"
+        unit="tarrow could not answer, and nothing was checked"
+        isNot={
+          <>
             Either something went wrong inside this copy of tarrow, or the page
             you asked for does not exist. Either way no address was measured
             against anything, and tarrow is making no statement about any
             address.
-          </p>
-        </div>
-      </div>
+          </>
+        }
+        more="What tarrow can and cannot tell you"
+      />
 
-      <section className="section">
-        <h2 className="section__title">
-          tarrow cannot tell you what it checked, because it checked nothing
-        </h2>
-        <div className="prose">
-          <p>
-            Every working tarrow answer carries a list of which data layers were
-            searched, which kinds of place were not searched at all, and how old
-            each layer is. This page carries none of that. Do not read the
-            absence of a warning here as the absence of a problem. Read it as
-            tarrow being unable to speak.{" "}
-            <a href="/">Search again</a>.
-          </p>
-        </div>
-      </section>
+      <CoverageWithdrawnCard
+        statement={
+          "tarrow could not read its own coverage record, so it cannot say " +
+          "which layers were loaded, which are absent, or how old any of them " +
+          "are. Nothing was checked."
+        }
+      />
 
-      <section className="section">
-        <h2 className="section__title">
-          Your next step: the sheriff&rsquo;s office where you register
-        </h2>
-        <div className="prose">
-          <p>
-            Call or visit the sheriff&rsquo;s office where you register and ask
-            about the address you were checking. That office enforces the
-            distance rule and knows the local rules tarrow does not load, so it
-            can answer even when tarrow is broken.{" "}
+      <SheriffCard
+        steps={[
+          "Give the address exactly as you typed it.",
+          "Say tarrow broke before it checked anything, so nothing was measured.",
+          "Ask them to check it against the state's school distance rule.",
+        ]}
+        footer={
+          <>
+            That office enforces the distance rule and knows the local rules
+            tarrow does not load, so it can answer even when tarrow is broken.{" "}
             <a href="/faq">What tarrow is, and what it is not</a>.
-          </p>
-        </div>
-      </section>
+          </>
+        }
+      />
 
-      <footer className="footnote">
-        <p>
-          tarrow records nothing about what was requested: not the address, not
-          your IP address, not this failure. That is why there is no error
-          detail on this page. There is none to show, and none was written down
-          anywhere for anyone to read later.
-        </p>
-      </footer>
+      <Card kind="detail">
+        <Eyebrow>Before you go</Eyebrow>
+        <CardTitle>tarrow recorded nothing about this</CardTitle>
+        <Prose soft>
+          <p>
+            tarrow records nothing about what was requested: not the address,
+            not your IP address, not this failure. That is why there is no error
+            detail on this page. There is none to show, and none was written
+            down anywhere for anyone to read later.
+          </p>
+          <p>
+            <a href="/">Search again</a>
+          </p>
+        </Prose>
+      </Card>
     </main>
   );
 }

@@ -1,0 +1,479 @@
+<title>tarrow redesign — Direction C: Call Sheet</title>
+<style>
+/* ==========================================================================
+   DIRECTION C — CALL SHEET
+   The constitution promises "an hour of searching plus one confirming phone
+   call". This direction designs for the second half of that sentence: the
+   page is built as the thing you carry into the call.
+
+   The risk, stated plainly: one reversed-ink card holds what the reader will
+   say aloud. It is the only reversed block on the page, so it cannot be
+   mistaken for a verdict — it is an instruction, and it looks like one.
+   ========================================================================== */
+:root {
+  --ground:      #f7f7f5;
+  --paper:       #ffffff;
+  --sunk:        #eeeeeb;
+  --ink:         #1a1b1a;
+  --ink-soft:    #57595a;
+  --rule:        #d2d3d0;
+  --rule-strong: #8a8c8b;
+  --flagged:     #96301f;
+  --flagged-sunk:#faeeeb;
+  --stopped:     #71540f;
+  --stopped-sunk:#f8f1df;
+  --card:        #1a1b1a;
+  --card-ink:    #f7f7f5;
+  --card-soft:   #a9aba9;
+
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --step--1: 0.8125rem;
+  --step-0:  1rem;
+  --step-1:  1.1875rem;
+  --step-2:  1.4375rem;
+  --step-3:  1.9375rem;
+  --step-4:  2.625rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:      #131414;
+    --paper:       #1a1b1b;
+    --sunk:        #222323;
+    --ink:         #e8e9e8;
+    --ink-soft:    #a3a5a4;
+    --rule:        #343636;
+    --rule-strong: #656767;
+    --flagged:     #f0a596;
+    --flagged-sunk:#2a1917;
+    --stopped:     #e3c384;
+    --stopped-sunk:#241f10;
+    /* In dark, the card reverses the other way: it becomes the light block.
+       The point is that it is the only inverted thing, not that it is dark. */
+    --card:        #e8e9e8;
+    --card-ink:    #131414;
+    --card-soft:   #4a4c4c;
+  }
+}
+:root[data-theme="dark"] {
+  --ground:      #131414;
+  --paper:       #1a1b1b;
+  --sunk:        #222323;
+  --ink:         #e8e9e8;
+  --ink-soft:    #a3a5a4;
+  --rule:        #343636;
+  --rule-strong: #656767;
+  --flagged:     #f0a596;
+  --flagged-sunk:#2a1917;
+  --stopped:     #e3c384;
+  --stopped-sunk:#241f10;
+  --card:        #e8e9e8;
+  --card-ink:    #131414;
+  --card-soft:   #4a4c4c;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--ground); color: var(--ink);
+  font-family: var(--sans); font-size: var(--step-0); line-height: 1.6;
+  -webkit-text-size-adjust: 100%; }
+h1, h2, h3 { text-wrap: balance; }
+a { color: inherit; text-decoration: underline; text-underline-offset: 0.2em; }
+:focus-visible { outline: 3px solid var(--rule-strong); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* SPECIMEN CHROME — demo only ------------------------------------------- */
+/* Fixed chrome, deliberately NOT themed — see the note in a-instrument.html. */
+.spec-head { background: #1a1b1a; color: #f5f5f3; padding: 2rem 1.5rem; }
+.spec-head__inner { max-width: 48rem; margin: 0 auto; display: grid; gap: 0.75rem; }
+.spec-head h1 { margin: 0; font-size: var(--step-3); letter-spacing: -0.02em; }
+.spec-head p { margin: 0; color: #b4b6b4; max-width: 62ch; }
+.spec-head dl { margin: 0.5rem 0 0; display: grid; grid-template-columns: auto 1fr;
+  gap: 0.35rem 1rem; font-size: var(--step--1); }
+.spec-head dt { color: #8b8d8b; text-transform: uppercase; letter-spacing: 0.08em; }
+.spec-head dd { margin: 0; font-family: var(--mono); color: #dcdedc; }
+.spec-label { max-width: 48rem; margin: 3.5rem auto 0; padding: 0 1.25rem;
+  font-family: var(--mono); font-size: var(--step--1); letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--ink-soft); display: flex; align-items: center; gap: 0.75rem; }
+.spec-label::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.screen { background: var(--paper); border: 1px solid var(--rule);
+  max-width: 48rem; margin: 0.75rem auto 0; }
+
+.page { max-width: 48rem; padding: 2rem 1.5rem 3.5rem; }
+@media (min-width: 40rem) { .page { padding: 2.25rem 2.5rem 4rem; } }
+
+/* MASTHEAD --------------------------------------------------------------- */
+.masthead { border-bottom: 1px solid var(--rule); padding-bottom: 0.7rem; margin-bottom: 1.75rem; }
+.masthead__name { margin: 0; font-size: var(--step-1); font-weight: 800;
+  letter-spacing: -0.02em; }
+.masthead__name a { text-decoration: none; }
+.masthead__where { margin: 0.1rem 0 0; color: var(--ink-soft); font-size: var(--step--1); }
+
+/* ANSWER — kept quiet on purpose, because it is not the loudest thing here.
+   That is the argument of this direction: the answer is a measurement, the
+   call is the action, and the page should not shout the measurement. */
+.answer { border-left: 5px solid var(--rule-strong); padding-left: 1rem; margin-bottom: 1.75rem; }
+.answer__label { margin: 0 0 0.45rem; font-family: var(--mono); font-size: var(--step--1);
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+.answer__headline { margin: 0 0 0.7rem; font-size: var(--step-2); font-weight: 800;
+  line-height: 1.2; letter-spacing: -0.02em; max-width: 26ch; }
+.answer p { margin: 0 0 0.7rem; max-width: 62ch; }
+.answer > :last-child { margin-bottom: 0; }
+.answer--flagged { border-left-color: var(--flagged); }
+.answer--flagged .answer__label, .answer--flagged .answer__headline { color: var(--flagged); }
+.answer--measured { border-left-color: var(--ink); }
+.answer--stopped { border-left-style: dashed; border-left-color: var(--stopped); }
+.answer--stopped .answer__label, .answer--stopped .answer__headline { color: var(--stopped); }
+
+/* ======================= THE CALL SHEET — the signature ==================
+   The one reversed block on the page. It holds what the reader will say out
+   loud, in the order they will say it, in mono, at a size readable at
+   arm's length while holding a phone. It appears on EVERY shape, including
+   the ones where tarrow failed, because it is the recommended action.     */
+.callsheet { background: var(--card); color: var(--card-ink);
+  padding: 1.25rem 1.25rem 1.4rem; margin-bottom: 2rem; }
+.callsheet__kicker { margin: 0 0 0.15rem; font-family: var(--mono);
+  font-size: var(--step--1); letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--card-soft); }
+.callsheet__title { margin: 0 0 1rem; font-size: var(--step-2); font-weight: 800;
+  line-height: 1.2; letter-spacing: -0.02em; }
+.callsheet__lines { list-style: none; margin: 0 0 1rem; padding: 0;
+  display: grid; gap: 0.75rem; }
+.callsheet__lines li { display: grid; grid-template-columns: 1.4rem 1fr; gap: 0.75rem;
+  align-items: start; font-family: var(--mono); font-size: 0.9375rem; line-height: 1.5; }
+/* The counters ARE a sequence here: this is a script read in order down a
+   phone. Numbering is information, not decoration. */
+.callsheet__n { color: var(--card-soft); font-variant-numeric: tabular-nums; }
+.callsheet__say { color: var(--card-ink); }
+.callsheet__note { margin: 0; padding-top: 0.9rem; border-top: 1px solid var(--card-soft);
+  font-size: 0.9375rem; color: var(--card-ink); max-width: 60ch; }
+.callsheet__note a { color: inherit; }
+
+/* SECTIONS --------------------------------------------------------------- */
+.section { margin-bottom: 1.9rem; }
+.section__title { margin: 0 0 0.7rem; font-size: var(--step-1); font-weight: 800;
+  letter-spacing: -0.01em; padding-bottom: 0.35rem; border-bottom: 2px solid var(--ink); }
+.prose p, .prose ul { margin: 0 0 0.8rem; max-width: 62ch; }
+.prose ul { padding-left: 1.15rem; }
+.prose li { margin-bottom: 0.4rem; }
+.prose > :last-child { margin-bottom: 0; }
+.val { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 0.9375em; }
+
+/* PREMISES — drawn as call-sheet rows, because that is what they are for. */
+.premises { border: 1px solid var(--rule); border-left: 4px solid var(--flagged);
+  padding: 0.8rem 0.95rem; margin-bottom: 0.65rem; background: var(--paper); }
+.premises__top { display: flex; justify-content: space-between; align-items: baseline;
+  gap: 1rem; flex-wrap: wrap; }
+.premises__name { margin: 0; font-size: var(--step-1); font-weight: 700; }
+.premises__distance { margin: 0; font-family: var(--mono);
+  font-variant-numeric: tabular-nums; font-size: var(--step-1); }
+.premises__where { margin: 0.2rem 0 0; color: var(--ink-soft); font-size: var(--step--1); }
+
+.gaps { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: 0.55rem; }
+.gaps li { border-left: 3px solid var(--stopped); padding-left: 0.8rem; max-width: 62ch; }
+.disclosure { border: 1px solid var(--rule); padding: 0.7rem 0.9rem; margin-bottom: 0.7rem;
+  background: var(--sunk); }
+.disclosure > summary { cursor: pointer; font-weight: 700; font-size: var(--step--1); }
+.disclosure > summary + * { margin-top: 0.75rem; }
+
+/* FORM ------------------------------------------------------------------- */
+.ask { max-width: 33rem; }
+.ask__question { margin: 0 0 0.4rem; font-size: var(--step-4); font-weight: 800;
+  line-height: 1.08; letter-spacing: -0.035em; }
+.ask__second { margin: 0 0 1.4rem; color: var(--ink-soft); max-width: 44ch; }
+.field { display: block; }
+.field__label { display: block; font-weight: 700; margin-bottom: 0.3rem;
+  font-size: var(--step--1); text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--ink-soft); }
+.field__input { width: 100%; font: inherit; font-family: var(--mono); font-size: var(--step-1);
+  padding: 0.75rem 0.85rem; border: 2px solid var(--ink); background: var(--paper);
+  color: var(--ink); }
+.button { font: inherit; font-size: var(--step-0); font-weight: 800; margin-top: 0.9rem;
+  padding: 0.75rem 1.5rem; border: 2px solid var(--ink); background: var(--ink);
+  color: var(--paper); cursor: pointer; }
+.notice { margin-top: 1.6rem; padding: 0.9rem 1.05rem; border: 1px solid var(--rule);
+  border-left: 5px solid var(--stopped); background: var(--stopped-sunk); }
+.notice p { margin: 0; max-width: 58ch; }
+.notice p + p { margin-top: 0.4rem; color: var(--ink-soft); font-size: var(--step--1); }
+.blurb { margin: 1.6rem 0 0; color: var(--ink-soft); font-size: var(--step--1); max-width: 58ch; }
+.footnote { margin-top: 2.5rem; padding-top: 0.9rem; border-top: 1px solid var(--rule);
+  color: var(--ink-soft); font-size: var(--step--1); }
+.footnote p { max-width: 62ch; }
+code { font-family: var(--mono); font-size: 0.9em; }
+</style>
+
+<header class="spec-head">
+  <div class="spec-head__inner">
+    <h1>Direction C — Call Sheet</h1>
+    <p>
+      The constitution promises "an hour of searching plus one confirming phone
+      call." This direction designs for the second half of that sentence. The
+      page is built as the thing the reader carries into the call, and the
+      answer is deliberately <em>not</em> the loudest element — because the
+      answer is a measurement and the call is the action.
+    </p>
+    <p>
+      The signature and the risk are the same object: one reversed-ink card
+      holding what the reader will say out loud, numbered because it is read in
+      order down a phone. It is the only inverted block on the page, so it
+      cannot be mistaken for a verdict. It appears on every shape, including
+      the ones where tarrow failed.
+    </p>
+    <dl>
+      <dt>Ground</dt><dd>#f7f7f5 neutral paper · #1a1b1a ink</dd>
+      <dt>Signal</dt><dd>#96301f flagged · #71540f stopped</dd>
+      <dt>Type</dt><dd>system sans written · system mono spoken and read</dd>
+      <dt>Risk</dt><dd>the answer is quieter than the instruction</dd>
+    </dl>
+  </div>
+</header>
+
+<!-- ===================== SCREEN 1 — THE SEARCH ========================== -->
+<p class="spec-label">Screen 1 · the search</p>
+<div class="screen">
+  <main class="page">
+    <header class="masthead"><p class="masthead__name">tarrow</p></header>
+    <div class="ask">
+      <h1 class="ask__question">How far is an address from a school?</h1>
+      <p class="ask__second">Then take the answer to the sheriff's office. That is the
+        whole of what tarrow is for.</p>
+      <form>
+        <label class="field">
+          <span class="field__label">A street address in Summit County, Ohio</span>
+          <input class="field__input" type="text" autocomplete="off" spellcheck="false">
+        </label>
+        <button class="button" type="button">Check this address</button>
+      </form>
+      <div class="notice">
+        <p><strong>tarrow does not correct spelling, and it does not guess.</strong>
+          Type the address as it appears on a bill. If tarrow cannot find exactly what you
+          typed, it says so rather than answering about the wrong building.</p>
+        <p>For example <code>1464 Garman Rd, Akron, OH 44313</code></p>
+      </div>
+      <p class="blurb">tarrow covers <strong>Summit County, Ohio</strong> and checks
+        <strong>school premises only</strong>. It measures distances and decides nothing.
+        <a href="#">What tarrow checks, what it misses, and what happens to what you type</a></p>
+    </div>
+  </main>
+</div>
+
+<!-- ================== SCREEN 2 — OUTSIDE EVERY BUFFER =================== -->
+<p class="spec-label">Screen 2 · outside every buffer we checked</p>
+<div class="screen">
+  <main class="page">
+    <header class="masthead">
+      <p class="masthead__name"><a href="#">tarrow</a></p>
+      <p class="masthead__where">School-premises distances for Summit County, Ohio. A helper, not an authority.</p>
+    </header>
+
+    <div class="answer answer--measured">
+      <p class="answer__label">Result: outside every buffer we checked</p>
+      <h1 class="answer__headline">Outside every buffer we checked.</h1>
+      <p><strong>That is smaller than it sounds.</strong> No school premises
+        <em>that tarrow holds a boundary for</em> is within
+        <span class="val">304.8 m (1,000 ft)</span> of the parcel at this address. That is
+        the whole of the finding: a measurement, not a decision. What tarrow did not look
+        at is listed below. Read it before you rely on anything here, and then make the
+        phone call.</p>
+    </div>
+
+    <section class="callsheet">
+      <p class="callsheet__kicker">Your next step</p>
+      <h2 class="callsheet__title">Call the sheriff's office where you register</h2>
+      <ol class="callsheet__lines">
+        <li><span class="callsheet__n">1</span><span class="callsheet__say">Give them the
+          address exactly as you typed it here.</span></li>
+        <li><span class="callsheet__n">2</span><span class="callsheet__say">Tell them tarrow
+          measured no school premises within 304.8 m — 1,000 ft — of the parcel.</span></li>
+        <li><span class="callsheet__n">3</span><span class="callsheet__say">Tell them tarrow
+          checked school premises only, and no city or village rule at all.</span></li>
+      </ol>
+      <p class="callsheet__note"><strong>If that office and tarrow disagree, that office is
+        right and tarrow is wrong.</strong> <a href="#">What tarrow is, and what it is
+        not</a>.</p>
+    </section>
+
+    <section class="section">
+      <h2 class="section__title">What tarrow did not check</h2>
+      <ul class="gaps">
+        <li>Preschools, licensed child day-care centres, children's crisis care and
+          residential infant care are not loaded at all.</li>
+        <li>No municipal ordinance is loaded. Cities and villages in Summit County set their
+          own rules, and tarrow holds none of them.</li>
+      </ul>
+      <div class="prose">
+        <p><strong>What it did check:</strong> school premises in Summit County, Ohio.
+          <span class="val">318</span> of the <span class="val">341</span> premises tarrow
+          holds have a real parcel boundary and were measured against.
+          <span class="val">23</span> have no boundary and were not measured at all; tarrow
+          does not invent a circle around a school it cannot draw.</p>
+        <p><strong>How old this is.</strong> Data fetched <span class="val">3 August
+          2026</span>; oldest layer <span class="val">28 July 2026</span>.</p>
+      </div>
+      <details class="disclosure">
+        <summary>Which layers were queried, and where each came from</summary>
+        <div class="prose"><p>Provenance tables live here — in the served HTML, one click
+          away, never absent.</p></div>
+      </details>
+    </section>
+
+    <section class="section">
+      <h2 class="section__title">No person has checked the rule tarrow applied</h2>
+      <div class="prose">
+        <p>tarrow read the statute and applied a number. Nobody has signed their name to
+          that reading inside tarrow, no citation or verification date is attached to it as
+          data, and no court has been asked whether the way tarrow measures is the way the
+          state measures.</p>
+      </div>
+      <details class="disclosure">
+        <summary>tarrow's own record of that gap, in full</summary>
+        <div class="prose"><p>The ledger's full statement is rendered here.</p></div>
+      </details>
+    </section>
+
+    <footer class="footnote">
+      <p>tarrow did not write down the address you typed: not in a log, not in this page's
+        web address, not in a database, and not on its way anywhere else.
+        <a href="#">The procedure for checking it yourself</a>.</p>
+      <p><a href="#">Check another address</a></p>
+    </footer>
+  </main>
+</div>
+
+<!-- ================= SCREEN 3 — PREMISES WITHIN BUFFER ================== -->
+<p class="spec-label">Screen 3 · inside a buffer tarrow checked</p>
+<div class="screen">
+  <main class="page">
+    <header class="masthead">
+      <p class="masthead__name"><a href="#">tarrow</a></p>
+      <p class="masthead__where">School-premises distances for Summit County, Ohio. A helper, not an authority.</p>
+    </header>
+
+    <div class="answer answer--flagged">
+      <p class="answer__label">Result: inside a buffer tarrow checked</p>
+      <h1 class="answer__headline">Three school premises are within 304.8 m (1,000 ft) of this address.</h1>
+      <p>Here they are. Ohio's rule is written about the <em>premises</em> (the parcel of
+        land) rather than the building, so a school that owns several parcels appears more
+        than once. Repeated names are not a mistake.</p>
+    </div>
+
+    <section class="section">
+      <h2 class="section__title">What tarrow found inside the buffer (three)</h2>
+      <article class="premises">
+        <div class="premises__top">
+          <h3 class="premises__name">Firestone Park Elementary School</h3>
+          <p class="premises__distance">82.4 m · 270 ft</p>
+        </div>
+        <p class="premises__where">Parcel 6743119 · Akron · boundary to boundary</p>
+      </article>
+      <article class="premises">
+        <div class="premises__top">
+          <h3 class="premises__name">Firestone Park Elementary School</h3>
+          <p class="premises__distance">128.1 m · 420 ft</p>
+        </div>
+        <p class="premises__where">Parcel 6743120 · Akron · boundary to boundary</p>
+      </article>
+      <article class="premises">
+        <div class="premises__top">
+          <h3 class="premises__name">Saint Paul School</h3>
+          <p class="premises__distance">237.7 m · 780 ft</p>
+        </div>
+        <p class="premises__where">Parcel 6801442 · Akron · boundary to boundary</p>
+      </article>
+    </section>
+
+    <!-- The call sheet writes itself from the result: the names and distances
+         the reader will read down the phone are the ones just listed. -->
+    <section class="callsheet">
+      <p class="callsheet__kicker">Your next step</p>
+      <h2 class="callsheet__title">Call the sheriff's office where you register</h2>
+      <ol class="callsheet__lines">
+        <li><span class="callsheet__n">1</span><span class="callsheet__say">Give them the
+          address exactly as you typed it here.</span></li>
+        <li><span class="callsheet__n">2</span><span class="callsheet__say">Read them these
+          three: Firestone Park Elementary School at 270 ft, Firestone Park Elementary
+          School at 420 ft, Saint Paul School at 780 ft.</span></li>
+        <li><span class="callsheet__n">3</span><span class="callsheet__say">Tell them tarrow
+          checked school premises only, and no city or village rule at all.</span></li>
+      </ol>
+      <p class="callsheet__note"><strong>If that office and tarrow disagree, that office is
+        right and tarrow is wrong.</strong></p>
+    </section>
+
+    <section class="section">
+      <h2 class="section__title">What tarrow did not check</h2>
+      <ul class="gaps">
+        <li>Preschools, licensed child day-care centres, children's crisis care and
+          residential infant care are not loaded at all.</li>
+        <li>No municipal ordinance is loaded.</li>
+      </ul>
+    </section>
+
+    <footer class="footnote"><p><a href="#">Check another address</a></p></footer>
+  </main>
+</div>
+
+<!-- ==================== SCREEN 4 — COULD NOT LOCATE ===================== -->
+<p class="spec-label">Screen 4 · a refusal (no result)</p>
+<div class="screen">
+  <main class="page">
+    <header class="masthead">
+      <p class="masthead__name"><a href="#">tarrow</a></p>
+      <p class="masthead__where">School-premises distances for Summit County, Ohio. A helper, not an authority.</p>
+    </header>
+
+    <div class="answer answer--stopped">
+      <p class="answer__label">No result: tarrow could not find this address</p>
+      <h1 class="answer__headline">tarrow could not find this address, so it checked nothing.</h1>
+      <p>This is not an answer. tarrow does not know where this address is, so it measured
+        no distances and found nothing, neither near nor far.</p>
+    </div>
+
+    <!-- Still here, and now the ONLY actionable thing on the page. -->
+    <section class="callsheet">
+      <p class="callsheet__kicker">Your next step</p>
+      <h2 class="callsheet__title">Call the sheriff's office where you register</h2>
+      <ol class="callsheet__lines">
+        <li><span class="callsheet__n">1</span><span class="callsheet__say">Give them the
+          address exactly as you typed it here.</span></li>
+        <li><span class="callsheet__n">2</span><span class="callsheet__say">Tell them tarrow
+          could not find the address and measured nothing at all.</span></li>
+        <li><span class="callsheet__n">3</span><span class="callsheet__say">Ask them to check
+          the address against the state's 1,000-foot school rule.</span></li>
+      </ol>
+      <p class="callsheet__note">That office can answer for an address tarrow will not
+        measure.</p>
+    </section>
+
+    <section class="section">
+      <h2 class="section__title">Why this happens, and what to try</h2>
+      <div class="prose">
+        <ul>
+          <li><strong>The address is not in Summit County, Ohio.</strong> tarrow holds no
+            data for anywhere else, and it cannot tell an out-of-county address apart from a
+            misspelled one, so both land on this page.</li>
+          <li><strong>The county writes it differently.</strong> Try it as it appears on a
+            tax bill, a utility bill, or a lease.</li>
+          <li><strong>The county has not published a point for it.</strong> New addresses,
+            and some municipalities generally, are thinly covered.</li>
+        </ul>
+        <p>tarrow will not guess: it does not correct spelling, it does not fall back to the
+          middle of the street or the centre of the ZIP code, and it does not offer the
+          nearest parcel it happened to find instead. A confident answer about the wrong
+          building is more dangerous to you than no answer at all.</p>
+        <p><small>tarrow records the reason for this as <code>address-not-matched</code>.</small></p>
+      </div>
+    </section>
+
+    <footer class="footnote"><p><a href="#">Check another address</a></p></footer>
+  </main>
+</div>
+
+<p class="spec-label">End of Direction C</p>
+<div style="max-width:48rem;margin:0.75rem auto 4rem;padding:0 1.25rem;color:var(--ink-soft);font-size:0.8125rem">
+  <p>Open question this direction raises, worth deciding rather than inheriting: the call
+  sheet on screen 3 names premises and distances, which means the renderer is composing a
+  spoken script from the result. That is presentation, not derivation — it states what was
+  measured and nothing more — but it is the closest any of the three directions comes to the
+  renderer saying something the result did not.</p>
+</div>

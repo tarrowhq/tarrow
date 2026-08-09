@@ -16,13 +16,47 @@
 // and moving that obligation here would be a Principle II violation dressed as
 // an information-architecture improvement.
 //
-// It reads no database. Like the form, it loads when the database is down --
-// which is when a reader is most likely to be looking for an explanation.
+// IT READS THE COVERAGE RECORD, AND IT SURVIVES NOT BEING ABLE TO. The layer
+// registry, the fetch dates, and the full gap ledger live here -- they are
+// provenance, "how tarrow knows what it checked", and a person looking up an
+// address is not their audience. They were on every answer; they are now one
+// link away, in full.
+//
+// The loader below therefore reads the manifest, but a failure to read it
+// renders the page WITHOUT that section rather than failing: like the form,
+// this page must load when the database is down, which is exactly when a
+// reader is most likely to be looking for an explanation.
 //
 // The vocabulary rule applies here as it does everywhere else: this page is
 // scanned by app/tests/copy.test.ts for the permission words the constitution
 // forbids, because a reader arriving here from an answer reads it as part of
 // the answer.
+
+import { useLoaderData } from "react-router";
+
+import { count, day } from "../format.ts";
+import { pool } from "../../server/db.ts";
+import { readManifest } from "../../server/manifest.ts";
+import type { LoadedCoverageManifest } from "../../server/result.ts";
+
+interface FaqData {
+  readonly manifest: LoadedCoverageManifest | null;
+}
+
+export async function loader(): Promise<FaqData> {
+  const client = await pool.connect().catch(() => null);
+  if (client === null) return { manifest: null };
+  try {
+    return { manifest: await readManifest(client) };
+  } catch {
+    // A page that cannot read the ledger still explains what tarrow is. The
+    // provenance section is simply absent, which is honest: it is a record of
+    // what was loaded, and nothing could be read.
+    return { manifest: null };
+  } finally {
+    client.release();
+  }
+}
 
 export function meta() {
   return [
@@ -49,7 +83,7 @@ export default function Faq() {
         </p>
       </header>
 
-      <h1 className="ask__question">What tarrow is</h1>
+      <h1 className="doc__title">What tarrow is</h1>
 
       <section className="section">
         <h2 className="section__title">What it measures</h2>
@@ -121,11 +155,10 @@ export default function Faq() {
               it cannot be answered at all.
             </li>
             <li>
-              The buffer tarrow applies comes from tarrow reading the statute. It
-              does not come from a rule record carrying a citation, an effective
-              date and a person&rsquo;s name, which is what the constitution
-              requires and what has not been built yet. No court has been asked
-              whether the way tarrow measures is the way the state measures.
+              The buffer comes from tarrow reading the statute. No person has
+              checked that reading and signed their name to it, and no court has
+              been asked whether the way tarrow measures is the way the state
+              measures.
             </li>
             <li>
               tarrow is missing schools it has never heard of. It names the ones
@@ -165,9 +198,9 @@ export default function Faq() {
             precisely tarrow knows where a boundary sits. It is always{" "}
             <em>subtracted</em> from a measured distance before the comparison,
             never added, so it makes a flag more likely rather than less. That
-            is the direction the constitution requires: a school tarrow flags
-            that turns out not to count costs you a house you could have had,
-            and a school it misses could cost you your liberty.
+            direction is deliberate: a school tarrow flags that turns out not to
+            count costs you a house you could have had, and a school it misses
+            could cost you your liberty.
           </p>
         </div>
       </section>
@@ -221,14 +254,15 @@ export default function Faq() {
         <h2 className="section__title">Telling tarrow it is wrong</h2>
         <div className="prose">
           <p>
-            There is no way to report a mistake yet, and that is on purpose. A
-            report has to be built so that it carries nothing about what you
-            searched, and that has not been built. Until it is, the
-            sheriff&rsquo;s office is the only way to correct tarrow, and it is
-            the one that counts anyway.
+            There is no way to report a mistake here, and that is on purpose:
+            a report form would have to carry nothing about what you searched,
+            and nothing less would be acceptable. The sheriff&rsquo;s office is
+            the way to correct tarrow, and it is the one that counts anyway.
           </p>
         </div>
       </section>
+
+      <Provenance />
 
       <footer className="footnote">
         <p>
@@ -236,5 +270,110 @@ export default function Faq() {
         </p>
       </footer>
     </main>
+  );
+}
+
+/**
+ * WHERE TARROW'S DATA CAME FROM, AND HOW OLD IT IS.
+ *
+ * Principle II's full ledger and Principle V's verification record. This is
+ * the material that used to sit on every answer as cards of its own; it is
+ * here because it answers "how does tarrow know", which is a question a reader
+ * asks only if they choose to.
+ *
+ * `data-table="layers"` is read by app/tests/copy.test.ts, which requires
+ * every row to render its verification date as never-human-verified. A scan
+ * over the whole document would count a sentence elsewhere as if it were a
+ * row, and would pass a table that had quietly lost one.
+ */
+function Provenance() {
+  const { manifest } = useLoaderData<FaqData>();
+  if (manifest === null) return null;
+  const newest = day(manifest.dataFetchedAt);
+  const oldest = day(manifest.oldestLayerFetchedAt);
+
+  return (
+    <section className="section">
+      <h2 className="section__title">Where this data came from</h2>
+      <div className="prose">
+        <p>
+          This copy of tarrow last fetched data on{" "}
+          {newest ?? "a date it cannot report"}, and its oldest layer was
+          fetched on {oldest ?? "a date it cannot report"}.{" "}
+          <strong>No layer has been checked by a person.</strong> If you are
+          looking at somebody else&rsquo;s copy of tarrow, those dates are how
+          you tell whether it has been left to go stale.
+        </p>
+        <p>
+          It holds {count(manifest.premises.total)} school premises, of which{" "}
+          {count(manifest.premises.measurable)} have a real parcel boundary and
+          were measured against. tarrow does not invent a circle around a school
+          it cannot draw.
+        </p>
+      </div>
+
+      <div className="scroller">
+        <table className="grid-table" data-table="layers">
+          <thead>
+            <tr>
+              <th scope="col">Layer</th>
+              <th scope="col">Rows</th>
+              <th scope="col">Fetched</th>
+              <th scope="col">Checked by a person</th>
+            </tr>
+          </thead>
+          <tbody>
+            {manifest.layers.map((layer) => (
+              <tr key={layer.id}>
+                <td>
+                  <strong>{layer.id}</strong>
+                  <br />
+                  {layer.description}
+                  <br />
+                  <small>{layer.sourceUrl}</small>
+                </td>
+                <td>
+                  {layer.rowCount === null ? "not recorded" : count(layer.rowCount)}
+                </td>
+                <td>{day(layer.fetchedAt) ?? "never loaded"}</td>
+                <td>
+                  {layer.verifiedAt === null ? (
+                    <span className="never">never human-verified</span>
+                  ) : (
+                    day(layer.verifiedAt)
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 className="section__title">Everything tarrow knows it misses</h2>
+      <div className="prose">
+        <p>
+          Recorded when the data is loaded, so a limitation somebody finds
+          reaches this page without anyone remembering to write it down here.
+        </p>
+      </div>
+      <div className="scroller">
+        <table className="grid-table">
+          <thead>
+            <tr>
+              <th scope="col">What</th>
+              <th scope="col">Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            {manifest.gaps.map((gap) => (
+              <tr key={gap.id}>
+                <td>{gap.label}</td>
+                <td>{gap.description}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }

@@ -1,0 +1,399 @@
+<title>tarrow round 2 — E: One Card</title>
+<style>
+/* ==========================================================================
+   DIRECTION E — ONE CARD
+   The opposite bet from D. Not "draw more" — SHOW LESS AT ONCE.
+
+   The reader is on a phone, on a deadline, possibly on a library machine with
+   someone behind them. Every version so far has been a scrolling document:
+   the reader must scroll to learn whether the news is bad, and disclosure
+   sits below the fold where rule 5 says it is not delivered at all.
+
+   This direction gives the answer ONE FULL SCREEN and nothing else. No
+   masthead competing with it, no nav, no footer visible. The finding is
+   enormous. Underneath it, exactly one line of what it is not.
+
+   Everything else — every gap, every provenance table, the sheriff step —
+   becomes a STACK OF CARDS the reader steps through one at a time, each one
+   also full-screen, each one carrying exactly one idea. Progressive
+   disclosure without hiding anything: every card is in the served HTML and
+   reachable by scrolling, but only ever one is competing for attention.
+
+   Structurally this is a deck, not a page. That is the right turn.
+
+   Mechanism: scroll-snap. Pure CSS, no script, no JS-dependent state. With
+   scripting off it degrades to a normal long page with big sections — which
+   is exactly the no-JS requirement, satisfied by construction rather than
+   by a fallback.
+   ========================================================================== */
+:root {
+  --bg:        #0e1013;
+  --card:      #171a1f;
+  --card-2:    #1e222a;
+  --ink:       #f3f5f8;
+  --ink-soft:  #9aa3b2;
+  --rule:      #2c313a;
+  --flagged:   #ff6b4a;
+  --flagged-d: #2a1310;
+  --stopped:   #f0b429;
+  --stopped-d: #241b07;
+  --measured:  #f3f5f8;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+/* Committed single visual world: this is a dark instrument, deliberately, in
+   every viewer theme. Every colour is painted explicitly so it never borrows
+   the host's ground. A reader on a library machine at night is the case. */
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--sans); line-height: 1.5; -webkit-text-size-adjust: 100%; }
+h1,h2 { text-wrap: balance; }
+a { color: inherit; text-underline-offset: .2em; }
+:focus-visible { outline: 3px solid var(--flagged); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+
+/* specimen chrome */
+.sh { background: #05070a; color: #eef1f5; padding: 1.75rem 1.5rem; }
+.sh__in { max-width: 44rem; margin: 0 auto; }
+.sh h1 { margin: 0 0 .6rem; font-size: 1.75rem; letter-spacing: -.02em; }
+.sh p { margin: 0 0 .5rem; color: #939cab; max-width: 66ch; font-size: .9375rem; }
+.sh b { color: #eef1f5; }
+.lbl { max-width: 44rem; margin: 2.5rem auto .6rem; padding: 0 1.25rem;
+  font-family: var(--mono); font-size: .75rem; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-soft); display: flex; gap: .75rem; align-items: center; }
+.lbl::after { content:""; flex:1; height:1px; background: var(--rule); }
+
+/* ---------- THE DECK ----------
+   A fixed-height scroller so the specimen shows the real behaviour inside
+   the page. Shipped, this is the viewport itself. */
+.deck {
+  max-width: 26rem; margin: 0 auto; height: 40rem;
+  overflow-y: auto; scroll-snap-type: y mandatory;
+  border: 1px solid var(--rule); border-radius: 1.75rem; background: var(--bg);
+}
+.card {
+  scroll-snap-align: start; min-height: 100%;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 1.75rem 1.5rem; border-bottom: 1px solid var(--rule);
+}
+
+/* card 1 — THE FINDING, and nothing else */
+.verdict__eyebrow { margin: 0 0 .9rem; font-family: var(--mono); font-size: .6875rem;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); }
+.verdict__count {
+  margin: 0; font-size: clamp(3.6rem, 19vw, 5.5rem); line-height: .88;
+  letter-spacing: -.045em; font-weight: 800;
+}
+.verdict__unit { margin: .55rem 0 0; font-size: 1.375rem; font-weight: 700;
+  line-height: 1.2; letter-spacing: -.02em; }
+.verdict__is-not { margin: 1.4rem 0 0; padding-top: 1rem; border-top: 1px solid var(--rule);
+  font-size: .9375rem; color: var(--ink-soft); }
+.c--flagged .verdict__count, .c--flagged .verdict__eyebrow { color: var(--flagged); }
+.c--flagged { background: linear-gradient(180deg, var(--flagged-d), var(--card)); }
+.c--measured { background: var(--card); }
+.c--stopped { background: linear-gradient(180deg, var(--stopped-d), var(--card)); }
+.c--stopped .verdict__count, .c--stopped .verdict__eyebrow { color: var(--stopped); }
+
+/* the hint that there IS more — the only thing that moves on the page */
+.more { margin: 1.6rem 0 0; display: flex; align-items: center; gap: .5rem;
+  font-family: var(--mono); font-size: .6875rem; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-soft); }
+.more span { display: block; width: .8rem; height: .8rem; border-right: 2px solid var(--ink-soft);
+  border-bottom: 2px solid var(--ink-soft); transform: rotate(45deg); animation: nudge 2.4s ease-in-out infinite; }
+@keyframes nudge { 0%,100% { transform: rotate(45deg) translate(0,0); opacity:.55 }
+                   50% { transform: rotate(45deg) translate(2px,2px); opacity:1 } }
+@media (prefers-reduced-motion: reduce) { .more span { animation: none; } }
+
+/* a premises card — one school, one screen */
+.p__key { margin: 0 0 .8rem; font-family: var(--mono); font-size: .6875rem;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+.p__dist { margin: 0; font-size: clamp(2.6rem, 14vw, 3.6rem); line-height: .95;
+  letter-spacing: -.035em; font-weight: 800; color: var(--flagged); }
+.p__alt { margin: .3rem 0 0; font-family: var(--mono); font-size: .875rem; color: var(--ink-soft); }
+.p__name { margin: 1.1rem 0 .2rem; font-size: 1.25rem; font-weight: 700; line-height: 1.25; }
+.p__where { margin: 0; font-size: .875rem; color: var(--ink-soft); }
+/* the buffer bar: this distance against the rule, one glance */
+.bar { margin: 1.3rem 0 0; height: 6px; background: var(--card-2); position: relative; }
+.bar b { position: absolute; inset: 0 auto 0 0; background: var(--flagged); display: block; }
+.bar i { position: absolute; top: -5px; bottom: -5px; width: 2px; background: var(--ink); right: 0; }
+.bar__l { margin: .45rem 0 0; display: flex; justify-content: space-between;
+  font-family: var(--mono); font-size: .6875rem; color: var(--ink-soft); }
+
+/* a gap card — what was NOT checked, one per screen, unmissable */
+.c--gap { background: var(--card); border-left: 4px solid var(--stopped); }
+.gap__n { margin: 0 0 .9rem; font-family: var(--mono); font-size: .6875rem;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--stopped); }
+.gap__h { margin: 0 0 .7rem; font-size: 1.5rem; font-weight: 800; line-height: 1.2;
+  letter-spacing: -.02em; }
+.gap__b { margin: 0; font-size: .9375rem; color: var(--ink-soft); }
+
+/* the action card */
+.c--act { background: var(--ink); color: var(--bg); }
+.act__n { margin: 0 0 .8rem; font-family: var(--mono); font-size: .6875rem;
+  letter-spacing: .12em; text-transform: uppercase; color: #55606f; }
+.act__h { margin: 0 0 1.1rem; font-size: 1.6rem; font-weight: 800; line-height: 1.15;
+  letter-spacing: -.025em; }
+.say { list-style: none; margin: 0 0 1.1rem; padding: 0; display: grid; gap: .7rem; }
+.say li { display: grid; grid-template-columns: 1.2rem 1fr; gap: .6rem;
+  font-family: var(--mono); font-size: .8125rem; line-height: 1.45; }
+.say b { color: #55606f; font-weight: 400; }
+.act__f { margin: 0; font-size: .875rem; font-weight: 700; padding-top: .9rem;
+  border-top: 1px solid #c3cad3; }
+
+/* detail card — provenance, folded */
+.c--detail { background: var(--card); }
+.d__n { margin: 0 0 .8rem; font-family: var(--mono); font-size: .6875rem;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+.d__h { margin: 0 0 .8rem; font-size: 1.25rem; font-weight: 700; letter-spacing: -.015em; }
+.d__p { margin: 0 0 .8rem; font-size: .875rem; color: var(--ink-soft); }
+details { border-top: 1px solid var(--rule); padding-top: .7rem; }
+summary { cursor: pointer; font-family: var(--mono); font-size: .75rem;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); }
+summary + * { margin-top: .8rem; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: .3rem .9rem;
+  font-family: var(--mono); font-size: .75rem; }
+.kv dt { color: var(--ink-soft); }
+.kv dd { margin: 0; }
+
+/* search screen */
+.c--ask { background: var(--card); }
+.ask__h { margin: 0 0 .35rem; font-size: 2rem; font-weight: 800; line-height: 1.08;
+  letter-spacing: -.035em; }
+.ask__s { margin: 0 0 1.5rem; font-size: .9375rem; color: var(--ink-soft); }
+.f__l { display: block; font-family: var(--mono); font-size: .6875rem; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--ink-soft); margin-bottom: .35rem; }
+.f__i { width: 100%; font: inherit; font-family: var(--mono); font-size: 1.0625rem;
+  padding: .8rem .85rem; border: 0; border-bottom: 2px solid var(--ink);
+  background: var(--card-2); color: var(--ink); }
+.btn { width: 100%; font: inherit; font-size: 1rem; font-weight: 800; margin-top: .8rem;
+  padding: .85rem 1.4rem; border: 0; background: var(--ink); color: var(--bg); cursor: pointer; }
+.warn { margin: 1.3rem 0 0; padding: .8rem .9rem; background: var(--stopped-d);
+  border-left: 3px solid var(--stopped); }
+.warn p { margin: 0; font-size: .8125rem; }
+.warn p + p { margin-top: .35rem; font-family: var(--mono); font-size: .75rem; color: var(--ink-soft); }
+code { font-family: var(--mono); font-size: .9em; }
+</style>
+
+<header class="sh">
+  <div class="sh__in">
+    <h1>E — One Card</h1>
+    <p>The opposite bet from D. Not "draw more" — <b>show less at once</b>. Every version so far
+      has been a scrolling document, which means the reader scrolls to find out whether the news
+      is bad, and disclosure sits below the fold where rule 5 says it was never delivered.</p>
+    <p>Here the finding gets <b>one entire screen</b> and nothing else — no masthead, no nav, no
+      footer in view. Everything else becomes a <b>stack of full-screen cards</b>, each carrying
+      exactly one idea: one school, one gap, one action. Nothing is hidden; only one thing is ever
+      competing for attention.</p>
+    <p><b>Mechanism:</b> CSS scroll-snap. No script, no JS-dependent state. With scripting off it
+      degrades to a long page with big sections — the no-JS requirement satisfied by construction
+      rather than by a fallback. <b>Commits to one dark world</b> in every viewer theme: a phone
+      at night, on a library machine, is the case this is built for.</p>
+  </div>
+</header>
+
+<!-- ============================ SEARCH ============================= -->
+<p class="lbl">Deck 1 · the search — scroll inside the frame</p>
+<div class="deck">
+  <section class="card c--ask">
+    <h1 class="ask__h">How far is an address from a school?</h1>
+    <p class="ask__s">Summit County, Ohio. School premises only. A helper, not an authority.</p>
+    <form>
+      <label>
+        <span class="f__l">Street address</span>
+        <input class="f__i" type="text" autocomplete="off" spellcheck="false">
+      </label>
+      <button class="btn" type="button">Check this address</button>
+    </form>
+    <div class="warn">
+      <p><strong>tarrow does not correct spelling, and it does not guess.</strong> If it cannot
+        find exactly what you typed, it says so rather than answering about the wrong building.</p>
+      <p>e.g. <code>1464 Garman Rd, Akron, OH 44313</code></p>
+    </div>
+  </section>
+</div>
+
+<!-- ====================== FLAGGED — THE DECK ======================= -->
+<p class="lbl">Deck 2 · three inside the buffer — one card at a time</p>
+<div class="deck">
+
+  <section class="card c--flagged">
+    <p class="verdict__eyebrow">Inside a buffer we checked</p>
+    <p class="verdict__count">3</p>
+    <p class="verdict__unit">school premises within 1,000 ft of this address</p>
+    <p class="verdict__is-not">Two of them are the same school on different parcels. Ohio's rule
+      is about the land, not the building.</p>
+    <p class="more"><span></span> Each one, then what we missed</p>
+  </section>
+
+  <section class="card">
+    <p class="p__key">Premises 1 of 3</p>
+    <p class="p__dist">270 ft</p>
+    <p class="p__alt">82.4 m · boundary to boundary</p>
+    <h2 class="p__name">Firestone Park Elementary School</h2>
+    <p class="p__where">Parcel 6743119 · Akron</p>
+    <div class="bar"><b style="width:27%"></b><i></i></div>
+    <div class="bar__l"><span>this address</span><span>1,000 ft</span></div>
+  </section>
+
+  <section class="card">
+    <p class="p__key">Premises 2 of 3</p>
+    <p class="p__dist">420 ft</p>
+    <p class="p__alt">128.1 m · boundary to boundary</p>
+    <h2 class="p__name">Firestone Park Elementary School</h2>
+    <p class="p__where">Parcel 6743120 · Akron · same school as premises 1</p>
+    <div class="bar"><b style="width:42%"></b><i></i></div>
+    <div class="bar__l"><span>this address</span><span>1,000 ft</span></div>
+  </section>
+
+  <section class="card">
+    <p class="p__key">Premises 3 of 3</p>
+    <p class="p__dist">780 ft</p>
+    <p class="p__alt">237.7 m · boundary to boundary</p>
+    <h2 class="p__name">Saint Paul School</h2>
+    <p class="p__where">Parcel 6801442 · Akron</p>
+    <div class="bar"><b style="width:78%"></b><i></i></div>
+    <div class="bar__l"><span>this address</span><span>1,000 ft</span></div>
+  </section>
+
+  <section class="card c--act">
+    <p class="act__n">Your next step</p>
+    <h2 class="act__h">Call the sheriff's office where you register</h2>
+    <ul class="say">
+      <li><b>1</b><span>Give the address exactly as you typed it.</span></li>
+      <li><b>2</b><span>Read the three: Firestone Park at 270 ft, Firestone Park at 420 ft, Saint Paul at 780 ft.</span></li>
+      <li><b>3</b><span>Say tarrow checked school premises only, and no city rule at all.</span></li>
+    </ul>
+    <p class="act__f">If that office and tarrow disagree, that office is right.</p>
+  </section>
+
+  <section class="card c--gap">
+    <p class="gap__n">Not checked · 1 of 3</p>
+    <h2 class="gap__h">No preschools or day-care</h2>
+    <p class="gap__b">Preschools, licensed child day-care centres, children's crisis care and
+      residential infant care are not loaded at all. tarrow did not look for them, so this
+      answer says nothing about them.</p>
+  </section>
+
+  <section class="card c--gap">
+    <p class="gap__n">Not checked · 2 of 3</p>
+    <h2 class="gap__h">No city or village rules</h2>
+    <p class="gap__b">Summit County municipalities set their own residency rules. tarrow holds
+      none of them. Only the state's 1,000 ft school rule was applied.</p>
+  </section>
+
+  <section class="card c--gap">
+    <p class="gap__n">Not checked · 3 of 3</p>
+    <h2 class="gap__h">Nobody signed off on the rule</h2>
+    <p class="gap__b">tarrow read the statute and applied a number. No person has verified that
+      reading inside tarrow, and no court has been asked whether this is how the state measures.</p>
+  </section>
+
+  <section class="card c--detail">
+    <p class="d__n">If you want the receipts</p>
+    <h2 class="d__h">What tarrow did check</h2>
+    <p class="d__p">School premises in Summit County, Ohio. 318 of the 341 premises it holds have
+      a real parcel boundary and were measured. 23 have no boundary and were not measured at all
+      — tarrow does not invent a circle around a school it cannot draw.</p>
+    <details>
+      <summary>Sources and dates</summary>
+      <dl class="kv">
+        <dt>Data fetched</dt><dd>3 Aug 2026</dd>
+        <dt>Oldest layer</dt><dd>28 Jul 2026</dd>
+        <dt>Buffer</dt><dd>304.8 m / 1000 ft</dd>
+        <dt>Basis</dt><dd>parcel boundary → parcel boundary</dd>
+      </dl>
+    </details>
+  </section>
+
+  <section class="card c--detail">
+    <p class="d__n">Before you go</p>
+    <h2 class="d__h">tarrow kept nothing</h2>
+    <p class="d__p">The address you typed is not in a log, not in this page's web address, not in
+      a database, and not on its way anywhere else. This page is marked never to be stored by
+      your browser, which matters on a shared computer.</p>
+    <p class="d__p"><a href="#">How to check that yourself</a> · <a href="#">Check another address</a></p>
+  </section>
+</div>
+
+<!-- =================== MEASURED — THE QUIET DECK =================== -->
+<p class="lbl">Deck 3 · outside every buffer — the most dangerous screen</p>
+<div class="deck">
+  <section class="card c--measured">
+    <p class="verdict__eyebrow">Outside every buffer we checked</p>
+    <p class="verdict__count">0</p>
+    <p class="verdict__unit">school premises within 1,000 ft — of the ones we hold a boundary for</p>
+    <p class="verdict__is-not"><strong>That is smaller than it sounds.</strong> It is a
+      measurement, not permission. Three whole categories were never checked — they are the next
+      three cards, and you should read them.</p>
+    <p class="more"><span></span> What we did not check</p>
+  </section>
+
+  <section class="card c--gap">
+    <p class="gap__n">Not checked · 1 of 3</p>
+    <h2 class="gap__h">No preschools or day-care</h2>
+    <p class="gap__b">Not loaded at all. A day-care next door would not appear on the card you
+      just read.</p>
+  </section>
+
+  <section class="card c--gap">
+    <p class="gap__n">Not checked · 2 of 3</p>
+    <h2 class="gap__h">No city or village rules</h2>
+    <p class="gap__b">Only the state rule was applied. The municipality this address sits in may
+      have its own, and tarrow does not hold it.</p>
+  </section>
+
+  <section class="card c--act">
+    <p class="act__n">Your next step</p>
+    <h2 class="act__h">Call the sheriff's office where you register</h2>
+    <ul class="say">
+      <li><b>1</b><span>Give the address exactly as you typed it.</span></li>
+      <li><b>2</b><span>Say tarrow measured no school premises within 1,000 ft.</span></li>
+      <li><b>3</b><span>Say it checked school premises only, and no city rule at all.</span></li>
+    </ul>
+    <p class="act__f">If that office and tarrow disagree, that office is right.</p>
+  </section>
+</div>
+
+<!-- ======================= REFUSAL — ONE CARD ====================== -->
+<p class="lbl">Deck 4 · a refusal</p>
+<div class="deck">
+  <section class="card c--stopped">
+    <p class="verdict__eyebrow">No result</p>
+    <p class="verdict__count">—</p>
+    <p class="verdict__unit">tarrow could not find this address, so it checked nothing</p>
+    <p class="verdict__is-not">This is not "nothing nearby". No distance was measured, and
+      nothing was found — neither near nor far.</p>
+    <p class="more"><span></span> What to try</p>
+  </section>
+
+  <section class="card c--detail">
+    <p class="d__n">Why this happens</p>
+    <h2 class="d__h">Three likely reasons</h2>
+    <p class="d__p">The address is not in Summit County · the county writes it differently (road
+      type, direction, unit number) · or the county has not published a point for it.</p>
+    <p class="d__p">tarrow will not fall back to the middle of the street or the centre of the ZIP
+      code. A confident answer about the wrong building is more dangerous than no answer.</p>
+    <details>
+      <summary>Recorded reason</summary>
+      <dl class="kv"><dt>reason</dt><dd>address-not-matched</dd></dl>
+    </details>
+  </section>
+
+  <section class="card c--act">
+    <p class="act__n">Your next step</p>
+    <h2 class="act__h">Call the sheriff's office where you register</h2>
+    <ul class="say">
+      <li><b>1</b><span>Give the address exactly as you typed it.</span></li>
+      <li><b>2</b><span>Say tarrow could not find it and measured nothing.</span></li>
+      <li><b>3</b><span>Ask them to check it against the state's 1,000 ft school rule.</span></li>
+    </ul>
+    <p class="act__f">That office can answer for an address tarrow will not measure.</p>
+  </section>
+</div>
+
+<p class="lbl">End of E</p>
+<div style="max-width:44rem;margin:.6rem auto 3rem;padding:0 1.25rem;color:var(--ink-soft);font-size:.8125rem">
+  <p>The demo's bar widths use inline <code>style</code> for legibility of the specimen; shipped,
+  they are SVG presentation attributes like <code>DistanceScale</code> today. The decks are
+  height-capped here to show snapping inside the page — shipped, the card is the viewport.</p>
+</div>

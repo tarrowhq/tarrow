@@ -48,7 +48,17 @@ const MINIMUM_TEST_FILES = 10;
 // are the copy gates that had been registering ZERO tests because their loops
 // iterated a list that `before()` had not filled yet. The floor is what makes
 // that kind of silent shrinkage visible, so it moves up with the repair.
-const MINIMUM_TESTS = 216;
+//
+// 216 -> 208 (TASK-0022), and DOWN is the direction that needs the argument.
+// The answer surface stopped rendering the layer registry and the staleness
+// sentence on every result -- that is provenance, and it moved to /faq in
+// full. Six per-shape assertions over those became two on the page that now
+// carries them, and the gap-visibility gate went from six shapes to the three
+// that produce a finding (a refusal has no finding for a gap list to qualify).
+// Nothing was deleted: every obligation is still asserted, on the surface that
+// now carries it. This floor exists to make a silent shrink loud, so lowering
+// it is a diff somebody reviews rather than a number that drifts.
+const MINIMUM_TESTS = 208;
 
 const APP_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEST_DIR = path.join(APP_ROOT, "tests");

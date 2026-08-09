@@ -48,6 +48,7 @@ interface RawGap {
   layer_id: string | null;
   subject_type: string;
   subject_ref: string | null;
+  label: string;
   description: string;
   discovered_at: string | null;
 }
@@ -96,6 +97,7 @@ export async function readManifest(
     layerId: g.layer_id,
     subjectType: g.subject_type,
     subjectRef: g.subject_ref,
+    label: g.label,
     description: g.description,
     discoveredAt: iso(g.discovered_at),
   }));
@@ -181,11 +183,14 @@ export function unreadableManifest(
     ruleContent: {
       verified: false,
       source: "could-not-be-read",
+      // Rendered to a member of the public. No issue numbers, no internal
+      // task ids, no "not yet built" -- see DeclaredGap.description in
+      // app/etl/sources.ts for why.
       statement:
         "tarrow could not read its own coverage record, so it cannot say which " +
         "layers were loaded, which are absent, or how old any of them are. " +
         "Nothing was checked. Its buffer is in any case not verified rule data: " +
-        "no file-authored, human-verified rule record exists yet (TASK-0003).",
+        "no rule record checked by a person exists here.",
     },
     statement,
   };

@@ -1,0 +1,426 @@
+<title>tarrow round 2 — F: The Worksheet</title>
+<style>
+/* ==========================================================================
+   DIRECTION F — THE WORKSHEET
+   There is no results page. There is a form that fills itself in.
+
+   The hardest turn of the three. Every other direction — including D and E —
+   accepts the premise "the user submits, the app responds with a page." This
+   one rejects it.
+
+   tarrow's real job, per its own constitution, is to prepare somebody for a
+   phone call. So the artifact is the thing they carry INTO that call: a
+   worksheet, in the first person, that tarrow fills in the parts it can and
+   leaves blank the parts only the sheriff can answer. The blanks are the
+   point. A blank is a visible, physical hole in the reader's knowledge — it
+   cannot be skimmed past the way a paragraph of qualification can.
+
+   Prose becomes a FILLED FIELD or an EMPTY ONE. That is the whole grammar:
+
+     I asked about ......... [1464 GARMAN RD]        <- the reader filled this
+     tarrow measured ....... [3 schools within 1000ft] <- tarrow filled this
+     City rules? ........... [______________]         <- NOBODY has filled this
+
+   The empty rules are drawn as real ruled blanks, and every one carries who
+   must fill it. Coverage stops being a disclosure section and becomes the
+   literal unfinished half of the document — impossible to mistake for done.
+
+   It prints. That is not a gimmick: the reader is going to be on the phone,
+   possibly at a library terminal with no way to keep a tab open, and a sheet
+   of paper survives the browser closing.
+   ========================================================================== */
+:root {
+  --paper:      #fbfaf7;
+  --paper-2:    #f2efe8;
+  --ink:        #17171a;
+  --ink-soft:   #63625c;
+  --rule:       #d6d2c8;
+  --rule-dark:  #8c887e;
+  --fill:       #1b3a6b;   /* what tarrow wrote — a different pen */
+  --fill-bg:    #eaf0f8;
+  --blank:      #9a3412;   /* what nobody has written */
+  --blank-bg:   #fdf1ea;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #15161a; --paper-2: #1c1e23; --ink: #ecedef;
+    --ink-soft: #a0a099; --rule: #34363c; --rule-dark: #6b6d75;
+    --fill: #8ab4f0; --fill-bg: #16202f; --blank: #f0a184; --blank-bg: #2a1913;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #15161a; --paper-2: #1c1e23; --ink: #ecedef; --ink-soft: #a0a099;
+  --rule: #34363c; --rule-dark: #6b6d75; --fill: #8ab4f0; --fill-bg: #16202f;
+  --blank: #f0a184; --blank-bg: #2a1913;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper-2); color: var(--ink);
+  font-family: var(--sans); line-height: 1.55; -webkit-text-size-adjust: 100%; }
+h1,h2 { text-wrap: balance; }
+a { color: inherit; text-underline-offset: .2em; }
+:focus-visible { outline: 3px solid var(--fill); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+
+/* specimen chrome */
+.sh { background: #14140f; color: #f4f2ea; padding: 1.75rem 1.5rem; }
+.sh__in { max-width: 46rem; margin: 0 auto; }
+.sh h1 { margin: 0 0 .6rem; font-size: 1.75rem; letter-spacing: -.02em; }
+.sh p { margin: 0 0 .5rem; color: #b3afa2; max-width: 66ch; font-size: .9375rem; }
+.sh b { color: #f4f2ea; }
+.sh pre { margin: .7rem 0 0; padding: .7rem .8rem; background: #000; color: #c9c5b8;
+  font-size: .75rem; overflow-x: auto; }
+.lbl { max-width: 46rem; margin: 2.5rem auto .6rem; padding: 0 1.25rem;
+  font-family: var(--mono); font-size: .75rem; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-soft); display: flex; gap: .75rem; align-items: center; }
+.lbl::after { content:""; flex:1; height:1px; background: var(--rule); }
+
+/* ---------- THE SHEET ---------- */
+.sheet { max-width: 46rem; margin: 0 auto; background: var(--paper);
+  border: 1px solid var(--rule-dark); padding: 1.75rem 1.5rem 2rem; }
+@media (min-width: 40rem) { .sheet { padding: 2.25rem 2.5rem 2.5rem; } }
+
+.head { border-bottom: 2px solid var(--ink); padding-bottom: .7rem; margin-bottom: 1.5rem;
+  display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+.head h1 { margin: 0; font-size: 1.25rem; letter-spacing: -.015em; }
+.head__m { font-family: var(--mono); font-size: .6875rem; color: var(--ink-soft);
+  text-align: right; line-height: 1.6; }
+
+/* the grammar: a row is a label, a leader, and a value */
+.row { display: grid; grid-template-columns: 1fr; gap: .15rem; margin-bottom: 1.05rem; }
+@media (min-width: 34rem) {
+  .row { grid-template-columns: 13rem 1fr; gap: .5rem 1rem; align-items: baseline; }
+}
+.row__l { font-size: .875rem; color: var(--ink-soft); }
+.row__v { font-family: var(--mono); font-size: 1rem; color: var(--fill);
+  background: var(--fill-bg); padding: .3rem .5rem; border-bottom: 2px solid var(--fill);
+  word-break: break-word; }
+.row__v b { font-weight: 700; }
+.row__note { grid-column: 1/-1; margin: .2rem 0 0; font-size: .8125rem; color: var(--ink-soft); }
+@media (min-width: 34rem) { .row__note { grid-column: 2; } }
+
+/* A BLANK: the thing nobody has filled in. Ruled, coloured, and captioned
+   with WHO must fill it. This is coverage, made physical. */
+.row--blank .row__v { color: var(--blank); background: var(--blank-bg);
+  border-bottom: 2px solid var(--blank); font-style: italic; }
+.row--blank .row__who { grid-column: 1/-1; margin: .25rem 0 0; font-family: var(--mono);
+  font-size: .6875rem; letter-spacing: .06em; text-transform: uppercase; color: var(--blank); }
+@media (min-width: 34rem) { .row--blank .row__who { grid-column: 2; } }
+
+.sect { margin: 1.9rem 0 1.1rem; padding-bottom: .35rem; border-bottom: 1px solid var(--rule);
+  font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-soft); }
+
+/* the found list, as worksheet lines rather than cards */
+.found { list-style: none; margin: 0 0 1.1rem; padding: 0; }
+.found li { display: grid; grid-template-columns: 1.4rem 1fr auto; gap: .6rem;
+  padding: .5rem 0; border-bottom: 1px dotted var(--rule); align-items: baseline; }
+.found b { font-family: var(--mono); font-size: .8125rem; color: var(--ink-soft); font-weight: 400; }
+.found span { font-size: .9375rem; }
+.found em { font-family: var(--mono); font-variant-numeric: tabular-nums; font-style: normal;
+  font-size: .9375rem; color: var(--fill); white-space: nowrap; }
+
+/* what I will say — the reader's script, in their voice */
+.script { background: var(--paper-2); border-left: 4px solid var(--ink); padding: .9rem 1rem;
+  margin: 0 0 1.2rem; }
+.script p { margin: 0 0 .55rem; font-size: .9375rem; }
+.script p:last-child { margin: 0; }
+.script q { font-style: italic; }
+
+.foot { margin-top: 1.8rem; padding-top: .8rem; border-top: 1px solid var(--rule);
+  font-size: .8125rem; color: var(--ink-soft); }
+.foot p { margin: 0 0 .4rem; }
+.foot p:last-child { margin: 0; }
+
+/* the print affordance: real, and honest about what leaves the machine */
+.print { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap;
+  margin-top: 1.4rem; padding-top: 1rem; border-top: 1px solid var(--rule); }
+.print button { font: inherit; font-size: .9375rem; font-weight: 700; padding: .6rem 1.1rem;
+  border: 2px solid var(--ink); background: var(--ink); color: var(--paper); cursor: pointer; }
+.print span { font-size: .8125rem; color: var(--ink-soft); }
+@media print {
+  body { background: #fff; }
+  .sh, .lbl, .print, .demo-note { display: none; }
+  .sheet { border: 0; max-width: none; padding: 0; }
+}
+
+/* search sheet */
+.ask h1 { margin: 0 0 .3rem; font-size: 1.75rem; letter-spacing: -.03em; }
+.ask__s { margin: 0 0 1.5rem; color: var(--ink-soft); font-size: .9375rem; }
+.f__l { display: block; font-size: .875rem; color: var(--ink-soft); margin-bottom: .3rem; }
+.f__i { width: 100%; font: inherit; font-family: var(--mono); font-size: 1.0625rem;
+  padding: .55rem .6rem; border: 0; border-bottom: 2px solid var(--ink);
+  background: var(--paper-2); color: var(--ink); }
+.btn { font: inherit; font-size: 1rem; font-weight: 700; margin-top: .9rem;
+  padding: .7rem 1.4rem; border: 2px solid var(--ink); background: var(--ink);
+  color: var(--paper); cursor: pointer; }
+.warn { margin: 1.4rem 0 0; padding: .8rem .9rem; background: var(--blank-bg);
+  border-left: 4px solid var(--blank); }
+.warn p { margin: 0; font-size: .875rem; }
+.warn p + p { margin-top: .3rem; font-family: var(--mono); font-size: .75rem; color: var(--ink-soft); }
+code { font-family: var(--mono); font-size: .9em; }
+.demo-note { max-width: 46rem; margin: .6rem auto 3rem; padding: 0 1.25rem;
+  color: var(--ink-soft); font-size: .8125rem; }
+</style>
+
+<header class="sh">
+  <div class="sh__in">
+    <h1>F — The Worksheet</h1>
+    <p><b>There is no results page.</b> There is a form that fills itself in. Every other
+      direction — including D and E — accepts the premise "user submits, app responds with a
+      page." This one rejects it.</p>
+    <p>tarrow's constitutional job is to prepare somebody for a phone call, so the artifact is
+      the thing they carry <em>into</em> it: a worksheet in the first person, where tarrow fills
+      the parts it can and <b>leaves blank the parts only the sheriff can answer.</b></p>
+    <p><b>The blanks are the point.</b> A blank is a physical hole in the reader's knowledge. It
+      cannot be skimmed past the way a paragraph of qualification can, and it carries a caption
+      naming who must fill it. Coverage stops being a disclosure section and becomes the literal
+      unfinished half of the document.</p>
+<pre>  I asked about .......  [1464 GARMAN RD, AKRON]     &lt;- the reader wrote this
+  tarrow measured .....  [3 premises within 1000 ft] &lt;- tarrow wrote this
+  City or village rules  [__________________]        &lt;- NOBODY has written this</pre>
+    <p><b>It prints.</b> Not a gimmick: the reader may be at a library terminal with no way to
+      keep a tab open, and paper survives the browser closing.</p>
+  </div>
+</header>
+
+<!-- ============================ SEARCH ============================= -->
+<p class="lbl">Sheet 1 · start the worksheet</p>
+<div class="sheet">
+  <div class="ask">
+    <h1>Let's fill in what we can.</h1>
+    <p class="ask__s">tarrow measures one thing — distance to school premises in Summit County,
+      Ohio. It fills in that line and leaves the rest for the sheriff's office.</p>
+    <form>
+      <label>
+        <span class="f__l">The address I am asking about</span>
+        <input class="f__i" type="text" autocomplete="off" spellcheck="false">
+      </label>
+      <button class="btn" type="button">Fill in my worksheet</button>
+    </form>
+    <div class="warn">
+      <p><strong>tarrow does not correct spelling, and it does not guess.</strong> Type the
+        address as it appears on a bill. If it cannot find exactly what you typed, it says so
+        rather than answering about the wrong building.</p>
+      <p>e.g. <code>1464 Garman Rd, Akron, OH 44313</code></p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== FLAGGED — FILLED SHEET ==================== -->
+<p class="lbl">Sheet 2 · three premises found — the filled worksheet</p>
+<div class="sheet">
+  <div class="head">
+    <h1>Worksheet for my call to the sheriff's office</h1>
+    <div class="head__m">PREPARED 7 AUG 2026<br>DATA 3 AUG 2026<br>NOT LEGAL ADVICE</div>
+  </div>
+
+  <p class="sect">What I asked</p>
+  <div class="row">
+    <span class="row__l">The address</span>
+    <span class="row__v">1464 GARMAN RD, AKRON, OH 44313</span>
+  </div>
+  <div class="row">
+    <span class="row__l">Matched to parcel</span>
+    <span class="row__v">6712004</span>
+    <p class="row__note">tarrow answered about this exact parcel. If that is not my building,
+      nothing below applies.</p>
+  </div>
+
+  <p class="sect">What tarrow measured</p>
+  <div class="row">
+    <span class="row__l">School premises within 1,000 ft</span>
+    <span class="row__v"><b>3 found</b></span>
+  </div>
+  <ul class="found">
+    <li><b>1</b><span>Firestone Park Elementary School <small>· parcel 6743119</small></span><em>270 ft</em></li>
+    <li><b>2</b><span>Firestone Park Elementary School <small>· parcel 6743120</small></span><em>420 ft</em></li>
+    <li><b>3</b><span>Saint Paul School <small>· parcel 6801442</small></span><em>780 ft</em></li>
+  </ul>
+  <div class="row">
+    <span class="row__l">How it measured</span>
+    <span class="row__v">PARCEL BOUNDARY → PARCEL BOUNDARY</span>
+    <p class="row__note">Nearest point to nearest point, never centre to centre. Two entries are
+      the same school on different parcels — Ohio's rule is written about the land.</p>
+  </div>
+
+  <p class="sect">What nobody has filled in</p>
+  <div class="row row--blank">
+    <span class="row__l">Preschools &amp; day-care nearby</span>
+    <span class="row__v">not checked — not loaded</span>
+    <p class="row__who">→ ask the sheriff's office</p>
+  </div>
+  <div class="row row--blank">
+    <span class="row__l">City or village rules here</span>
+    <span class="row__v">not checked — none loaded</span>
+    <p class="row__who">→ ask the sheriff's office</p>
+  </div>
+  <div class="row row--blank">
+    <span class="row__l">Crisis care &amp; infant care</span>
+    <span class="row__v">not checked — not loaded</span>
+    <p class="row__who">→ ask the sheriff's office</p>
+  </div>
+  <div class="row row--blank">
+    <span class="row__l">Who verified this rule</span>
+    <span class="row__v">nobody has</span>
+    <p class="row__who">→ tarrow read the statute; no person signed that reading</p>
+  </div>
+  <div class="row row--blank">
+    <span class="row__l">Am I allowed to live here</span>
+    <span class="row__v">tarrow cannot answer this</span>
+    <p class="row__who">→ only the sheriff's office answers this line</p>
+  </div>
+
+  <p class="sect">What I will say on the phone</p>
+  <div class="script">
+    <p><q>I'm calling about <strong>1464 Garman Rd, Akron</strong>. I used a tool that measured
+      distances to school premises, and it found <strong>three within 1,000 feet</strong>:
+      Firestone Park Elementary at 270 and 420 feet, and Saint Paul School at 780 feet.</q></p>
+    <p><q>It only checked school premises. It did not check preschools, day-care, or any city
+      ordinance. Can you tell me what else applies to this address?</q></p>
+  </div>
+  <div class="row">
+    <span class="row__l">What they told me</span>
+    <span class="row__v" style="color:var(--ink-soft);background:transparent;border-bottom-style:dashed">&nbsp;</span>
+    <p class="row__note">Write it here while you are on the call. If they and tarrow disagree,
+      <strong>they are right.</strong></p>
+  </div>
+
+  <div class="print">
+    <button type="button">Print this worksheet</button>
+    <span>Printing happens on your machine. Nothing is sent anywhere.</span>
+  </div>
+
+  <div class="foot">
+    <p>tarrow did not write down the address: not in a log, not in this page's web address, not
+      in a database, not on its way anywhere else. <a href="#">How to check that yourself</a>.</p>
+    <p><a href="#">Start a new worksheet</a></p>
+  </div>
+</div>
+
+<!-- ================== MEASURED — THE MOSTLY-BLANK SHEET ============= -->
+<p class="lbl">Sheet 3 · outside every buffer — where blanks do the work</p>
+<div class="sheet">
+  <div class="head">
+    <h1>Worksheet for my call to the sheriff's office</h1>
+    <div class="head__m">PREPARED 7 AUG 2026<br>DATA 3 AUG 2026<br>NOT LEGAL ADVICE</div>
+  </div>
+
+  <p class="sect">What I asked</p>
+  <div class="row">
+    <span class="row__l">The address</span>
+    <span class="row__v">88 PORTAGE PATH, AKRON, OH 44303</span>
+  </div>
+
+  <p class="sect">What tarrow measured</p>
+  <div class="row">
+    <span class="row__l">School premises within 1,000 ft</span>
+    <span class="row__v"><b>0 of the ones it holds a boundary for</b></span>
+    <p class="row__note">This is one measured line on a worksheet that is mostly blank. It is
+      not permission, and it is not "nothing nearby" — it is the answer to one narrow question.</p>
+  </div>
+  <div class="row">
+    <span class="row__l">Premises it could measure</span>
+    <span class="row__v">318 OF 341</span>
+    <p class="row__note">23 have no boundary and were not measured at all. tarrow does not invent
+      a circle around a school it cannot draw.</p>
+  </div>
+
+  <p class="sect">What nobody has filled in</p>
+  <div class="row row--blank">
+    <span class="row__l">Preschools &amp; day-care nearby</span>
+    <span class="row__v">not checked — not loaded</span>
+    <p class="row__who">→ ask the sheriff's office</p>
+  </div>
+  <div class="row row--blank">
+    <span class="row__l">City or village rules here</span>
+    <span class="row__v">not checked — none loaded</span>
+    <p class="row__who">→ ask the sheriff's office</p>
+  </div>
+  <div class="row row--blank">
+    <span class="row__l">Crisis care &amp; infant care</span>
+    <span class="row__v">not checked — not loaded</span>
+    <p class="row__who">→ ask the sheriff's office</p>
+  </div>
+  <div class="row row--blank">
+    <span class="row__l">Am I allowed to live here</span>
+    <span class="row__v">tarrow cannot answer this</span>
+    <p class="row__who">→ only the sheriff's office answers this line</p>
+  </div>
+
+  <p class="sect">What I will say on the phone</p>
+  <div class="script">
+    <p><q>I'm calling about <strong>88 Portage Path, Akron</strong>. I used a tool that measured
+      distance to school premises and it found <strong>none within 1,000 feet</strong> — but it
+      only checked school premises, and only ones it holds a boundary for.</q></p>
+    <p><q>It did not check preschools, day-care, or any city ordinance. What else applies here?</q></p>
+  </div>
+  <div class="row">
+    <span class="row__l">What they told me</span>
+    <span class="row__v" style="color:var(--ink-soft);background:transparent;border-bottom-style:dashed">&nbsp;</span>
+  </div>
+
+  <div class="print">
+    <button type="button">Print this worksheet</button>
+    <span>Printing happens on your machine. Nothing is sent anywhere.</span>
+  </div>
+</div>
+
+<!-- ==================== REFUSAL — THE BLANK SHEET =================== -->
+<p class="lbl">Sheet 4 · a refusal — the worksheet tarrow could not start</p>
+<div class="sheet">
+  <div class="head">
+    <h1>Worksheet — nothing could be filled in</h1>
+    <div class="head__m">PREPARED 7 AUG 2026<br>NO PARCEL MATCHED<br>NOT LEGAL ADVICE</div>
+  </div>
+
+  <p class="sect">What I asked</p>
+  <div class="row">
+    <span class="row__l">The address I typed</span>
+    <span class="row__v">1464 GARMEN ROAD, AKRON</span>
+  </div>
+  <div class="row row--blank">
+    <span class="row__l">Matched to parcel</span>
+    <span class="row__v">no match — tarrow stopped here</span>
+    <p class="row__who">→ every line below stays empty because of this one</p>
+  </div>
+
+  <p class="sect">What tarrow measured</p>
+  <div class="row row--blank">
+    <span class="row__l">School premises within 1,000 ft</span>
+    <span class="row__v">nothing was measured</span>
+    <p class="row__who">→ this is not "none nearby"</p>
+  </div>
+
+  <p class="sect">What to try before calling</p>
+  <div class="row">
+    <span class="row__l">Check</span>
+    <span class="row__v" style="background:transparent;color:var(--ink);border-bottom:0;padding-left:0;font-family:inherit">
+      Is it in Summit County? · Does the county write it differently (RD/ST/AVE, N/W, unit)? ·
+      Is it a new address the county has not published?</span>
+    <p class="row__note">tarrow will not fall back to the middle of the street or the centre of
+      the ZIP code, and will not offer the nearest parcel it happened to find. A confident answer
+      about the wrong building is more dangerous than no answer. Recorded reason:
+      <code>address-not-matched</code>.</p>
+  </div>
+
+  <p class="sect">What I will say on the phone</p>
+  <div class="script">
+    <p><q>I'm calling about <strong>1464 Garmen Road, Akron</strong>. I tried a tool that measures
+      distance to schools and it could not find the address at all, so it measured nothing. Can
+      you check this address against the 1,000-foot school rule?</q></p>
+  </div>
+
+  <div class="print">
+    <button type="button">Print this worksheet</button>
+    <span>Printing happens on your machine. Nothing is sent anywhere.</span>
+  </div>
+</div>
+
+<p class="lbl">End of F</p>
+<div class="demo-note">
+  <p>Two inline <code>style</code> attributes appear in this demo for the hand-written response
+  lines; shipped they are classes. The print button is a real <code>window.print()</code> in the
+  browser — the one place this direction would use script, and the page is complete without it.</p>
+</div>
