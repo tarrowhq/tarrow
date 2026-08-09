@@ -1,12 +1,12 @@
 ---
 name: coverage-gap-ledger
-description: The table where every known absence becomes a row every answer renders — declared gaps authored in code, per-row gaps discovered during a load, and tarrow's disclosure of its own unverified rule.
+description: The table where every known absence becomes a row every answer renders — declared gaps authored in code, per-row gaps discovered during a load, tarrow's disclosure of its own unverified rule, and the two-audience split between a short label and the full record.
 kind: concept
 sources:
   - app/etl/sources.ts
   - app/sql/schema/005_coverage_gaps.sql
   - app/etl/load.ts
-verified_against: b5b247a6cb390ba505c674f0c77af551dd547949
+verified_against: ad1085047fbf413d249818b651dcb224725409e3
 ---
 
 # Coverage gap ledger
@@ -53,11 +53,28 @@ is absent, so deleting it fails every search loudly instead of quietly removing 
 - [[coverage-manifest]] reads these rows and gates on the rule-content one.
 - [[data-sources]] is the same file, describing what each source covers.
 - [[ingest-assertions]] enforces that every null-geometry premises has a row here.
-- [[answer-rendering]] keeps the gap list unfolded on the page, never behind a link.
+- [[answer-rendering]] states the gap labels on the finding card itself, unfolded and beside
+  the number they qualify — never behind a link.
 
 ## Operational notes
 
 Gap rows carry `layer_id` (nullable — a gap can belong to no layer), `subject_type`,
-`subject_ref`, `description`, and `discovered_at`. The table is rebuilt by
+`subject_ref`, `label`, `description`, and `discovered_at`. The table is rebuilt by
 `truncateAndReload` like every other derived table, so a gap removed from the source
 enumeration disappears on the next load and a new one appears without migration.
+
+**`label` and `description` are two audiences, not a summary and its expansion.** `label` is
+two or three words for the person looking up an address — "Preschools and day-care", "City
+and village rules" — and it is what reaches the answer surface. `description` is the full
+record: why the gap exists, what it means for an answer, what a self-hoster should know, read
+by `/faq` and by anyone auditing the instance.
+
+They were one column, written for the second audience, and the result was a paragraph of
+internal reasoning rendered to somebody who wanted to know whether they could live somewhere.
+Both are `NOT NULL`, and `writeGaps` in `app/etl/load.ts` refuses a gap missing either one by
+name rather than letting the constraint fire on an unidentified row — a gap with no label
+would reach the answer as a blank entry, which is a limitation rendered as nothing.
+
+Neither may carry an issue number, an internal task id, or a "not yet built". This text ships
+to a member of the public who has no idea what the tracker is; a gap is a fact about this
+instance's coverage and stays true whether or not anybody files a ticket.

@@ -5,7 +5,7 @@ kind: concept
 sources:
   - app/etl/sources.ts
   - app/etl/fetch.ts
-verified_against: b5b247a6cb390ba505c674f0c77af551dd547949
+verified_against: ad1085047fbf413d249818b651dcb224725409e3
 ---
 
 # Data sources
@@ -61,7 +61,9 @@ is how the assertion is shown to be live rather than decorative.
 
 ## Connections
 
-- [[coverage-gap-ledger]] holds `DECLARED_GAPS`, defined in this same file.
+- [[coverage-gap-ledger]] holds `DECLARED_GAPS`, defined in this same file — each entry
+  carrying a short `label` for the answer surface and a full `description` for `/faq`, and
+  neither carrying an issue number or an internal task id.
 - [[ingest-pipeline]] fetches and loads these; [[ingest-assertions]] police the load.
 - [[proximity-measurement]] consumes the school geometry; [[address-resolution]] the address
   points.
