@@ -168,15 +168,28 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+          # `latest=false` IS LOAD-BEARING, NOT TIDINESS.
+          #
+          # docker/metadata-action adds `latest` BY DEFAULT as soon as a
+          # semver tag matches. The comment below has always said there is no
+          # `latest`; until v0.1.0 no semver build had ever run, so nothing
+          # contradicted it and the default sat there unnoticed. The first
+          # release published `latest` on both images, which is exactly the
+          # moving tag this workflow exists to refuse.
+          #
+          # A default that only bites on the rarest code path is the kind of
+          # thing a comment cannot hold. This line holds it.
+          flavor: |
+            latest=false
           # EVERY TAG PUBLISHED HERE IS IMMUTABLE, and the omissions are the
           # point. There is no `latest`, no `main`, and no `{{major}}.{{minor}}`
           # -- a moving tag is a way for two instances to end up running
           # different code that computes statutory distances while both claim
           # to be on the same version, which is the failure Principle VII's
           # pinning rule exists to prevent. `sha-<short>` always; a plain
-          # `{{version}}` when the workflow is dispatched against a `v*` tag,
-          # which resolves to nothing on a branch ref and so publishes nothing
-          # extra there.
+          # `{{version}}` when the workflow runs against a `v*` tag, which
+          # resolves to nothing on a branch ref and so publishes nothing extra
+          # there.
           tags: |
             type=raw,value=${{ needs.prepare.outputs.tag }}
             type=semver,pattern={{version}}
