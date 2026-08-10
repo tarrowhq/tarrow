@@ -1,0 +1,51 @@
+# The grounding-wiki freshness gate, on every pull request.
+#
+# docs/wiki/ is a per-concept corpus in which each note pins the commit it was
+# last verified against and the source paths that invalidate it. This workflow
+# fails a PR whose code changes have staled a note.
+#
+# WHY ON PULL REQUESTS AND NOT ON MERGE. The corpus is what the next person --
+# or the next agent -- reads to orient before changing anything, so it has to
+# be true at the moment somebody reads it, not eventually. Checking after the
+# merge means main carries a corpus that lies about its own code until somebody
+# notices, and "somebody notices" is exactly the enforcement that already
+# failed here: CLAUDE.md asserted for months that this gate ran in CI while no
+# script and no workflow existed, and the wiki went stale across two merges
+# without a single red check.
+#
+# `fetch-depth: 0` is required and not incidental. The gate asks
+# `git log <pin>..HEAD -- <sources>`, and under the default shallow clone a pin
+# older than the fetched depth is simply not a known commit -- which the gate
+# reports as a failure rather than silently passing, but the failure would be
+# about the checkout instead of about the wiki.
+
+name: wiki freshness
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: the gate compares each note's pin against HEAD, and a
+          # shallow clone cannot resolve a pin it did not fetch.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # No install step: the gate is dependency-free on purpose, so it runs
+      # here, on a contributor's machine, and in a pre-commit hook identically.
+      - name: Check that every wiki note matches its sources
+        run: node scripts/check-wiki-freshness.mjs . docs/wiki

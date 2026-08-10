@@ -7,7 +7,7 @@ sources:
   - app/sql/query/manifest.sql
   - app/server/result.ts
   - app/tests/manifest.test.ts
-verified_against: b5b247a6cb390ba505c674f0c77af551dd547949
+verified_against: ad1085047fbf413d249818b651dcb224725409e3
 ---
 
 # Coverage manifest
@@ -37,6 +37,10 @@ A `LoadedCoverageManifest` carries `layers` (each with source URL, jurisdiction,
 `bufferMeters`, `addressPointCount`, `measurableParcelCount`, and both the newest and oldest
 layer fetch dates — the last two are how a self-hosted instance can say it is stale.
 
+Each gap carries a short `label` and a full `description` — two audiences, not a summary and
+its expansion. `readManifest` threads both through from `coverage_gaps`; the answer surface
+renders the labels and `/faq` renders the descriptions. See [[coverage-gap-ledger]].
+
 `verifiedAt` is null for every layer in this release and is rendered as exactly that. A fetch
 date is not permitted to stand in for a verification date.
 
@@ -57,7 +61,11 @@ coverage list Principle II forbids because it claims no coverage — it withdraw
 
 ## Operational notes
 
-`ManifestRuleContent` has no `verified: true` inhabitant. When TASK-0003 lands the
-file-authored rule pipeline, it adds that variant along with the data that earns it. Dates
-are normalized to ISO strings by the module's `iso()` helper; counts arrive as strings from
-`pg` and are coerced with `Number`.
+`ManifestRuleContent` has no `verified: true` inhabitant. A file-authored, human-verified rule
+pipeline would add that variant along with the data that earns it; until one exists, the type
+cannot express a verified rule. Dates are normalized to ISO strings by the module's `iso()`
+helper; counts arrive as strings from `pg` and are coerced with `Number`.
+
+The withdrawn-manifest statement is written for a member of the public: no issue numbers, no
+internal task ids, no "not yet built". It says what is true — no rule record checked by a
+person exists here — rather than what somebody plans to do about it.

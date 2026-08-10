@@ -1,6 +1,6 @@
 ---
 name: web-surface
-description: The React Router 7 routes, the rule that nothing load-bearing may hide behind hydration even though first-party script now ships, and how a POST keeps the searched address out of every URL, history entry, and proxy log.
+description: The React Router 7 routes, the CSS-only card deck the answer is delivered as, the rule that nothing load-bearing may hide behind hydration even though first-party script now ships, and how a POST keeps the searched address out of every URL, history entry, and proxy log.
 kind: component
 sources:
   - app/app/root.tsx
@@ -10,7 +10,7 @@ sources:
   - app/app/routes/faq.tsx
   - app/app/entry.server.tsx
   - app/react-router.config.ts
-verified_against: 6d60a311a4e38c2e7520aa71dc141ac5bd014599
+verified_against: ad1085047fbf413d249818b651dcb224725409e3
 ---
 
 # Web surface
@@ -18,6 +18,11 @@ verified_against: 6d60a311a4e38c2e7520aa71dc141ac5bd014599
 Three routes: `/` (the address form), `/answer` (POST only), and `/faq`. React Router 7 in
 SSR mode, chosen because its form-action model degrades to working HTML with JavaScript
 disabled — which, for this population, is a safety property rather than an ergonomic one.
+
+`/` and `/answer` are **decks**: full-viewport cards stepped through one at a time. `/faq` is
+deliberately not — it is a reference document somebody chose to open and needs to scan, and
+snapping a reference text into screens would make it worse. It shares every token and
+primitive with the deck, so it reads as the same product.
 
 ## How it works
 
@@ -43,11 +48,24 @@ is tested with scripting switched off (SC-001, User Story 4 scenario 4,
 `app/tests/browser/form.test.ts`). For somebody browsing defensively or on a locked-down
 library machine, that is the only mode, not a degraded one.
 
+**The deck is CSS scroll-snap and nothing else.** `scroll-snap-type: y mandatory` with
+`scroll-behavior: smooth` makes one wheel flick, one `ArrowDown`, or one `PageDown` advance
+exactly one card; a nudge too small to cross the threshold snaps back. With scripting off it
+is a long page with big sections, which is the whole answer — the no-JS requirement satisfied
+by construction rather than by a fallback.
+
+Two mechanics are worth knowing before editing it. The snap is declared on `:root:has(.deck)`
+rather than on `.deck`: `scroll-snap-type` only acts on the element that actually scrolls, and
+`.deck` is a `<main>` in normal flow with `overflow: visible` — the document scrolls, not it.
+Declared on the element it names, the property computes correctly and does nothing. And
+`scroll-snap-stop: always` is deliberately absent: it pins a flick to the card it started
+from, which stops wheel scrolling from advancing at all.
+
 The stylesheet is a same-origin built asset, not an inline `<style>`, and there is no `style=`
 attribute anywhere in the app: `style-src 'self'` admits neither, and unlike `script-src` it
 carries no nonce, so there is nothing to relax. Anything needing a computed value in the
-document — the distance scale in `result-view.tsx` — uses SVG presentation attributes, which
-are not CSS and not covered by that clause.
+document — the buffer bar and distance scale in `app/app/cards.tsx` — uses SVG presentation
+attributes, which are not CSS and not covered by that clause.
 
 **The address lives in a POST body.** `routes/answer.tsx` answers `action` only, never a
 `loader`. The address therefore never reaches a URL — not the address bar, not browser
@@ -59,6 +77,14 @@ real state and renders `NothingWasSubmitted`, not an empty result shape.
 The route computes nothing. It hands the typed string to `search()` and the returned result
 to `ResultPage`. There is no branch on whether anything was found, no count, no threshold,
 "and nothing that could become one."
+
+**`/faq` reads the coverage record, and survives not being able to.** It is the only route
+with a `loader`, and it carries what the answer deck no longer does: the layer registry, the
+fetch dates, and the full gap ledger — provenance, whose audience is somebody auditing the
+instance rather than somebody looking up an address. A failure to read the manifest renders
+the page *without* that section rather than failing, because like the form this page must
+load when the database is down, which is exactly when a reader is most likely to want an
+explanation.
 
 `root.tsx` also defines an `ErrorBoundary`, present because React Router's default one emits
 an inline script carrying no nonce — which the browser refuses, leaving dead code a reader
@@ -79,7 +105,7 @@ carries them verbatim, keeping only `status`/`statusText`, neither of which can 
 ## Connections
 
 - [[http-envelope]] serves these documents and sets the CSP this design follows.
-- [[answer-rendering]] is `app/result-view.tsx`, where the result becomes words.
+- [[answer-rendering]] is where the result becomes words and cards.
 - [[search-orchestration]] is what the action calls.
 - [[process-output-seal]] closes the framework log sites this boundary exists beside.
 

@@ -11,7 +11,7 @@ sources:
   - app/sql/schema/005_coverage_gaps.sql
   - app/sql/schema/010_grants.sql
   - docker/db/init/00-extensions.sql
-verified_against: b5b247a6cb390ba505c674f0c77af551dd547949
+verified_against: ad1085047fbf413d249818b651dcb224725409e3
 ---
 
 # Database schema
@@ -32,6 +32,11 @@ The tables are all derived projections of the sources. `layers` is the registry 
 table references and the anchor for `TRUNCATE ... CASCADE`. `address_points`, `parcels`,
 `school_premises`, `municipalities`, and `coverage_gaps` carry the loaded data;
 `007_ingest_provenance.sql` records where each came from.
+
+`coverage_gaps` carries `label` and `description` as separate `NOT NULL` columns, each with a
+`COMMENT ON COLUMN` naming its audience: `label` is two or three words for the answer surface,
+`description` is the full record for `/faq`. The comments exist because the split is the whole
+point — one column served both audiences and was written for the auditor, not the reader.
 
 `school_premises.geom` is nullable, with a `COMMENT ON COLUMN` stating what NULL means: no
 defensible radius exists for this school, so it is a declared coverage gap rather than a value

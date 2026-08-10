@@ -43,8 +43,9 @@ grounding-wiki (docs/wiki) ──corpus──▶ codebase-to-course (docs/course
 ## Plugin roles (entry skills)
 
 - **grounding-wiki** — the code-grounded corpus in `docs/wiki/`: per-concept notes pinned to
-  the commit they were verified against. Build once with `/grounding-wiki:wiki-build`; after
-  merging changes that touch files any note lists as sources, run `/grounding-wiki:wiki-update`.
+  the commit they were verified against. Build once with `/grounding-wiki:wiki-build`; when a
+  change touches files any note lists as sources, run `/grounding-wiki:wiki-update` **before
+  opening the PR**, and land the wiki refresh in that same PR.
 - **codebase-to-course** — interactive single-page HTML course in `docs/course/`, for
   non-technical readers. Reads `docs/wiki/` as its primary input when present.
 - **build** — implements a SPEC handed off through `.handoff/` (`/build:implement`) and
@@ -79,13 +80,20 @@ grounding-wiki (docs/wiki) ──corpus──▶ codebase-to-course (docs/course
   into the deliverable it serves.
 - **Gates:** a status can never exceed the artifacts that prove it. Enforcement is
   per-plugin: spec-bridge, educate, research, reorient, and team-review ship Stop hooks;
-  grounding-wiki's freshness gate runs as check scripts and CI, not a hook. When a gate
+  grounding-wiki's freshness gate runs as `scripts/check-wiki-freshness.mjs`, enforced on
+  every pull request by `.github/workflows/wiki-freshness.yml`, not as a hook. When a gate
   blocks, produce the missing artifact — don't argue with the gate or edit derived state
   by hand.
 - **Handoffs:** plugins compose only through files + gates, never by calling each other.
   Payloads ride the gitignored `.handoff/` transport; evidence lives in tracked state.
-- **Grounding freshness:** `docs/wiki/` is load-bearing, not decoration. Changes that touch
-  pinned sources aren't done until the wiki is re-pinned (`/grounding-wiki:wiki-update`).
+- **Grounding freshness:** `docs/wiki/` is load-bearing, not decoration — it is what the next
+  person or agent reads to orient before changing anything, so a note that no longer matches
+  its sources is worse than no note. A change that touches pinned sources is not done until
+  the wiki is re-verified and re-pinned (`/grounding-wiki:wiki-update`), **in the same PR as
+  the change**. Run `node scripts/check-wiki-freshness.mjs` before opening one; CI runs it too
+  and will fail the PR. Never bump a pin without reading the diff: the pin is a claim that
+  somebody verified the content at that commit, and a false claim there is worse than a stale
+  note, because the staleness is then invisible.
 - **Corpus loading:** when a grounded corpus is present (`docs/wiki/` or similar), load its
   `INDEX.md` first and route; load notes just-in-time — never bulk-load the corpus.
   Whole-corpus orientation reads `CAPSULES.md` when it exists; without one, INDEX plus

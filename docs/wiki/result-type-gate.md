@@ -7,7 +7,7 @@ sources:
   - app/tests/types/clearance.compile-failure.ts
   - app/tests/types/clearance-guard.ts
   - app/tests/result-type.test.ts
-verified_against: b5b247a6cb390ba505c674f0c77af551dd547949
+verified_against: ad1085047fbf413d249818b651dcb224725409e3
 ---
 
 # Result type gate

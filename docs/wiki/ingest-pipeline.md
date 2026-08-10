@@ -7,7 +7,7 @@ sources:
   - app/etl/load.ts
   - app/etl/fetch.ts
   - app/etl/reload.ts
-verified_against: b5b247a6cb390ba505c674f0c77af551dd547949
+verified_against: ad1085047fbf413d249818b651dcb224725409e3
 ---
 
 # Ingest pipeline
@@ -41,7 +41,9 @@ The order is layers registry → municipalities → parcels → address points �
 coverage gaps. Each load asserts (see [[ingest-assertions]]), audits its key, drops its
 staging table, and appends discovered gaps: parcels without geometry, parcels outside every
 published jurisdiction boundary, address points with no normalized form, the county address
-layer's non-unique `ADDR_ID`. Address normalization runs *inside* the address-points reload,
+layer's non-unique `ADDR_ID`. Every gap appended here carries both a short `label` for the
+answer surface and a full `description` for `/faq`; `writeGaps` in `app/etl/load.ts` refuses
+one missing either, by name. Address normalization runs *inside* the address-points reload,
 not beside it — a normalized column refreshed separately from the rows it describes would be
 the reconciliation path Principle IV forbids.
 

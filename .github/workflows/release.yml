@@ -1,0 +1,125 @@
+# Cutting a release: one `git push --tags`, no dashboard steps.
+#
+#     git tag -a v0.1.0 -m "…"
+#     git push origin v0.1.0
+#
+# That publishes the versioned images, smoke-tests the deploy composition built
+# from them, and only then creates the GitHub Release.
+#
+# WHY THIS FILE EXISTS INSTEAD OF A `tags:` TRIGGER ON publish-images.yml.
+# That workflow filters its `push` trigger by `paths`, and GitHub applies a
+# `paths` filter to a tag push exactly as it does to a branch push. A `tags:`
+# entry beside the branch filter would therefore inherit it, and a release cut
+# from a commit that happened not to touch `app/` or `docker/` would silently
+# publish nothing — at the one moment somebody is definitely expecting a
+# publish. A reusable `workflow_call` has no path filtering, so this file is
+# the unfiltered entry point.
+#
+# THE ORDER IS THE POINT. `release` needs `publish`, so the GitHub Release is
+# created only after the images exist, are multi-arch, and have passed the
+# smoke test that stands the deploy composition up and checks its privacy
+# flags. A release note pointing at an image that failed to build, or at one
+# whose database logs the addresses this project says it never records, is
+# worse than no release: it is a published invitation to run a broken instance.
+#
+# WHAT A RELEASE IS, HERE. A pinned, immutable, multi-arch image pair plus the
+# note that says what changed. There is no `latest` and no moving tag anywhere
+# in this pipeline — two instances computing statutory distances must never be
+# able to claim the same version while running different code.
+
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  # The whole of publish-images.yml: parity check, multi-arch build and push,
+  # and the deploy-composition smoke test. Because this is a `workflow_call`
+  # from a tag ref, `docker/metadata-action`'s `type=semver` resolves and the
+  # images pick up a plain `{{version}}` tag (`v0.1.0` -> `0.1.0`) alongside
+  # the immutable `sha-<short>` every build gets.
+  publish:
+    uses: ./.github/workflows/publish-images.yml
+    permissions:
+      contents: read
+      packages: write
+
+  release:
+    needs: [publish]
+    runs-on: ubuntu-latest
+    permissions:
+      # The only job in either workflow that writes to the repository, and it
+      # writes exactly one thing: the release.
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so the generated notes can diff against the previous
+          # tag rather than reporting every commit ever made.
+          fetch-depth: 0
+
+      - name: Derive the version
+        id: v
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          echo "tag=$tag"                  >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}"          >> "$GITHUB_OUTPUT"
+
+      # A pre-release by convention rather than by guesswork: anything below
+      # 1.0.0, or carrying a hyphenated suffix (v0.2.0-rc1), is marked as one.
+      # This release applies a distance rule that no person has verified inside
+      # tarrow, and every answer says so; the release itself should not claim
+      # more stability than the product does.
+      - name: Is this a pre-release?
+        id: pre
+        run: |
+          v='${{ steps.v.outputs.version }}'
+          case "$v" in
+            0.*|*-*) echo "pre=true"  >> "$GITHUB_OUTPUT" ;;
+            *)       echo "pre=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.v.outputs.tag }}
+          VERSION: ${{ steps.v.outputs.version }}
+          PRE: ${{ steps.pre.outputs.pre }}
+        run: |
+          notes=$(mktemp)
+          {
+            echo "## Running this release"
+            echo
+            echo "Images are published to GitHub Container Registry, multi-arch"
+            echo "(linux/amd64 and linux/arm64), pinned and immutable. There is no"
+            echo "\`latest\` tag by design."
+            echo
+            echo '```'
+            echo "TARROW_REGISTRY=ghcr.io/${{ github.repository_owner }}"
+            echo "TARROW_IMAGE_TAG=${VERSION}"
+            echo '```'
+            echo
+            echo "with \`docker-compose.deploy.yml\`. See \`docs/deploy/self-hosting.md\`."
+            echo
+            echo "Each image also carries an immutable \`sha-<short>\` tag for the exact"
+            echo "commit it was built from."
+            echo
+            echo "## What this release does not do"
+            echo
+            echo "tarrow measures distances and decides nothing. It covers Summit County,"
+            echo "Ohio, and school premises only — not preschools, not day-care, and no"
+            echo "municipal ordinance. The 1,000 ft buffer is applied from a reading of"
+            echo "ORC 2950.034 that no person has verified inside tarrow. Every answer"
+            echo "states these limits; so does this release."
+            echo
+          } > "$notes"
+
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes-file "$notes" \
+            --generate-notes \
+            $( [ "$PRE" = "true" ] && echo --prerelease )

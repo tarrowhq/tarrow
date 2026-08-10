@@ -11,7 +11,7 @@ sources:
   - app/tests/docker.ts
   - app/tests/fixtures.ts
   - app/tests/browser/form.test.ts
-verified_against: 6d60a311a4e38c2e7520aa71dc141ac5bd014599
+verified_against: ad1085047fbf413d249818b651dcb224725409e3
 ---
 
 # Test suite
@@ -72,6 +72,23 @@ which does not implement referrer policy and so could not produce the `Origin: n
 broke the form. A suite with no browser in it cannot express a bug only a browser can produce.
 It is separate because Chromium costs an apt install nobody should pay for who is not running
 it.
+
+That suite carries its own lesson about asserting on a mechanism rather than an outcome. Its
+form test waited on `waitForNavigation()`, correct while the app shipped no client script;
+once hydration was restored, `<Form>` began submitting by `fetch` to a `.data` endpoint and
+navigating on the client, so there was no document navigation to wait for and the assertion
+compared `undefined` against `200` on every run. It now captures the POST off the network
+instead, which covers the hydrated path and the scripting-off path with one assertion —
+because what matters is the request the address rides in, not how the page changed
+afterwards.
+
+**The floors move deliberately, in both directions.** `MINIMUM_TESTS` went 146 → 216 when
+TASK-0017 repaired copy gates that had been registering zero tests, and 216 → 208 when
+TASK-0022 moved the layer registry and the staleness statement off the answer deck onto
+`/faq`: six per-shape assertions became two on the page that now carries them, and the
+gap-visibility gate narrowed to the three shapes that produce a finding. A floor that only
+ever rises stops being a floor and becomes a ratchet nobody can honestly satisfy; the rule is
+that lowering it is a diff somebody reviews, with the argument in the comment beside it.
 
 ## Connections
 
