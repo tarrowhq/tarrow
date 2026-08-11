@@ -6,7 +6,7 @@ sources:
   - app/etl/sources.ts
   - app/sql/schema/005_coverage_gaps.sql
   - app/etl/load.ts
-verified_against: ad1085047fbf413d249818b651dcb224725409e3
+verified_against: cc71238631b0dd846f5f7e788627a74912928db7
 ---
 
 # Coverage gap ledger
