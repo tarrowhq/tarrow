@@ -13,7 +13,7 @@ sources:
   - app/sql/schema/015_coverage_gaps_label.sql
   - app/tests/migration-drift.test.ts
   - docker/db/init/00-extensions.sql
-verified_against: ad1085047fbf413d249818b651dcb224725409e3
+verified_against: 21fbc2c7ac7640712803c955ceff7b8ac6c9f888
 ---
 
 # Database schema

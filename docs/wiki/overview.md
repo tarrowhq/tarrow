@@ -8,7 +8,7 @@ sources:
   - app/package.json
   - app/app/routes.ts
   - .specify/memory/constitution.md
-verified_against: 6d60a311a4e38c2e7520aa71dc141ac5bd014599
+verified_against: 21fbc2c7ac7640712803c955ceff7b8ac6c9f888
 ---
 
 # Overview

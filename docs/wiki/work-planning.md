@@ -9,7 +9,7 @@ sources:
   - specs/002-repoint-tarrowhq-org/spec.md
   - README.md
   - CLAUDE.md
-verified_against: 1a89f6a6b8d3710c3c6e9bc142b1f0485163d676
+verified_against: 21fbc2c7ac7640712803c955ceff7b8ac6c9f888
 ---
 
 # Work planning
