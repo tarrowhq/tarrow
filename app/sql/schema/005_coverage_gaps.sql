@@ -3,6 +3,19 @@
 -- than left for a user to discover as silence. A school with no parcel
 -- geometry (004_school_premises.sql), a facility class not yet ingested, a
 -- municipality with sparse address-point coverage -- all land here.
+--
+-- THE `label` COLUMN IS ADDED BY 015_coverage_gaps_label.sql, NOT HERE, and
+-- this file has been restored to what it actually applied.
+--
+-- TASK-0022 added `label` by editing this file in place. Migrations are keyed
+-- by filename, so every database that had already applied 005 skipped it
+-- forever and never got the column, while every fresh database -- including
+-- every CI run -- got it whole. The edit therefore looked correct in every
+-- check this repository runs and was missing on the one deployment serving
+-- the public, where it took down every search for three days (TASK-0027).
+--
+-- This file now describes the schema a database that ran it actually has. If
+-- you need to change this table, add a migration; do not edit this.
 
 CREATE TABLE coverage_gaps (
     id             bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

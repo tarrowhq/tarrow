@@ -6,7 +6,7 @@ sources:
   - app/etl/sources.ts
   - app/sql/schema/005_coverage_gaps.sql
   - app/etl/load.ts
-verified_against: ad1085047fbf413d249818b651dcb224725409e3
+verified_against: cc71238631b0dd846f5f7e788627a74912928db7
 ---
 
 # Coverage gap ledger
@@ -59,7 +59,11 @@ is absent, so deleting it fails every search loudly instead of quietly removing 
 ## Operational notes
 
 Gap rows carry `layer_id` (nullable — a gap can belong to no layer), `subject_type`,
-`subject_ref`, `label`, `description`, and `discovered_at`. The table is rebuilt by
+`subject_ref`, `label`, `description`, and `discovered_at`. `label` is added by
+`015_coverage_gaps_label.sql`, not by `005` — it was originally added by editing `005` in
+place, which every already-migrated database skipped, and the missing column then failed the
+manifest query and refused every search on the deployed instance for three days
+([[database-schema]], TASK-0027). The table is rebuilt by
 `truncateAndReload` like every other derived table, so a gap removed from the source
 enumeration disappears on the next load and a new one appears without migration.
 

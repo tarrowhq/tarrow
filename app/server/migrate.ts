@@ -10,6 +10,7 @@
 // `docker compose up` reaching a healthy `app` implies migrations already
 // applied -- never a background race between the two.
 
+import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,6 +24,24 @@ const SCHEMA_DIR = path.join(
   "sql",
   "schema",
 );
+
+/**
+ * The content hash of a migration, as applied.
+ *
+ * Line endings are normalised and trailing whitespace stripped before hashing,
+ * so a checkout on a machine configured for CRLF does not report every
+ * migration as edited. Anything that changes what PostgreSQL actually executes
+ * changes this value; a reformat that does not, does not.
+ *
+ * SHA-256 rather than a shorter digest for no security reason -- nothing here
+ * is adversarial. It is simply the hash that is already in the standard
+ * library and that nobody has to think about.
+ */
+function checksumOf(file: string): string {
+  const raw = readFileSync(path.join(SCHEMA_DIR, file), "utf8");
+  const normalised = raw.replace(/\r\n/g, "\n").trimEnd();
+  return createHash("sha256").update(normalised, "utf8").digest("hex");
+}
 
 async function main(): Promise<void> {
   const client = new Client({
@@ -42,14 +61,72 @@ async function main(): Promise<void> {
       )
     `);
 
+    // The checksum of the file AS APPLIED, added by TASK-0027.
+    //
+    // Nullable, and added separately rather than folded into the CREATE above,
+    // because every existing database already has this table without it. A
+    // row predating this change carries NULL and is treated as "unknown, not
+    // mismatched" below -- the check can only speak about migrations applied
+    // since it existed, and pretending otherwise would fail every deployment
+    // on its next run.
+    await client.query(
+      "ALTER TABLE schema_migrations ADD COLUMN IF NOT EXISTS checksum text",
+    );
+
     const files = readdirSync(SCHEMA_DIR)
       .filter((f) => f.endsWith(".sql"))
       .sort(); // zero-padded filenames -> lexical order is application order
 
-    const { rows: applied } = await client.query<{ filename: string }>(
-      "SELECT filename FROM schema_migrations",
-    );
-    const done = new Set(applied.map((r) => r.filename));
+    const { rows: applied } = await client.query<{
+      filename: string;
+      checksum: string | null;
+    }>("SELECT filename, checksum FROM schema_migrations");
+    const done = new Map(applied.map((r) => [r.filename, r.checksum]));
+
+    // EDITING AN APPLIED MIGRATION IS A SILENT NO-OP, AND THIS IS THE ALARM.
+    //
+    // Migrations are keyed by filename, so a file edited after it was applied
+    // is skipped forever on every database that already ran it -- while
+    // applying whole on every fresh one. That asymmetry is what makes it so
+    // dangerous: CI and the test suite build a fresh database every time, so
+    // an edit looks correct in every check this repository runs and reaches
+    // only long-lived deployments, which are exactly the ones nobody can
+    // inspect quickly.
+    //
+    // It has now happened twice. TASK-0016 hit it with 010_grants.sql and
+    // solved that one case by re-applying the password on every run (below).
+    // TASK-0022 edited 005_coverage_gaps.sql to add a column; demo.tarrow.org
+    // never got it, `manifest.sql` selected a column that did not exist, and
+    // the manifest gate refused EVERY search for three days while returning
+    // HTTP 200.
+    //
+    // So the drift is detected rather than trusted, and it FAILS rather than
+    // warns. A warning on a one-shot container that exits 0 is a line in a log
+    // nobody reads; the whole failure mode here is that everything looked fine.
+    const drifted: string[] = [];
+    for (const file of files) {
+      const recorded = done.get(file);
+      if (recorded === undefined) continue; // not applied yet
+      if (recorded === null) continue; // applied before checksums existed
+      const actual = checksumOf(file);
+      if (recorded !== actual) drifted.push(file);
+    }
+
+    if (drifted.length > 0) {
+      throw new Error(
+        `These migrations were applied and have since been edited:\n` +
+          drifted.map((f) => `  ${f}`).join("\n") +
+          `\n\n` +
+          `They will NOT be re-applied -- migrations are keyed by filename, so this\n` +
+          `database will never receive the change while a fresh one gets it whole.\n` +
+          `That difference is invisible to CI, which builds a fresh database every\n` +
+          `run.\n\n` +
+          `Do not "fix" this by editing the row or reverting the file to silence it.\n` +
+          `Write a NEW migration that brings an existing database to the state the\n` +
+          `edited file now describes, the way 015_coverage_gaps_label.sql does for\n` +
+          `005_coverage_gaps.sql.`,
+      );
+    }
 
     for (const file of files) {
       if (done.has(file)) {
@@ -66,8 +143,8 @@ async function main(): Promise<void> {
         // inside the transaction already opened above.
         await client.query(sql);
         await client.query(
-          "INSERT INTO schema_migrations (filename) VALUES ($1)",
-          [file],
+          "INSERT INTO schema_migrations (filename, checksum) VALUES ($1, $2)",
+          [file, checksumOf(file)],
         );
         await client.query("COMMIT");
       } catch (err) {

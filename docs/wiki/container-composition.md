@@ -7,7 +7,7 @@ sources:
   - docker/app/Dockerfile
   - docker/db/Dockerfile
   - docker/tools/Dockerfile
-verified_against: 8ddb0b25621edf6b9072e9f354b9842271fbb32b
+verified_against: cc71238631b0dd846f5f7e788627a74912928db7
 ---
 
 # Container composition
@@ -45,6 +45,13 @@ Credentials differ by role, deliberately. `app` connects as `tarrow_app` (read-o
 `migrate` and `etl` connect as the owner, because the ETL's writes are exactly what the
 runtime role has revoked. `test` connects as `tarrow_app` so the suite exercises queries
 under the privileges they actually have.
+
+`test` also carries the owner credentials in `POSTGRES_USER`/`POSTGRES_PASSWORD`, read by
+`tests/migration-drift.test.ts` alone: that suite creates throwaway databases and migrates
+them, which the read-only role cannot do. It does not loosen what the rest of the suite runs
+as — every other test still reaches the database through `server/db.ts`, whose pool is built
+from `PGUSER`/`PGPASSWORD`, so the queries under test keep exactly the privileges production
+gives them.
 
 Two volumes: `pgdata`, and `etldata` holding the fetched NDJSON — written by `etl`, mounted
 **read-only** into `db`, which reads it with a server-side COPY. A named volume rather than a

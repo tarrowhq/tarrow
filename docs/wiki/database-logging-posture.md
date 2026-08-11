@@ -6,7 +6,7 @@ sources:
   - docker-compose.yml
   - docker-compose.deploy.yml
   - docker/db/Dockerfile
-verified_against: b5b247a6cb390ba505c674f0c77af551dd547949
+verified_against: cc71238631b0dd846f5f7e788627a74912928db7
 ---
 
 # Database logging posture

@@ -9,7 +9,7 @@ sources:
   - specs/002-repoint-tarrowhq-org/spec.md
   - README.md
   - CLAUDE.md
-verified_against: 1a89f6a6b8d3710c3c6e9bc142b1f0485163d676
+verified_against: 21fbc2c7ac7640712803c955ceff7b8ac6c9f888
 ---
 
 # Work planning
@@ -84,3 +84,10 @@ plan rulings are — `docs/decisions/task-0008-01-nonce.md` is referenced from `
 repository, with detailed guides for creation, execution, and finalization. Advocacy-partner
 review is treated as a gate on public launch rather than as marketing, and work there carries
 `x:partnership`.
+
+`CLAUDE.md` also carries a standing instruction about releases: read `docs/deploy/RELEASING.md`
+rather than reconstructing the deploy, and treat **publishing an image as not deploying it**.
+The deployment is Ansible-driven from a private infrastructure repository, so the fact does not
+follow from anything in this codebase and an agent that infers a deploy path from the code will
+invent a wrong one. `scripts/tarrow-deploy-agent.sh` is for self-hosters without configuration
+management, not for that instance.
