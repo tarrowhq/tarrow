@@ -78,6 +78,12 @@ source checkout and refuses to start on a defaulted credential.
 address out of every log, but anything in front of tarrow that terminates TLS holds that
 address in plaintext, and that is the operator's disclosure to make rather than tarrow's.
 
+**Cutting a release, or updating `demo.tarrow.org`, is
+[`docs/deploy/RELEASING.md`](docs/deploy/RELEASING.md)** — start there rather than here.
+Publishing an image is not deploying it: a `v*` tag builds and publishes, and the demo moves
+only when its pinned tag is changed and the deploy is run. That file is self-contained, so
+you do not need the infrastructure repository checked out to follow it.
+
 ### It works with JavaScript switched off
 
 Switch JavaScript off entirely and you get the **whole answer** — the distances, the coverage

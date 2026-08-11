@@ -399,11 +399,14 @@ instead of one. Collapsing it to a single tunnel removed two of them, and remove
 port and a hand-maintained routing file at the same time. If you are putting tarrow behind
 something, fewer hops is available and is usually also less work.
 
-**How it updates.** A `v*` tag publishes the images; the host's own copy of
-`scripts/tarrow-deploy-agent.sh` notices the new release and reconciles to it. A merge to
-`main` publishes an image and deploys nothing — only a release reaches the demo, because
-cutting a tag is a person deciding this should be in front of readers, and a merge is not
-that decision.
+**How it updates.** A `v*` tag publishes the images; a separate step moves the instance onto
+them. That instance is managed by Ansible from a private infrastructure repository, where a
+pinned image tag is changed and a deploy playbook is run — not by the polling agent above,
+which exists for a self-hoster with no configuration management. Running both would mean each
+undoing the other. A merge to `main` publishes an image and deploys nothing: only a release
+reaches the demo, because cutting a tag is a person deciding this should be in front of
+readers, and a merge is not that decision. The full procedure, including the manual path for
+somebody without the infra repository, is `docs/deploy/RELEASING.md`.
 
 Nothing pushes to this host. GitHub Actions holds no key to it and there is no port to
 receive one on, which is the same property the request path was shortened to get; the release
