@@ -7,7 +7,7 @@ sources:
   - docker/app/Dockerfile
   - docker/db/Dockerfile
   - docker/tools/Dockerfile
-verified_against: b5b247a6cb390ba505c674f0c77af551dd547949
+verified_against: 8ddb0b25621edf6b9072e9f354b9842271fbb32b
 ---
 
 # Container composition
@@ -29,6 +29,12 @@ Four services sit behind profiles because they are jobs, not services: `etl` (fe
 load), `test` (the suite), `browser-test` (Chromium), and `tools` (the TASK-0001 spike
 container, frozen byte-identical so its published results keep reproducing). `docker compose
 up` starts none of them.
+
+The application image takes two build args, `TARROW_VERSION` and `TARROW_REVISION`, both
+defaulting to `unknown`. CI passes the release and the commit; a local build passes neither
+and the image says `unknown` rather than claiming a version it cannot prove. They are what
+`/version` reports (see [[http-envelope]]), which is how a deployed instance can be asked
+what it is running instead of only whether it is up.
 
 `db` is **built, not pulled**: `postgis/postgis` is amd64-only, which would exclude every
 self-hoster on ARM, and the component computing safety-critical distances should not come

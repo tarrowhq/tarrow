@@ -123,3 +123,40 @@ jobs:
             --notes-file "$notes" \
             --generate-notes \
             $( [ "$PRE" = "true" ] && echo --prerelease )
+
+  # DID THE DEMO ACTUALLY TAKE IT?
+  #
+  # This job is the difference between "a release was published" and "the thing
+  # people can reach is running it" -- the gap that let demo.tarrow.org serve
+  # five-day-old code while the repository, the registry and the release were
+  # all current and green (TASK-0025).
+  #
+  # It polls the ORIGIN, not the host. Under the pull-based deploy decided in
+  # docs/decisions/task-0025-pull-based-cd.md, GitHub has no route to the demo
+  # machine by design -- no key, no port, no inbound anything -- so the only
+  # vantage point this job has is the public one a stranger also has. That is a
+  # feature: it verifies what a reader would actually receive, through
+  # Cloudflare and the tunnel, rather than what a container claims internally.
+  #
+  # `continue-on-error` because the RELEASE is not invalid if the demo is slow
+  # or offline: the images are published and immutable either way, and a
+  # self-hoster is unaffected. This job's job is to make the state VISIBLE --
+  # a red X on the run is how a stale demo announces itself, instead of waiting
+  # five days for somebody to notice by eye.
+  #
+  # The window is 20 minutes because the agent's timer is the pacing item, not
+  # the deploy: it polls every 5 minutes and the pull plus restart is under a
+  # minute. If this is failing while the tag is fine, the agent is not running
+  # -- check the host, not this workflow.
+  verify-demo:
+    needs: [publish, release]
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: The demo serves the version just released
+        run: |
+          node scripts/verify-deployed-version.mjs \
+            --expect "${GITHUB_REF_NAME#v}" \
+            --origin "${TARROW_DEMO_ORIGIN:-https://demo.tarrow.org}" \
+            --timeout 1200

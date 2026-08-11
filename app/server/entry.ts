@@ -25,6 +25,7 @@ import {
 } from "./http.ts";
 import { sealProcessOutput, writeSealedLine } from "./silence.ts";
 import { serveStaticAsset } from "./static.ts";
+import { serveVersion } from "./version.ts";
 
 const PORT = Number(process.env.PORT ?? 3000);
 
@@ -44,8 +45,15 @@ const listener = createRequestListener({
 // The client build is served by this same process (see server/static.ts for
 // why that is not an adapter and why a 404 stylesheet was a privacy defect).
 // Assets first, React Router for everything else.
+//
+// `/version` is answered here rather than as a route (see server/version.ts)
+// because it is a property of this SERVER, not a page: it has to keep answering
+// when the application bundle or the database behind it cannot, which is
+// exactly when somebody needs to know what build is running. Both handlers sit
+// inside `withSecurityEnvelope`, so neither escapes the security headers.
 const server = createServer(
   withSecurityEnvelope((req, res) => {
+    if (serveVersion(req, res)) return;
     if (serveStaticAsset(req, res)) return;
     return listener(req, res);
   }),
