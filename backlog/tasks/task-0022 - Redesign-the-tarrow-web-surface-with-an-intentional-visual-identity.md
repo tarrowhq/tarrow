@@ -1,10 +1,10 @@
 ---
 id: TASK-0022
 title: Redesign the tarrow web surface with an intentional visual identity
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-08-07 13:13'
-updated_date: '2026-08-07 20:45'
+updated_date: '2026-08-11 15:07'
 labels:
   - 'area:web'
   - 'kind:design'
@@ -113,3 +113,17 @@ ONE PRE-EXISTING BUG FOUND AND FIXED, unrelated to this redesign. tests/browser/
 
 Also worth recording for whoever runs this next: the worktree's database starts empty, and every result shape is search-failed until 'docker compose --profile etl run --rm etl' is run. 54 tests fail before that and it looks like a code regression.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Closed 2026-08-11. Delivered as PR #8 (merged 2026-08-09, ad10850) plus the wiki re-grounding in PR #9. All ten acceptance criteria were ticked on the branch and the artifacts are present on main.
+
+Both halves landed. VISUAL: two rounds of design options as static demo HTML, the operator rejected all of round 1 for varying paint rather than structure, round 2 varied structure, and direction E ("One Card", the card deck) was selected. The choice is recorded as a tracked decision in docs/decisions/task-0022-direction-e-one-card.md; the token system is docs/design/tarrow-design-system.md. Directions D and F were preserved as TASK-0023 and TASK-0024 rather than discarded.
+
+STRUCTURAL: result-view.tsx was decomposed — cards.tsx, finding-view.tsx, manifest-view.tsx and format.ts now exist alongside it — and styles.css was restructured into a stated layer system.
+
+The card sat In Progress for two days after its PR merged. That is the bookkeeping this closure fixes; the work itself was complete at ad10850.
+
+CARRIED FORWARD, and the reason this closure is not the end of the story: the redesign has been on main since 2026-08-09 and in a published image since sha-ad10850, but demo.tarrow.org was still serving sha-df4ce10 as of 2026-08-11 — pre-redesign code, five days stale. Nothing in the pipeline carries a published image to the running host. That is not a defect in this task's work, which shipped correctly; it is the deployment gap now carded as TASK-0025. A reader who tries to see direction E at demo.tarrow.org before TASK-0025 lands will not find it there.
+<!-- SECTION:FINAL_SUMMARY:END -->
