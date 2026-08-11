@@ -30,6 +30,12 @@ load), `test` (the suite), `browser-test` (Chromium), and `tools` (the TASK-0001
 container, frozen byte-identical so its published results keep reproducing). `docker compose
 up` starts none of them.
 
+The application image takes two build args, `TARROW_VERSION` and `TARROW_REVISION`, both
+defaulting to `unknown`. CI passes the release and the commit; a local build passes neither
+and the image says `unknown` rather than claiming a version it cannot prove. They are what
+`/version` reports (see [[http-envelope]]), which is how a deployed instance can be asked
+what it is running instead of only whether it is up.
+
 `db` is **built, not pulled**: `postgis/postgis` is amd64-only, which would exclude every
 self-hoster on ARM, and the component computing safety-critical distances should not come
 from an account that cannot be audited. Images are pinned rather than floating, so two

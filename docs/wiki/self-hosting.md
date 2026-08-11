@@ -43,7 +43,17 @@ Usage is `cp .env.deploy.example .env`, set the tag and both passwords, then
 
 **Which tag to set.** Every build publishes an immutable `sha-<short>`; a build from a `v*`
 tag also publishes the plain version (`v0.1.0` -> `0.1.0`). Either is a valid pin and neither
-moves. There is no `latest`.
+moves. There is no `latest` — with one live exception: the v0.1.0 release published one before
+`latest=false` was added to the metadata step, and that tag still exists, frozen at 0.1.0.
+`scripts/check-no-moving-tags.mjs` asks the registry on every publish and currently fails
+because of it; `docs/deploy/removing-the-latest-tag.md` is the removal procedure and explains
+why it is not a one-liner (`latest`, `0.1.0` and `sha-ff1094a` are three tags on one version
+object, so deleting the version would delete the release images).
+
+The rule and the enforcement are now separate claims on purpose: `latest=false` stops this
+workflow from publishing a moving tag, and the check verifies none is *there* — including one
+left by an earlier build or a hand push. Three documents said `latest` could not happen while
+it already had.
 
 Releases are cut by pushing a tag: `.github/workflows/release.yml` calls the publish workflow,
 waits for the smoke test that stands this composition up from the images it just built, and
@@ -51,6 +61,18 @@ only then creates the GitHub Release. It enters `publish-images.yml` through `wo
 rather than a `tags:` trigger because that workflow filters its push trigger by `paths`, and a
 paths filter applies to a tag push too -- a release cut from a commit that happened not to
 touch `app/` or `docker/` would otherwise publish nothing at all.
+
+**How a release reaches a running instance.** Publishing is not deploying, and conflating the
+two is how `demo.tarrow.org` served five-day-old code for five days while the repository, the
+registry and the release were all current and green. A `v*` tag deploys; a merge to `main`
+publishes an image and deploys nothing. The host runs `scripts/tarrow-deploy-agent.sh`, which
+polls the registry for the newest full semver tag, pins `TARROW_IMAGE_TAG`, restarts, and
+rolls back to the previous pin if the new version does not come up. Nothing pushes to the
+host — GitHub holds no key to it and there is no inbound port, which is the same property the
+request path was shortened to get. `release.yml`'s `verify-demo` job confirms the deploy by
+polling the public origin's `/version`, the only vantage point it has and the one a stranger
+shares. The reasoning and the credential inventory are in
+`docs/decisions/task-0025-pull-based-cd.md`.
 
 `docs/deploy/self-hosting.md` carries the full procedure, and its *What a reverse proxy can
 see* section must be read before exposing anything: tarrow keeps the searched address out of

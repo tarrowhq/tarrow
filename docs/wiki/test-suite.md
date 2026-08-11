@@ -10,6 +10,7 @@ sources:
   - app/tests/explain.test.ts
   - app/tests/docker.ts
   - app/tests/fixtures.ts
+  - app/tests/version.test.ts
   - app/tests/browser/form.test.ts
 verified_against: ad1085047fbf413d249818b651dcb224725409e3
 ---
@@ -26,7 +27,12 @@ The suite exists mostly to hold gates that other files declare. `no-logging.test
 probe address at the running composition and reads every log stream back — this is the test
 that found three framework log sites and produced [[process-output-seal]].
 `no-outbound.test.ts` asserts no module in the request path names a network client API and
-that the production dependency set is fixed. `copy.test.ts` scans the raw response body of
+that the production dependency set is fixed. It also holds an **allowlist of the files that
+may name `node:http` at all** — `entry.ts`, which creates the server, and `http.ts`,
+`static.ts` and `version.ts`, which import its types to describe the response they write.
+Anything else naming it is a caller rather than a listener, so adding a file to the request
+path fails this test until the addition is stated and justified. That is the intended
+friction: `version.ts` (TASK-0025) had to be added deliberately rather than passing unnoticed. `copy.test.ts` scans the raw response body of
 every result shape for permission vocabulary. `explain.test.ts` asserts the proximity query
 plan contains no `::geography` cast and does use the spatial index.
 
