@@ -636,8 +636,32 @@ function runPreWrite() {
   }
 
   // Worktrees are where changes are authored — always allowed.
-  if (realAbs.startsWith(joinPath(realProjectDir, '.worktrees') + '/')) {
-    process.exit(0);
+  //
+  // TWO ROOTS, because two different things create worktrees here and neither
+  // is going away:
+  //
+  //   .worktrees/          this project's own convention, and what CLAUDE.md
+  //                        and the block message below tell a human to use.
+  //   .claude/worktrees/   where the Claude Code harness's EnterWorktree tool
+  //                        creates and manages them. It will not create or
+  //                        enter one anywhere else.
+  //
+  // Accepting only the first was a deadlock rather than a stricter policy. A
+  // background session must isolate via EnterWorktree before it may write at
+  // all, EnterWorktree only manages .claude/worktrees/, and .claude/worktrees/
+  // resolves inside the root checkout — so every write it could legally make
+  // was refused by this very check, including a write that would fix this
+  // check. The two guards were individually correct and jointly admitted no
+  // legal path to author anything.
+  //
+  // Both are real worktrees: each has its own git toplevel, its own branch,
+  // and reaches main only by merge. The doctrine this hook enforces is "not
+  // authored in the root checkout", and neither location is the root checkout.
+  // Which directory the worktree happens to sit in was never the point.
+  for (const worktreeRoot of ['.worktrees', '.claude/worktrees']) {
+    if (realAbs.startsWith(joinPath(realProjectDir, worktreeRoot) + '/')) {
+      process.exit(0);
+    }
   }
 
   // Gitignored paths are not part of the checkout's tracked state
@@ -649,7 +673,8 @@ function runPreWrite() {
   // Tracked or would-be-tracked file in the root checkout: BLOCK.
   process.stderr.write(
     `root-guard: blocked write to ${realAbs} — the root checkout is READ-ONLY.\n` +
-      'Author this change on a branch in a worktree (.worktrees/<task-branch>) and land it on main by merge ' +
+      'Author this change on a branch in a worktree (.worktrees/<task-branch>, or ' +
+      ".claude/worktrees/<name> if the harness's EnterWorktree made it) and land it on main by merge " +
       '(PR `gh pr merge --merge` or manual `git merge --no-ff` at root).\n' +
       'See CLAUDE.md "Root checkout is READ-ONLY — worktree + merge only, no rebases". ' +
       'No bypass flag — emergencies go through the operator editing hook config, visibly and deliberately.\n'
