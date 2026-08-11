@@ -264,6 +264,20 @@ services:
       PGUSER: tarrow_app
       PGPASSWORD: tarrow_app
       PGDATABASE: tarrow
+      # The OWNER credentials, for tests/migration-drift.test.ts alone.
+      #
+      # That suite creates throwaway databases and runs migrations against
+      # them, which the read-only `tarrow_app` role above cannot do by design.
+      # It is the same split server/migrate.ts states: migrations run as the
+      # owner, the request path never does.
+      #
+      # This does NOT loosen what the rest of the suite runs as. Every other
+      # test still reaches the database through server/db.ts, whose pool is
+      # built from PGUSER/PGPASSWORD above, so the queries under test still
+      # execute with exactly the privileges production has. These two variables
+      # are read only by the drift suite, which touches no production table.
+      POSTGRES_USER: tarrow
+      POSTGRES_PASSWORD: tarrow
       # The running app, reached over the internal network by service name --
       # the same server a browser talks to through the published port.
       TARROW_APP_ORIGIN: http://app:3000

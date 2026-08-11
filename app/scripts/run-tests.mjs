@@ -58,7 +58,12 @@ const MINIMUM_TEST_FILES = 10;
 // Nothing was deleted: every obligation is still asserted, on the surface that
 // now carries it. This floor exists to make a silent shrink loud, so lowering
 // it is a diff somebody reviews rather than a number that drifts.
-const MINIMUM_TESTS = 208;
+// 208 -> 220: TASK-0025 added seven /version assertions and TASK-0027 added
+// three for migration drift -- the suite that builds a database at an older
+// revision and proves it converges with a fresh one. That last one is the only
+// test here that does not run against a freshly-built database, which is
+// exactly why it catches what nothing else could.
+const MINIMUM_TESTS = 220;
 
 const APP_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEST_DIR = path.join(APP_ROOT, "tests");

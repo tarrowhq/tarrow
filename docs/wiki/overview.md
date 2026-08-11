@@ -76,3 +76,9 @@ load roughly 520,000 rows, then `http://127.0.0.1:3000/`. The `etl`, `test`, and
 services sit behind compose profiles so `up` never starts them. The suite runs only as
 `docker compose --profile test run --rm test`. Deployment uses published images and a
 separate composition — see [[self-hosting]].
+
+Cutting a release, and getting it onto `demo.tarrow.org`, is `docs/deploy/RELEASING.md`, which
+the README points at from its deployment section. **Publishing an image is not deploying it**:
+a `v*` tag publishes and stops, and the demo moves only when its pinned tag changes and the
+deploy runs. That file is self-contained so the procedure does not live only in the private
+infrastructure repository, which is what made it get rediscovered three times.

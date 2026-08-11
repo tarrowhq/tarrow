@@ -10,6 +10,8 @@ sources:
   - app/sql/schema/004_school_premises.sql
   - app/sql/schema/005_coverage_gaps.sql
   - app/sql/schema/010_grants.sql
+  - app/sql/schema/015_coverage_gaps_label.sql
+  - app/tests/migration-drift.test.ts
   - docker/db/init/00-extensions.sql
 verified_against: ad1085047fbf413d249818b651dcb224725409e3
 ---
@@ -45,7 +47,21 @@ carry a *partial* index over non-mineral-rights rows, which is why queries spell
 `NOT is_mineral_rights`.
 
 Later migrations are corrections and additions made as new files rather than edits, because
-`schema_migrations` makes an edited migration a no-op on every existing database:
+`schema_migrations` makes an edited migration a no-op on every existing database — a rule this
+note stated correctly for months while the code broke it twice. TASK-0022 added
+`coverage_gaps.label` by editing `005` in place; every long-lived database skipped it,
+`manifest.sql` selected a column that was not there, and the manifest gate refused **every
+search** on demo.tarrow.org for three days while returning HTTP 200. `015_coverage_gaps_label.sql`
+adds the column, and `005` has been restored to what it actually applied.
+
+The rule is now enforced rather than remembered: `schema_migrations.checksum` records the hash
+of each file as applied, and the runner **fails** if an applied file has since changed
+(TASK-0027). `tests/migration-drift.test.ts` is the proof — it builds a database at an older
+revision, brings it forward, and compares it column-for-column against a fresh one. It is the
+only test here that does not run against a freshly-built database, which is precisely why it
+catches a class of defect every other test is blind to by construction.
+
+The list of new-file corrections:
 `008_municipality_identity.sql` (TWINSBURG is both a city and a township, so identity is
 `(name, kind)`), `009_parcel_id_optional.sql` (one published parcel carries no identifier at
 all — keeping the polygon matters more than tidying the label),
