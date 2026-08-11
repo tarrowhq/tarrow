@@ -11,6 +11,7 @@ sources:
   - app/tests/docker.ts
   - app/tests/fixtures.ts
   - app/tests/version.test.ts
+  - app/tests/migration-drift.test.ts
   - app/tests/browser/form.test.ts
 verified_against: 8ddb0b25621edf6b9072e9f354b9842271fbb32b
 ---
@@ -87,6 +88,16 @@ compared `undefined` against `200` on every run. It now captures the POST off th
 instead, which covers the hydrated path and the scripting-off path with one assertion —
 because what matters is the request the address rides in, not how the page changed
 afterwards.
+
+**One suite deliberately does not run against a freshly-built database**, and it is the only
+one that could have caught what it catches. `migration-drift.test.ts` builds a database at an
+older revision, brings it forward with the real runner, and compares it column-for-column
+against a fresh one. Every other test here runs against a database built in one pass from the
+current schema directory — which is the one shape in which an edited-in-place migration is
+invisible, because a fresh database applies the edited file whole. The deployed instance does
+not, and a missing `coverage_gaps.label` refused every search there for three days while the
+suite stayed green ([[database-schema]]). It also asserts the runner now *fails* on a
+checksum mismatch rather than skipping silently.
 
 **The floors move deliberately, in both directions.** `MINIMUM_TESTS` went 146 → 216 when
 TASK-0017 repaired copy gates that had been registering zero tests, and 216 → 208 when
