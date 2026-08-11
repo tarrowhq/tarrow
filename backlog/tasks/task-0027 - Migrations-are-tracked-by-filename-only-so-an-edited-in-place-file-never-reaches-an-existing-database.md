@@ -6,7 +6,7 @@ title: >-
 status: In Progress
 assignee: []
 created_date: '2026-08-11 17:56'
-updated_date: '2026-08-11 18:14'
+updated_date: '2026-08-11 18:28'
 labels:
   - 'area:data'
   - 'kind:bug'
@@ -45,3 +45,33 @@ TWO DEFECTS, and the second is the one that matters:
 - [x] #5 The manifest gate in app/server/manifest.ts is unchanged, and its behaviour of refusing to answer is explicitly affirmed rather than loosened
 - [ ] #6 demo.tarrow.org answers all three runbook verification addresses correctly, positive case first
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+2026-08-11 — PR #13 MERGED (b4be0e1). Wiki freshness green on main; publish-images running for
+the merge commit, which produces the first images carrying 015_coverage_gaps_label.sql.
+
+Shipped: 015_coverage_gaps_label.sql (idempotent forward migration), 005 restored to what it
+actually applied, schema_migrations.checksum with the runner FAILING on a mismatch,
+tests/migration-drift.test.ts, POSTGRES_USER/PASSWORD on the test service for that suite alone,
+MINIMUM_TESTS 208 -> 220, and eight wiki notes re-verified.
+
+Proven both directions against a database loaded with real data (261,130 parcels): 3 tests fail
+against origin/main's unfixed code with the production symptom ("coverage_gaps.label is missing
+from the staged database"), 3 pass with the fix. Full suite 220/220 across 12 files.
+
+A BUG I INTRODUCED AND CAUGHT, recorded because it is the more dangerous kind: the first
+version of migration-drift.test.ts inherited PGDATABASE from the compose test service, so the
+migration runner it spawned connected to the REAL database while the test believed it was
+migrating a throwaway one. It surfaced as `type "geometry" does not exist`, which reads like a
+broken PostGIS install rather than a test pointed at the wrong target. runMigrator now strips
+PGDATABASE/PGUSER/PGPASSWORD and passes the connection explicitly. A test that quietly migrates
+production is worse than no test.
+
+REMAINING (AC #6): demo.tarrow.org must answer all three runbook addresses. That needs a deploy
+of an image built from b4be0e1 or later -- 0.1.0 and sha-6ffcadd both PREDATE this migration and
+will not fix the instance. Sequence: cut a tag from current main, move tarrow_image_tag in
+infinitynode.media, run the deploy playbook against --limit misc, then verify positive case
+first (1464 Garman Rd -> inside a buffer). The infra agent's TASK-50 closes on the same event.
+<!-- SECTION:NOTES:END -->
