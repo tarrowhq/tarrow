@@ -3,10 +3,10 @@ id: TASK-0027
 title: >-
   Migrations are tracked by filename only, so an edited-in-place file never
   reaches an existing database
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-08-11 17:56'
-updated_date: '2026-08-11 18:28'
+updated_date: '2026-08-11 19:01'
 labels:
   - 'area:data'
   - 'kind:bug'
@@ -43,7 +43,7 @@ TWO DEFECTS, and the second is the one that matters:
 - [x] #3 The migration runner detects that an already-applied file has changed since it was applied, and fails loudly rather than skipping silently
 - [x] #4 A test proves the drift case: a database migrated at an older revision, then brought forward, ends with the same schema as one built fresh -- this must fail before the fix and pass after
 - [x] #5 The manifest gate in app/server/manifest.ts is unchanged, and its behaviour of refusing to answer is explicitly affirmed rather than loosened
-- [ ] #6 demo.tarrow.org answers all three runbook verification addresses correctly, positive case first
+- [x] #6 demo.tarrow.org answers all three runbook verification addresses correctly, positive case first
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -75,3 +75,44 @@ will not fix the instance. Sequence: cut a tag from current main, move tarrow_im
 infinitynode.media, run the deploy playbook against --limit misc, then verify positive case
 first (1464 Garman Rd -> inside a buffer). The infra agent's TASK-50 closes on the same event.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Fixed and verified on the live instance 2026-08-11. PR #13 merged (b4be0e1), released as v0.1.1,
+deployed to demo.tarrow.org via infinitynode.media PR #20.
+
+The defect: 005_coverage_gaps.sql was edited in place to add `label` (TASK-0022). Migrations are
+keyed by filename, so every already-migrated database skipped it forever while every fresh one --
+including every CI run -- applied it whole. manifest.sql selected a column that was not there,
+and the gate in manifest.ts refused every search rather than answer without disclosing coverage.
+demo.tarrow.org returned "tarrow broke before it could check anything" with HTTP 200 for three
+days. The gate behaved correctly and was not touched.
+
+Shipped: 015_coverage_gaps_label.sql (idempotent: adds, backfills from description, then sets
+NOT NULL); 005 restored to what it actually applied; schema_migrations.checksum with the runner
+FAILING on an edited migration instead of skipping it; tests/migration-drift.test.ts, which
+builds a database at an older revision and proves it converges with a fresh one.
+
+Proven both directions against 261,130 loaded parcels: 3 tests fail on origin/main's code with
+the production symptom, 3 pass with the fix. Suite 220/220 across 12 files.
+
+Live verification, positive case first:
+  1464 Garman Rd, Akron       -> Result: inside a buffer tarrow checked
+                                 3 premises within 1,000 ft, 127.9 m vs the 304.8 m buffer,
+                                 matching the figures the infra runbook recorded on 2026-08-05
+  6947 Riverview Rd, Peninsula -> Result: outside every buffer we checked
+  1 Public Square, Cleveland   -> No result: could not find this address
+Migrate log shows `apply 015_coverage_gaps_label.sql` then `migrations complete`.
+
+A SECOND ROOT CAUSE found during the deploy, and it is the reason this took two fixes rather
+than one: infinitynode.media pinned tarrow_image_tag to sha-785b71f, a tag that exists ONLY in
+ghcr.io/evanstern -- the registry abandoned at the org move. Every tarrow release since had been
+publishing to a registry the deployment did not read, with both sides green. Fixed in
+infinitynode.media PR #20, which also repoints the four compose image lines and the runbook.
+
+A DIAGNOSTIC WART left deliberately, carded separately: search.ts returns reason
+"database-unreachable" both when the connection fails and when readManifest throws. The database
+was reachable throughout; the manifest QUERY failed. That label sent the infra agent looking at
+connectivity for a schema problem.
+<!-- SECTION:FINAL_SUMMARY:END -->

@@ -1,10 +1,10 @@
 ---
 id: TASK-0025
 title: 'Continuous deployment: a version tag releases to demo, and nothing else does'
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-08-11 15:01'
-updated_date: '2026-08-11 15:45'
+updated_date: '2026-08-11 19:02'
 labels:
   - 'x:deploy'
   - 'area:infra'
@@ -45,14 +45,14 @@ Out of scope, deliberately:
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [x] #1 The operator's choice between push-based CD and a host-side pull agent is recorded on this card, with its credential and inbound-access consequences named, before any workflow or agent config is written
-- [ ] #2 Pushing a v* tag deploys that version to demo.tarrow.org with no human step after the tag push
+- [x] #2 Pushing a v* tag deploys that version to demo.tarrow.org with no human step after the tag push
 - [x] #3 A merge to main publishes images but does not deploy, and this is demonstrated rather than asserted
 - [x] #4 The deployed instance is pinned to the tagged version or its sha-<short> equivalent, and docker-compose.deploy.yml still refuses to start without an explicit TARROW_IMAGE_TAG
-- [ ] #5 The existing latest tag is deleted from both ghcr.io/tarrowhq/tarrow-app and tarrow-db, and no pipeline publishes latest or any other moving tag
+- [x] #5 The existing latest tag is deleted from both ghcr.io/tarrowhq/tarrow-app and tarrow-db, and no pipeline publishes latest or any other moving tag
 - [x] #6 A check fails loudly if a moving tag reappears on either package, so its absence is enforced rather than remembered
 - [x] #7 After a deploy, the live origin is verified to serve the version just deployed -- a health check alone does not satisfy this, since the stale instance was healthy throughout
 - [x] #8 A failed deploy is visibly failed: the run does not report success, and the previously running version is still serving
-- [ ] #9 demo.tarrow.org serves the current release at the end of this task, verified against the running commit rather than by the site returning 200
+- [x] #9 demo.tarrow.org serves the current release at the end of this task, verified against the running commit rather than by the site returning 200
 - [x] #10 docs/deploy/self-hosting.md records the deploy path and the credentials it requires, in the same terms it already uses for the request path
 <!-- AC:END -->
 
@@ -187,3 +187,45 @@ OPERATOR RUNBOOK, in order:
 Left deliberately unticked rather than closed optimistically. The task is not done until the
 demo serves the release, which is the sentence the card was written around.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Done 2026-08-11. All ten acceptance criteria met and verified on the live instance.
+
+The operator's rule, implemented exactly: a version tag reaches demo.tarrow.org and nothing else
+does. A merge to main publishes images and deploys nothing. There is no `latest` to deploy.
+
+POSTURE (AC #1), resolved from an existing artifact rather than as a preference:
+docs/decisions/task-0025-pull-based-cd.md. The host's request path had been deliberately
+shortened until it had no inbound port; push-based CD would have had to undo that, and `gh secret
+list` was empty, so it would have created the first credential able to reach the machine rather
+than using an existing trust relationship. Corrected mid-task with a dated note when the demo
+turned out to be Ansible-managed from infinitynode.media: the DECISION holds -- nothing pushes
+from CI into the host -- but Ansible satisfies it here, and scripts/tarrow-deploy-agent.sh must
+NOT be installed alongside it, since Ansible re-pins on every run and the two would fight. That
+agent remains correct for a self-hoster with no configuration management.
+
+SHIPPED: /version (server/version.ts, stamped as build args, read at module load, answers when
+the database is down); scripts/verify-deployed-version.mjs; scripts/check-no-moving-tags.mjs
+wired as a no-moving-tags job; release.yml verify-demo; the deploy agent; docs/deploy/RELEASING.md
+(TASK-0026) so the procedure is followable from this repository alone; and a root-guard fix that
+had deadlocked background sessions.
+
+AC #5 -- `latest` retired 2026-08-11. It shared a version object with 0.1.0 and sha-ff1094a, so
+deleting the version would have destroyed the release images; it was moved onto a throwaway
+scratch manifest first, then only the isolated version deleted, with a guard refusing unless the
+target carried `latest` and nothing else. The guard earned its keep: a first attempt hit a 404
+and correctly refused rather than treating an error as a pass. 0.1.0 still resolves to its
+original digest b49d8425 and 0.1.1 to d35ae5cf. check-no-moving-tags.mjs now exits 0.
+
+AC #2 and #9 -- v0.1.1 was cut, published, pinned in infinitynode.media (PR #20) and deployed.
+demo.tarrow.org reports {"version":"0.1.1"} and answers all three runbook addresses correctly.
+
+WHAT THE OUTAGE ACTUALLY TAUGHT, and the reason /version exists: the demo was healthy, answering,
+and passing every health check for five days while serving pre-redesign code. A check that stops
+at "it responded" would have passed throughout. The stale pin behind it -- sha-785b71f, in a
+registry abandoned at the org move -- was invisible from both sides, since tarrow's publish and
+the infra deploy were each green about different registries. Asking the running instance what it
+is was the only check that could have found it.
+<!-- SECTION:FINAL_SUMMARY:END -->
