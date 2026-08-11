@@ -7,7 +7,7 @@ sources:
   - docker/app/Dockerfile
   - docker/db/Dockerfile
   - docker/tools/Dockerfile
-verified_against: b5b247a6cb390ba505c674f0c77af551dd547949
+verified_against: 8ddb0b25621edf6b9072e9f354b9842271fbb32b
 ---
 
 # Container composition

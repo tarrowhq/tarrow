@@ -12,7 +12,7 @@ sources:
   - app/tests/fixtures.ts
   - app/tests/version.test.ts
   - app/tests/browser/form.test.ts
-verified_against: ad1085047fbf413d249818b651dcb224725409e3
+verified_against: 8ddb0b25621edf6b9072e9f354b9842271fbb32b
 ---
 
 # Test suite

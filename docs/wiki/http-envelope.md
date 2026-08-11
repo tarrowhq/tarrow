@@ -7,7 +7,7 @@ sources:
   - app/server/http.ts
   - app/server/static.ts
   - app/server/version.ts
-verified_against: 6d60a311a4e38c2e7520aa71dc141ac5bd014599
+verified_against: 8ddb0b25621edf6b9072e9f354b9842271fbb32b
 ---
 
 # HTTP envelope
