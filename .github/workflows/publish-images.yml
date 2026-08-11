@@ -207,6 +207,21 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # WHAT THE IMAGE WILL SAY IT IS when asked at /version.
+          #
+          # `version` is the release (`0.1.0`) on a tag build, and empty on a
+          # branch build -- metadata-action resolves it from the ref, exactly as
+          # it does for the semver tag above. The Dockerfile defaults both to
+          # `unknown`, so a branch build reports `unknown` rather than claiming
+          # a version it does not have, and the deploy verification treats
+          # `unknown` as matching nothing.
+          #
+          # This is what makes a stale instance findable. demo.tarrow.org served
+          # five-day-old code while healthy because nothing on the running
+          # instance could be asked which build it was (TASK-0025).
+          build-args: |
+            TARROW_VERSION=${{ steps.meta.outputs.version }}
+            TARROW_REVISION=${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
 
@@ -334,5 +349,36 @@ jobs:
           curl -fsS http://127.0.0.1:3000/ > /dev/null
           echo "The application answered on the published port."
 
+      # ...and it can say WHAT it is. A running instance that cannot be asked
+      # which build it is was how demo.tarrow.org served five-day-old code
+      # while every health check passed (TASK-0025). `/version` is what the
+      # deploy verification and the host's own agent read, so it is checked
+      # here on the artifact a stranger pulls, not only in the unit suite.
+      - name: It says what it is
+        run: |
+          body=$(curl -fsS http://127.0.0.1:3000/version)
+          echo "$body"
+          echo "$body" | grep -q '"revision":"${{ github.sha }}"' || {
+            echo "The image does not report the commit it was built from."
+            exit 1
+          }
+
       - if: always()
         run: docker compose -f docker-compose.deploy.yml down -v
+
+  # The rule that no moving tag exists is enforced against the REGISTRY, on
+  # every publish, rather than trusted to the workflow that creates the tags.
+  #
+  # Those are different claims. `latest=false` above stops this workflow from
+  # publishing one; this job checks that none is THERE -- including one left by
+  # an earlier build, a hand `docker push`, or a future edit that reintroduces
+  # the default. v0.1.0 published `latest` while three separate documents said
+  # it could not happen, so the registry gets asked rather than the docs.
+  no-moving-tags:
+    needs: [publish]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/check-no-moving-tags.mjs --owner ${{ github.repository_owner }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

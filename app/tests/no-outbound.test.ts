@@ -81,10 +81,15 @@ describe("no module in the request path can originate a network call", () => {
   }
 
   test("node:http appears only where the server is created", () => {
-    // The request path uses node:http to LISTEN, not to call out. Two files
-    // may name it: entry.ts, which creates the server, and http.ts, which
-    // imports its TYPES to describe the response envelope. Anything else
-    // naming node:http is a caller, not a listener.
+    // The request path uses node:http to LISTEN, not to call out. Four files
+    // may name it: entry.ts, which creates the server, and http.ts, static.ts
+    // and version.ts, which import its TYPES to describe the response they
+    // write. Anything else naming node:http is a caller, not a listener.
+    //
+    // version.ts (TASK-0025) answers `/version` with a string built at module
+    // load. It reads nothing at request time -- no database, no filesystem, no
+    // network -- which is why it can still answer when everything behind it is
+    // down, and that is the whole point of it.
     const carriers = REQUEST_PATH.filter((f) => /\bnode:http\b/.test(f.code))
       .map((f) => f.name)
       .sort();
@@ -92,6 +97,7 @@ describe("no module in the request path can originate a network call", () => {
       path.join("server", "entry.ts"),
       path.join("server", "http.ts"),
       path.join("server", "static.ts"),
+      path.join("server", "version.ts"),
     ]);
   });
 });

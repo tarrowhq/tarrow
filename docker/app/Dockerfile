@@ -64,6 +64,24 @@ FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
+# WHAT THIS IMAGE IS, baked in so the running instance can be asked.
+#
+# TASK-0025: demo.tarrow.org served five-day-old code while healthy and
+# answering, and there was no way to ask it which build it was. These two
+# values are what `/version` reports (server/version.ts), and what the deploy
+# verification compares against the tag it just deployed.
+#
+# They are ARGs rather than derived in here because the build has no git
+# history to read -- the build context is app/, not the repository -- and
+# because CI is the thing that knows both the release tag and the commit. A
+# local build that passes neither gets "unknown", which is honest: the
+# verification treats it as matching no expected version, so an unstamped
+# image can never be mistaken for a released one.
+ARG TARROW_VERSION=unknown
+ARG TARROW_REVISION=unknown
+ENV TARROW_VERSION=${TARROW_VERSION}
+ENV TARROW_REVISION=${TARROW_REVISION}
+
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
