@@ -30,9 +30,21 @@ exists to fix, where the site served pre-redesign code for five days after v0.1.
 
 ## 2. The host pulls; GitHub does not push
 
-The deploy is performed by an agent running **on the demo host**, which polls GHCR for the
-newest semver tag and reconciles the running composition to it. GitHub Actions does not
-connect to the host, hold a key to it, or know it exists.
+The deploy is performed **from the host's side**, not from CI: something on or near the host
+decides to move to a new version and pulls it. GitHub Actions does not connect to the host,
+hold a key to it, or know it exists.
+
+> **Correction, 2026-08-11, after this decision was first written.** The demo host is already
+> managed by Ansible from a private infrastructure repository (`infinitynode.media`), which
+> pins the image tag and runs a deploy playbook. That is the mechanism this deployment uses,
+> and it satisfies the decision — the push comes from an operator's machine reaching out, not
+> from CI reaching in.
+>
+> `scripts/tarrow-deploy-agent.sh`, written alongside this document, polls the registry and
+> self-updates. It is **not** installed on the demo host and must not be: Ansible re-pins from
+> its own vars on every run, so the two would fight, each reverting the other. The agent is
+> for a self-hoster with no configuration management. The distinction is now recorded in
+> `docs/deploy/RELEASING.md`, which is the procedure of record.
 
 The alternative — push-based CD, an Actions job with an SSH key or a Cloudflare Access
 service token — is the more common arrangement and was rejected on this project's own stated

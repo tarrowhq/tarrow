@@ -124,6 +124,26 @@ resolves to, edit that one line in `.claude/agents/<tier>-implementer.md` — a 
 **outside every marker**, no drift, no `--force`. The table recommends; the frontmatter pins.
 
 <!-- pdlc:peer:backlog BEGIN -->
+## Releasing and deploying — read the runbook, do not reconstruct it
+
+**`docs/deploy/RELEASING.md` is the procedure for cutting a release and for updating
+`demo.tarrow.org`.** Read it before answering any question about releases, deploys, or why
+the demo is out of date. It is self-contained: following it needs no other repository
+checked out.
+
+The one fact worth carrying in your head, because everything else follows from it:
+**publishing an image is not deploying it.** A `v*` tag builds and publishes pinned
+multi-arch images to GHCR and creates a GitHub Release, and stops. `demo.tarrow.org` runs
+whatever tag is pinned in the *infrastructure* repository (`infinitynode.media`,
+`ansible/inventory/group_vars/docker_hosts/service_config.yml`) and moves only when that line
+changes and the Ansible playbook is run against the `misc` host. A release without that
+second half leaves the demo serving exactly what it served before — healthy, answering, and
+stale, which is what happened for five days in August 2026.
+
+Do not infer the deploy path from the code, and do not design a new one: it already exists,
+it is Ansible, and `scripts/tarrow-deploy-agent.sh` is for self-hosters without configuration
+management rather than for this deployment.
+
 ## Backlog.md — the board (officially supported peer)
 
 Backlog.md is this project's kanban; the board is the plan of record. Statuses flow
