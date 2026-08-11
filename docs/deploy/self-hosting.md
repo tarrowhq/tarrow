@@ -305,6 +305,59 @@ docker compose -f docker-compose.deploy.yml up -d
 Migrations run automatically before the application starts; that ordering is structural, not
 a convention you have to remember.
 
+### Ask your instance what it is running
+
+```sh
+curl -s https://your-instance.example/version
+{"version":"0.1.0","revision":"0a24287…"}
+```
+
+`version` is the release the image was built from, and `revision` the commit. An instance
+built locally, or from an unstamped image, honestly answers `unknown` rather than claiming a
+version it cannot prove.
+
+**Do not use a health check to answer this question.** It is worth being blunt about why,
+because this project got it wrong: `demo.tarrow.org` served five-day-old code from
+2026-08-06 to 2026-08-11, missing an entire redesign and a CSP change, while returning 200
+to every request and passing its container healthcheck on every interval. Nothing was down.
+A stale instance is a *working* instance, which is exactly what makes it hard to notice. The
+only check that catches it is one that compares what is running against what should be.
+
+To check it the way CI does, including waiting out a deploy in progress:
+
+```sh
+node scripts/verify-deployed-version.mjs --expect 0.1.0 \
+  --origin https://your-instance.example --timeout 600
+```
+
+### Updating automatically, if you want to
+
+`scripts/tarrow-deploy-agent.sh` runs **on your host** and reconciles it to the newest
+released version: it asks the registry, and if you are behind, pins `TARROW_IMAGE_TAG` and
+restarts. If the new version does not come up healthy it puts the previous one back — every
+published tag is immutable, so rolling back is just pinning the old version again, and the
+database is a derived projection that a version change does not touch.
+
+```sh
+install -m 0755 scripts/tarrow-deploy-agent.sh /opt/tarrow/tarrow-deploy-agent.sh
+/opt/tarrow/tarrow-deploy-agent.sh --dry-run     # say what it would do
+```
+
+```cron
+*/5 * * * * /opt/tarrow/tarrow-deploy-agent.sh >> /var/log/tarrow-deploy.log 2>&1
+```
+
+It only ever deploys a full release (`0.1.0`), never `latest` and never a build from `main` —
+there is no `latest` to deploy, by design, and a moving tag is how two instances end up
+computing statutory distances from different code while claiming the same version.
+
+**The direction of this matters more than the convenience.** Your host reaches out to the
+registry; nothing reaches in. There is no inbound port to open, no key held by anyone else,
+and no CI system with the ability to execute on your machine. That is the same reasoning
+behind everything in *What your reverse proxy can see* above, applied to the deploy path
+instead of the request path — see `docs/decisions/task-0025-pull-based-cd.md` for the full
+argument and the credential inventory.
+
 ---
 
 ## What this document does not cover
@@ -345,6 +398,23 @@ reverse proxy whose access log recorded client IPs — three parties in front of
 instead of one. Collapsing it to a single tunnel removed two of them, and removed the inbound
 port and a hand-maintained routing file at the same time. If you are putting tarrow behind
 something, fewer hops is available and is usually also less work.
+
+**How it updates.** A `v*` tag publishes the images; the host's own copy of
+`scripts/tarrow-deploy-agent.sh` notices the new release and reconciles to it. A merge to
+`main` publishes an image and deploys nothing — only a release reaches the demo, because
+cutting a tag is a person deciding this should be in front of readers, and a merge is not
+that decision.
+
+Nothing pushes to this host. GitHub Actions holds no key to it and there is no port to
+receive one on, which is the same property the request path was shortened to get; the release
+workflow confirms the deploy by polling the public origin, exactly as any stranger would.
+The reasoning and the full credential inventory are in
+`docs/decisions/task-0025-pull-based-cd.md`.
+
+For five days in August 2026 this instance served pre-redesign code while healthy and
+answering — the images were published, and nothing carried them the last hop. That is why
+there is an agent and a `/version` endpoint at all, and why the release workflow now fails
+visibly when the demo has not taken a release.
 
 It is written down here rather than omitted because a project whose whole argument is
 *check us, do not trust us* does not get to describe the good arrangement and quietly run a
