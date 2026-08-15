@@ -20,15 +20,15 @@ ticked and its work is committed on `task-0029-sweep-ends-live`.
 
 ## Phase 2: The release script
 
-- [ ] `scripts/release-tarrow.mjs`: derive the next unused patch version from the highest
+- [x] `scripts/release-tarrow.mjs`: derive the next unused patch version from the highest
       existing `v*` tag.
-- [ ] Refuse-if-exists (plan D1): if the derived tag already exists, exit nonzero and report;
+- [x] Refuse-if-exists (plan D1): if the derived tag already exists, exit nonzero and report;
       never re-push or force-move a published version.
-- [ ] Cut and push the annotated tag.
-- [ ] Wait for `release.yml` and report which job failed if it does — the v0.1.1 case
+- [x] Cut and push the annotated tag.
+- [x] Wait for `release.yml` and report which job failed if it does — the v0.1.1 case
       (`no-moving-tags` failing, `release` and `verify-demo` skipped) is the worked example.
-- [ ] `--dry-run` that prints the version it would cut and does nothing else.
-- [ ] Report the v0.1.1 half-release as an operator action rather than repairing it (D1).
+- [x] `--dry-run` that prints the version it would cut and does nothing else.
+- [x] Report the v0.1.1 half-release as an operator action rather than repairing it (D1).
 
 ## Phase 3: The deploy caller and its honest degradation
 
