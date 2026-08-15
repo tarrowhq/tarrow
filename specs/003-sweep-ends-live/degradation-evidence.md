@@ -20,22 +20,25 @@ has never spoken to us, and that person has no `infinitynode.media`. The run is 
 `env -i` with no `HOME`, so **neither** resolution path can find anything — the closest
 reachable stand-in for a stranger's machine.
 
+> **Re-run 2026-08-15 by the orchestrator, after a resolution fix.** This case was first
+> recorded with `TARROW_INFRA_REPO=/nonexistent/path`, which reached the declined path only
+> because a set-but-missing override fell through to the default. That fallthrough was a
+> defect and is now a hard stop (case 4 below), so the transcript below is the re-run with
+> the variable simply **unset** — which is also the honest self-hoster scenario: a stranger
+> does not set a variable naming our private repo.
+
 ```
 $ env -i PATH=/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin \
-    TARROW_INFRA_REPO=/nonexistent/path \
     /bin/bash ./scripts/deploy-demo.sh 0.1.2
 ```
 
 ```
-2026-08-15T18:55:42Z deploy-demo: $TARROW_INFRA_REPO is set to '/nonexistent/path', which is not a directory.
-2026-08-15T18:55:42Z deploy-demo: Falling through to the default location. If that is not what you meant, stop now.
-
 DECLINED: there is no instance to move.
 
 The private infrastructure repository that pins what demo.tarrow.org runs
 could not be found. Every path tried, in order:
 
-    /nonexistent/path   (from $TARROW_INFRA_REPO)
+    $TARROW_INFRA_REPO   (not set)
     /nonexistent-home/projects/infinitynode.media   (the default location)
 
 IF YOU ARE SELF-HOSTING, THIS IS EXPECTED AND IS NOT AN ERROR IN YOUR SETUP.
@@ -71,17 +74,17 @@ nothing to do about the one machine they are responsible for.
 
 This is also **the live state of this repo today**: the infra-side
 `scripts/deploy-tarrow.sh` does not exist yet — it is carded on the `infinitynode.media`
-board (ruling 3 / AC#5). The `$TARROW_INFRA_REPO` override is set to a nonexistent path to
-show the D3 fallthrough; the resolved repo is the real checkout.
+board (ruling 3 / AC#5). The repo resolves from the default location, which is a real
+checkout on this machine.
+
+> **Re-run 2026-08-15 by the orchestrator.** Same reason as case 1: the original transcript
+> carried the fallthrough warning, which no longer exists. Invocation is now the plain one.
 
 ```
-$ TARROW_INFRA_REPO=/nonexistent/path ./scripts/deploy-demo.sh 0.1.2
+$ ./scripts/deploy-demo.sh 0.1.2
 ```
 
 ```
-2026-08-15T18:55:46Z deploy-demo: $TARROW_INFRA_REPO is set to '/nonexistent/path', which is not a directory.
-2026-08-15T18:55:46Z deploy-demo: Falling through to the default location. If that is not what you meant, stop now.
-
 FAILED: the infra repo is here, but its tarrow deploy script is not.
 
     infra repo:     /Users/evanstern/projects/infinitynode.media
@@ -185,6 +188,7 @@ Requests were sent to the origin; nothing was deployed and no pin was moved.
 | No version argument | `./scripts/deploy-demo.sh` | 2 | usage — nothing attempted |
 | `latest` as the version | `./scripts/deploy-demo.sh latest` | 2 | usage — no moving tags (§3) |
 | No infra repo anywhere | case 1 above | **3** | **DECLINED** |
+| `$TARROW_INFRA_REPO` names a missing dir | case 6 below | **1** | **FAILED** — stops, never falls through |
 | Infra repo, no deploy script | case 2 above | **1** | **FAILED** |
 | Infra script exits nonzero | stub exiting 7 | **1** | **FAILED**, naming exit 7 |
 | Origin serves the wrong version | stub + `--expect 9.9.9` | **1** | **FAILED** — "serves 0.1.1, expected 9.9.9" |
@@ -195,3 +199,50 @@ Requests were sent to the origin; nothing was deployed and no pin was moved.
 The last success row was produced by pointing the script at a stub infra script and the real
 origin at the version it already serves. It proves the verification half end-to-end. **No
 deploy was performed at any point in this phase.**
+
+---
+
+## 6. FAILED — `$TARROW_INFRA_REPO` names a directory that is not there
+
+**Added 2026-08-15 by the orchestrator, with the fix it records.**
+
+As first written, a set-but-missing `$TARROW_INFRA_REPO` printed a warning and then fell
+through to the default location. Plan D3 reads as a fallback chain, so that was a defensible
+reading of the plan — but it is the wrong behaviour, and the reason is this task's own
+subject matter.
+
+Setting that variable is an operator **naming the repository to deploy from**. If it does not
+resolve, the honest answer is *the thing you named is not there* — not *deploying from
+somewhere else instead*. A typo would otherwise deploy the demo from a repo nobody asked for,
+and the warning saying so would scroll past in an automated sweep that, by design, nobody is
+watching. That is this task's own failure mode — a deploy that looks like it worked while the
+origin serves something other than what was intended — reintroduced one layer down.
+
+The empty/unset case is different and still falls through: it names nothing, so there is
+nothing to contradict. That is case 1.
+
+```
+$ env -i PATH=/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin \
+    TARROW_INFRA_REPO=/nonexistent/path \
+    /bin/bash ./scripts/deploy-demo.sh 0.1.2
+```
+
+```
+FAILED: $TARROW_INFRA_REPO names a directory that does not exist.
+
+    $TARROW_INFRA_REPO: /nonexistent/path
+    problem:            no such directory
+
+This is not the self-hoster case and is not reported as declined: you
+explicitly named a repository to deploy from, and it is not there. Rather
+than quietly deploying from the default location instead -- which a typo
+here would make invisible -- this run stops.
+
+Fix the path, or unset $TARROW_INFRA_REPO to use the default
+(/nonexistent-home/projects/infinitynode.media).
+
+Version 0.1.2 was NOT deployed to https://demo.tarrow.org.
+```
+
+**Exit code: 1 (FAILED).** Not 3 — a self-hoster does not set a variable naming our private
+repository, so this can only be an operator whose path is wrong.

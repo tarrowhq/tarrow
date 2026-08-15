@@ -199,11 +199,37 @@ if [ -n "${TARROW_INFRA_REPO:-}" ]; then
   if [ -d "$TARROW_INFRA_REPO" ]; then
     INFRA_REPO="$TARROW_INFRA_REPO"
   else
-    # D3 is a fallback chain, so a set-but-missing override falls through rather
-    # than stopping. Say so out loud: a typo in that variable would otherwise
-    # deploy from a repo the operator did not name, and find out later.
-    warn "\$TARROW_INFRA_REPO is set to '$TARROW_INFRA_REPO', which is not a directory."
-    warn "Falling through to the default location. If that is not what you meant, stop now."
+    # A set-but-missing override STOPS. It does not fall through.
+    #
+    # D3 reads as a fallback chain, and this was first written to fall through
+    # with a warning. That is wrong, and the difference is not cosmetic: setting
+    # this variable is an operator naming the repo to deploy from. If it does not
+    # resolve, the honest answer is "the thing you named is not there", not
+    # "deploying from somewhere else instead". Falling through means a typo
+    # deploys the demo from a repo nobody asked for, and the warning that said so
+    # scrolls past in a sweep nobody is watching -- which is the whole failure
+    # mode this task exists to close, reintroduced one layer down.
+    #
+    # The empty case is different and still falls through: `TARROW_INFRA_REPO=`
+    # (or unset) names nothing, so there is nothing to contradict.
+    {
+      echo
+      echo "FAILED: \$TARROW_INFRA_REPO names a directory that does not exist."
+      echo
+      echo "    \$TARROW_INFRA_REPO: $TARROW_INFRA_REPO"
+      echo "    problem:            no such directory"
+      echo
+      echo "This is not the self-hoster case and is not reported as declined: you"
+      echo "explicitly named a repository to deploy from, and it is not there. Rather"
+      echo "than quietly deploying from the default location instead -- which a typo"
+      echo "here would make invisible -- this run stops."
+      echo
+      echo "Fix the path, or unset \$TARROW_INFRA_REPO to use the default"
+      echo "($DEFAULT_INFRA_HOME)."
+      echo
+      echo "Version $VERSION was NOT deployed to $ORIGIN."
+    } >&2
+    exit "$EXIT_FAILED"
   fi
 else
   TRIED+=("\$TARROW_INFRA_REPO   (not set)")
