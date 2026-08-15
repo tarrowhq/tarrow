@@ -65,14 +65,31 @@ touch `app/` or `docker/` would otherwise publish nothing at all.
 **How a release reaches a running instance.** Publishing is not deploying, and conflating the
 two is how `demo.tarrow.org` served five-day-old code for five days while the repository, the
 registry and the release were all current and green. A `v*` tag deploys; a merge to `main`
-publishes an image and deploys nothing. The host runs `scripts/tarrow-deploy-agent.sh`, which
-polls the registry for the newest full semver tag, pins `TARROW_IMAGE_TAG`, restarts, and
-rolls back to the previous pin if the new version does not come up. Nothing pushes to the
-host — GitHub holds no key to it and there is no inbound port, which is the same property the
-request path was shortened to get. `release.yml`'s `verify-demo` job confirms the deploy by
+publishes an image and deploys nothing.
+
+The last hop differs by who is running the instance, and the two arrangements must never both
+be in charge of one host, since each undoes the other. **A self-hoster** runs
+`scripts/tarrow-deploy-agent.sh`, which polls the registry for the newest full semver tag, pins
+`TARROW_IMAGE_TAG`, restarts, and rolls back to the previous pin if the new version does not
+come up. **`demo.tarrow.org`** does not run that agent: it is Ansible-managed from the private
+`infinitynode.media` repository, where a pinned tag is changed and a deploy playbook is run.
+`docs/deploy/RELEASING.md` carries that procedure in full so it does not live only in a
+repository most readers cannot see, and `docs/deploy/automated-release.md` documents the two
+scripts that perform it — `scripts/release-tarrow.mjs` cuts the tag and watches the workflow,
+`scripts/deploy-demo.sh` moves the demo and refuses to call it deployed on anything short of
+the live origin proving it.
+
+Since 2026-08-11 the tag is cut by automation rather than by hand; the human checkpoint is the
+pull request review that merged the code, not a later deliberate act
+(`docs/decisions/task-0029-sweep-auto-release.md`). The shape of the path is unchanged — a
+`v*` tag is still the only thing that reaches the demo — and so is the credential posture.
+Nothing pushes to the host: GitHub holds no key to it and there is no inbound port, which is
+the same property the request path was shortened to get, and the deploy is still driven from
+an operator's machine reaching out. `release.yml`'s `verify-demo` job confirms the deploy by
 polling the public origin's `/version`, the only vantage point it has and the one a stranger
 shares. The reasoning and the credential inventory are in
-`docs/decisions/task-0025-pull-based-cd.md`.
+`docs/decisions/task-0025-pull-based-cd.md`, whose §1 that amendment overturns and whose §2
+and §3 it explicitly leaves binding.
 
 `docs/deploy/self-hosting.md` carries the full procedure, and its *What a reverse proxy can
 see* section must be read before exposing anything: tarrow keeps the searched address out of
