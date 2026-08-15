@@ -4,7 +4,7 @@ title: 'A sweep ends live on demo.tarrow.org, not at a merged PR'
 status: In Progress
 assignee: []
 created_date: '2026-08-11 19:57'
-updated_date: '2026-08-15 18:32'
+updated_date: '2026-08-15 18:35'
 labels:
   - 'area:infra'
   - 'kind:feature'
@@ -21,49 +21,8 @@ GOAL, in the operator's words: 'sweep task xxxx' -> human in the middle only whe
 WHERE THE GAP ACTUALLY IS. /pdlc:sweep ends at 'merged'. Its 428-line SKILL.md contains no mention of release, tag, publish, or deploy, and its Output gate proves 'every scoped task Done on the board via its own merged PR, every project gate green on main' and stops. That is not a defect in the sweep -- it was written before tarrow had a deploy path -- but it means the last mile is manual by construction. On 2026-08-11 the whole chain (cut v0.1.1, move the pin, run the playbook, verify three addresses) was done by hand.
 
 ALREADY IN PLACE, verified 2026-08-11, so this task is smaller than it sounds:
-  - misc pulls the private GHCR packages: {
-   "schemaVersion": 2,
-   "mediaType": "application/vnd.oci.image.index.v1+json",
-   "manifests": [
-      {
-         "mediaType": "application/vnd.oci.image.manifest.v1+json",
-         "size": 2765,
-         "digest": "sha256:fb70c0e929c9a8509dff4d49aa8fe2a5b647d505fe7d92f9ed04df13118ef548",
-         "platform": {
-            "architecture": "amd64",
-            "os": "linux"
-         }
-      },
-      {
-         "mediaType": "application/vnd.oci.image.manifest.v1+json",
-         "size": 2765,
-         "digest": "sha256:3491b29fc076947f51d09fc3b433432bf84dd2695929909073da48d09fb8c0dc",
-         "platform": {
-            "architecture": "arm64",
-            "os": "linux"
-         }
-      },
-      {
-         "mediaType": "application/vnd.oci.image.manifest.v1+json",
-         "size": 565,
-         "digest": "sha256:dcdf0e5ae7f1ac367f89b54eeceb386b29182fb25fec1783c00a9f7bd8744143",
-         "platform": {
-            "architecture": "unknown",
-            "os": "unknown"
-         }
-      },
-      {
-         "mediaType": "application/vnd.oci.image.manifest.v1+json",
-         "size": 565,
-         "digest": "sha256:5119846d53969d4a53dcb006c012fe713755653960bc34d9f0d1db663e02c018",
-         "platform": {
-            "architecture": "unknown",
-            "os": "unknown"
-         }
-      }
-   ]
-} returns PULL_OK from the host.
-  -  is NOPASSWD on misc, so an unattended deploy needs no interactive auth.
+  - misc pulls the private GHCR packages (docker manifest inspect returns a valid multi-arch index from the host).
+  - Passwordless sudo is NOPASSWD on misc, so an unattended deploy needs no interactive auth.
   - The Ansible playbook runs non-interactively from a laptop checkout (bw-run.sh + venv).
   - /version, release.yml's verify-demo job, and check-no-moving-tags.mjs all work and are green.
 
@@ -76,6 +35,13 @@ WHAT IS MISSING, and it is three things:
 3. THE CHECK THAT WOULD HAVE CAUGHT THE LOST WEEK (infra side). Nothing verifies that the pinned tag RESOLVES in the registry the compose file names. tarrow_image_tag sat at sha-785b71f -- a tag existing only in the abandoned ghcr.io/evanstern -- while tarrow published to ghcr.io/tarrowhq. Both sides were green about different registries and the demo served 5-day-old code. A CI check in infinitynode.media that resolves every pinned image tag against its own compose file's registry closes it permanently.
 
 A DECISION TO RATIFY, NOT TO ASSUME. docs/decisions/task-0025-pull-based-cd.md records that only a version tag reaches demo, on the reasoning that cutting a tag IS a person deciding this should be in front of readers. A sweep that auto-releases overturns that. The argument for overturning it: the operator's PR approval already WAS the human checkpoint, and requiring a second deliberate act is exactly what this task exists to remove. The argument against: a sweep can merge several PRs, and 'approved this diff' is not identical to 'ship this to the public instance'. Whichever way it goes, it is an amendment to that decision record and must be written there rather than left implicit in a runbook.
+
+OPERATOR RULINGS, taken 2026-08-11 before the spec was authored (recorded in full in docs/design/task-0029-sweep-ends-live-runbook.md):
+  1. A sweep DOES cut the release tag automatically, overturning section 1 of task-0025-pull-based-cd.md, on the reasoning that PR approval already was the human checkpoint.
+  2. The pin-bump script lives in infinitynode.media; tarrow calls it by path and fails loudly when the infra repo is absent.
+  3. The infra half (AC#5) is carded on the infinitynode.media board and closes there, so one-task-one-PR holds across the repo boundary.
+
+Spec: specs/003-sweep-ends-live
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
