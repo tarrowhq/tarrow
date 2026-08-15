@@ -28,6 +28,21 @@ The consequence is accepted openly: `main` can sit ahead of the demo indefinitel
 is not drift. Drift is the demo sitting behind a *release* — which is the failure this task
 exists to fix, where the site served pre-redesign code for five days after v0.1.0 shipped.
 
+> **Amended, 2026-08-11, by `docs/decisions/task-0029-sweep-auto-release.md`.** This section
+> is no longer current as written and must not be read standalone. A sweep now cuts and pushes
+> the version tag itself: the human checkpoint is the PR review, not a second deliberate act
+> performed on a version number afterwards. What survives here is the trigger — a `v*` tag is
+> still the only thing that deploys, a merge to `main` still only publishes — and what falls is
+> the requirement that a person perform the tagging.
+>
+> The reasoning above is left in place deliberately: it is the record of what was believed and
+> why, and the amendment engages with it rather than replacing it. The argument it makes about
+> *what the demo is* is the argument that lost, and TASK-0029's record states it at full
+> strength along with what the change costs.
+>
+> **§2 and §3 below are not overturned.** No credential capable of reaching the demo host is
+> introduced, and no moving tag is created.
+
 ## 2. The host pulls; GitHub does not push
 
 The deploy is performed **from the host's side**, not from CI: something on or near the host

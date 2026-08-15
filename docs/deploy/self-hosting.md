@@ -404,9 +404,16 @@ them. That instance is managed by Ansible from a private infrastructure reposito
 pinned image tag is changed and a deploy playbook is run — not by the polling agent above,
 which exists for a self-hoster with no configuration management. Running both would mean each
 undoing the other. A merge to `main` publishes an image and deploys nothing: only a release
-reaches the demo, because cutting a tag is a person deciding this should be in front of
-readers, and a merge is not that decision. The full procedure, including the manual path for
-somebody without the infra repository, is `docs/deploy/RELEASING.md`.
+reaches the demo.
+
+Until 2026-08-11 the tag was cut by hand, and the reason given was that cutting one is a person
+deciding this should be in front of readers while a merge is not that decision. That is no
+longer how it works: the tag is now cut by automation, and the human decision is the pull
+request review that merged the code. The reasoning, and what the change cost, are in
+`docs/decisions/task-0029-sweep-auto-release.md`. Nothing about the *shape* of the path
+changed — a `v*` tag is still the only thing that reaches the demo, and a merge still deploys
+nothing. What changed is who pulls the trigger. The full procedure, including the manual path
+for somebody without the infra repository, is `docs/deploy/RELEASING.md`.
 
 Nothing pushes to this host. GitHub Actions holds no key to it and there is no port to
 receive one on, which is the same property the request path was shortened to get; the release
