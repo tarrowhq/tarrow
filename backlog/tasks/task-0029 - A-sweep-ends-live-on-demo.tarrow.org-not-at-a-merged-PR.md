@@ -4,7 +4,7 @@ title: 'A sweep ends live on demo.tarrow.org, not at a merged PR'
 status: In Progress
 assignee: []
 created_date: '2026-08-11 19:57'
-updated_date: '2026-08-15 18:35'
+updated_date: '2026-08-15 18:40'
 labels:
   - 'area:infra'
   - 'kind:feature'
@@ -52,4 +52,15 @@ Spec: specs/003-sweep-ends-live
 - [ ] #4 The deploy step verifies the origin serves the version just released, positive-case address first, and fails loudly if it does not
 - [ ] #5 A pinned image tag that does not resolve in the registry its compose file names fails a check rather than deploying silently
 - [ ] #6 The path degrades honestly where infinitynode.media is absent: a self-hoster clone still releases, and the deploy step says plainly that it has no instance to move
+- [ ] #7 Spec phase: The decision record
+- [ ] #8 Spec phase: The release script
+- [ ] #9 Spec phase: The deploy caller and its honest degradation
+- [ ] #10 Spec phase: Documentation, the Output-gate hook, and re-grounding
+- [ ] #11 Spec phase: The infra card (orchestrator)
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Dispatch tier recorded 2026-08-15: default tier, model claude-opus-5 (read from .claude/agents/default-implementer.md frontmatter, which is the pin this harness honors; fallback claude-opus-4-8). Justification: the task overturns a ratified decision record, draws a cross-repo boundary, and its failure mode lands on the public origin -- judgment work, not work to an existing pattern. This host has no .claude/model-tiers.json, so the rubric is the CLAUDE.md model-tiers table. Which model actually served each dispatch is recorded per phase below.
+<!-- SECTION:NOTES:END -->
