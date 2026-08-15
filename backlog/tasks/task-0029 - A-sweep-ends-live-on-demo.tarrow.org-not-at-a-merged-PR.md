@@ -4,7 +4,7 @@ title: 'A sweep ends live on demo.tarrow.org, not at a merged PR'
 status: In Progress
 assignee: []
 created_date: '2026-08-11 19:57'
-updated_date: '2026-08-15 19:16'
+updated_date: '2026-08-15 22:45'
 labels:
   - 'area:infra'
   - 'kind:feature'
@@ -69,4 +69,6 @@ AC#5 is carded on the infinitynode.media board as its TASK-51 (commit 7a11408, p
 Wiki re-grounding analysis for Phase 4, computed 2026-08-15 so the phase inherits it as an artifact rather than rediscovering it. NO wiki note lists scripts/ or docs/deploy/RELEASING.md among its 'sources:' -- so adding scripts/release-tarrow.mjs and scripts/deploy-demo.sh creates NO re-pin obligation by itself, and check-wiki-freshness.mjs passes on the branch as it stands (24/24 fresh). The obligation appears only if Phase 4 edits docs/deploy/self-hosting.md (source of note 'self-hosting'), README.md or CLAUDE.md (sources of note 'work-planning'). TWO NOTES CITE THE RELEASE POSTURE IN PROSE and are NEEDS-REVIEW rather than RE-PIN-ONLY if their sources move: docs/wiki/overview.md:80 says a v* tag 'publishes and stops, and the demo moves only when its pinned tag changes and the deploy runs', and docs/wiki/work-planning.md:88 describes the CLAUDE.md release instruction. The Phase 1 amendment changes what follows a merge, so that prose must be re-read against the diff and amended BEFORE any pin is bumped -- never bump to make the gate green.
 
 PR #14 opened 2026-08-15 and is green: wiki-freshness passed in CI, mergeable=MERGEABLE, state CLEAN. All 24 tasks.md boxes ticked across 5 phases; the spec-bridge derives Done-eligible. Awaiting operator review -- the sweep does not self-merge, and after docs/decisions/task-0029-sweep-auto-release.md that review IS the human checkpoint for everything downstream of it. AC#1/#2/#3/#4/#6 close in this PR; AC#5 closes on infinitynode.media TASK-51.
+
+Operator update 2026-08-15, verified against both repos rather than taken on report. (1) The live hazard is CLOSED: infra PR #19 merged, #20 closed as superseded; infra main now pins sha-6f548c5 against compose lines naming ghcr.io/tarrowhq; both tarrow-app and tarrow-db resolve at that tag in tarrowhq (docker manifest inspect); demo.tarrow.org serves revision 6f548c5 -- so Ansible's recorded state and the running host agree for the first time since the rename. (2) infra TASK-49 is Done. (3) The operator is writing infra TASK-51 (the registry-resolution check) now. The v0.1.1 Release object still does NOT exist (gh api releases returns v0.1.0 only), so that operator action remains open. NEW: the deploy seam is now carded as infra TASK-52 (commit d4c88ce, pushed) -- scripts/deploy-tarrow.sh, the driver tarrow's deploy-demo.sh already calls and nothing implements. It is separate from TASK-51 because TASK-51 is the check and TASK-52 is the driver: same repo, unrelated changes, independent PRs. AC#3's deploy half closes on TASK-52; AC#5 closes on TASK-51.
 <!-- SECTION:NOTES:END -->
