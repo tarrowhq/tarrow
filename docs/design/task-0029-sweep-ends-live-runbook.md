@@ -142,8 +142,17 @@ model from the first dispatch's transcript before launching any sibling dispatch
   `.github/workflows/release.yml`, `backlog/tasks/`. Board commits and this PR both touch
   `backlog/`; add specific task files, never `backlog/` wholesale.
 - **Cross-repo:** `infinitynode.media` is a **separate repository with its own board and
-  its own open PRs**. This sweep never commits there, never merges its PRs, and never runs
-  its playbook. Its work is carded and handed to the operator.
+  its own open PRs**. This sweep never merges its PRs, never touches its deployment
+  configuration, and never runs its playbook. Its deliverable work is carded and handed to
+  the operator.
+  > **Amended 2026-08-15, during execution.** This line originally read "never commits
+  > there". Phase 5's deliverable *is* a board card on that repo, which cannot be created
+  > without a commit in it. The rule as written would have made its own required phase
+  > impossible. Narrowed to what was actually meant: **no deliverable or configuration
+  > commits** in the infra repo — a board card is a bookkeeping commit and lands direct on
+  > that repo's `main` under its own two-track rule. TASK-51 was created and pushed there
+  > (`7a11408`) under this narrowed reading. Nothing in `ansible/` or `services/` was
+  > touched, and no PR of theirs was merged.
 - Reconcile by what the branch carries: a **pin-carrying branch** (this one will be, if it
   re-pins `self-hosting` or `work-planning`) **merges `origin/main` in** — never rebase,
   never squash, never force-push; its PR lands as a merge commit.

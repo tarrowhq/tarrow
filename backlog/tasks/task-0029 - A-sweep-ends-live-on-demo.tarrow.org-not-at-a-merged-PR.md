@@ -4,7 +4,7 @@ title: 'A sweep ends live on demo.tarrow.org, not at a merged PR'
 status: In Progress
 assignee: []
 created_date: '2026-08-11 19:57'
-updated_date: '2026-08-15 18:40'
+updated_date: '2026-08-15 18:51'
 labels:
   - 'area:infra'
   - 'kind:feature'
@@ -63,4 +63,6 @@ Spec: specs/003-sweep-ends-live
 
 <!-- SECTION:NOTES:BEGIN -->
 Dispatch tier recorded 2026-08-15: default tier, model claude-opus-5 (read from .claude/agents/default-implementer.md frontmatter, which is the pin this harness honors; fallback claude-opus-4-8). Justification: the task overturns a ratified decision record, draws a cross-repo boundary, and its failure mode lands on the public origin -- judgment work, not work to an existing pattern. This host has no .claude/model-tiers.json, so the rubric is the CLAUDE.md model-tiers table. Which model actually served each dispatch is recorded per phase below.
+
+AC#5 is carded on the infinitynode.media board as its TASK-51 (commit 7a11408, pushed to that repo's main): 'A pinned image tag that does not resolve in its compose file's registry fails a check, not a deploy'. Per the operator's ruling 3, AC#5 closes THERE, not here -- the check must read that repo's compose file, so it cannot be a tarrow PR. TASK-51 carries the live-hazard evidence: infra main pins sha-785b71f against compose lines naming ghcr.io/evanstern; that tag resolves in evanstern and NOT in tarrowhq; the demo serves 0.1.1, so the host was moved by hand and Ansible's state disagrees with the running instance; their PRs #19 and #20 both carry the repoint and are both unmerged. Merging one of those is the immediate operator action; TASK-51 is the permanent fix.
 <!-- SECTION:NOTES:END -->

@@ -60,9 +60,9 @@ ticked and its work is committed on `task-0029-sweep-ends-live`.
 
 ## Phase 5: The infra card (orchestrator)
 
-- [ ] Card AC#5 on the `infinitynode.media` board: a CI check resolving every pinned image tag
+- [x] Card AC#5 on the `infinitynode.media` board: a CI check resolving every pinned image tag
       against its own compose file's registry.
-- [ ] Record the live hazard on that card with its evidence: main pins `sha-785b71f` against a
+- [x] Record the live hazard on that card with its evidence: main pins `sha-785b71f` against a
       compose file naming `ghcr.io/evanstern/*`; the tag resolves in `evanstern` and not in
       `tarrowhq`; the demo serves `0.1.1`; PRs #19/#20 carry the fix and are unmerged.
-- [ ] Cross-reference the infra card from TASK-0029 so AC#5's closure is findable from here.
+- [x] Cross-reference the infra card from TASK-0029 so AC#5's closure is findable from here.
