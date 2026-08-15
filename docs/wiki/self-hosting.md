@@ -7,7 +7,7 @@ sources:
   - .env.deploy.example
   - docs/deploy/self-hosting.md
   - .github/workflows/publish-images.yml
-verified_against: 21fbc2c7ac7640712803c955ceff7b8ac6c9f888
+verified_against: 2649929e0be68515fd09b283674d0646085b168e
 ---
 
 # Self-hosting
