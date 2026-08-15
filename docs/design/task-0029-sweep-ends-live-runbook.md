@@ -198,3 +198,21 @@ model from the first dispatch's transcript before launching any sibling dispatch
 | date | task | PR | merge | tokens/cost (best-effort) | notes |
 |------|------|----|-------|---------------------------|-------|
 | 2026-08-11 | TASK-0029 | — | — | — | runbook authored; operator signed off on lanes; claim commit |
+| 2026-08-15 | TASK-0029 | #14 | pending | ~520k subagent tokens across 4 dispatches | phases 1–5 done, 24/24 boxes; all dispatches served `claude-opus-5`, verified from transcripts |
+
+### What the dispatches actually cost, and what held
+
+Four implementer dispatches, all at the `default` tier. **Model verified from the first
+dispatch's transcript before any sibling launched** (27/27 requests on `claude-opus-5`), and
+the frontmatter pin held on every one — including the two that ran in parallel.
+
+Phases 2 and 3 ran concurrently in one worktree because their file footprints were disjoint
+(`scripts/release-tarrow.mjs` vs `scripts/deploy-demo.sh`), each told to add files by explicit
+path. No conflict resulted. Phase 4 ran alone because it edits shared documentation and the
+wiki.
+
+**Verifying by running, not by reading the report, is what earned its keep.** Phase 3
+reported success; running its script showed a set-but-missing `$TARROW_INFRA_REPO` warning and
+then deploying from the default location — a typo would have deployed the demo from a repo
+nobody named, which is this task's own failure mode one layer down. Fixed in `ff8fcb5`, with
+the two invalidated evidence transcripts re-run rather than edited to match.
