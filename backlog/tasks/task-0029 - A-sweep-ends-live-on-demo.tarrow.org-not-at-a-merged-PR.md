@@ -1,9 +1,10 @@
 ---
 id: TASK-0029
 title: 'A sweep ends live on demo.tarrow.org, not at a merged PR'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-08-11 19:57'
+updated_date: '2026-08-15 18:32'
 labels:
   - 'area:infra'
   - 'kind:feature'
