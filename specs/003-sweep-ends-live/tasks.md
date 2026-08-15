@@ -32,17 +32,17 @@ ticked and its work is committed on `task-0029-sweep-ends-live`.
 
 ## Phase 3: The deploy caller and its honest degradation
 
-- [ ] `scripts/deploy-demo.sh` resolving the infra repo per plan D3
+- [x] `scripts/deploy-demo.sh` resolving the infra repo per plan D3
       (`$TARROW_INFRA_REPO` → `~/projects/infinitynode.media` → not found).
-- [ ] Absent-infra path exits nonzero, prints every path tried, and states plainly that a
+- [x] Absent-infra path exits nonzero, prints every path tried, and states plainly that a
       self-hoster has no such repo and this is expected. Never a silent no-op.
-- [ ] Delegate pin-bump and playbook to the infra-side script by path (ruling 2); do not
+- [x] Delegate pin-bump and playbook to the infra-side script by path (ruling 2); do not
       reimplement the Ansible invocation here.
-- [ ] Wire verification: `verify-deployed-version.mjs` for `/version`, then the three
+- [x] Wire verification: `verify-deployed-version.mjs` for `/version`, then the three
       addresses **positive case first** (`1464 Garman Rd` → *inside a buffer*).
-- [ ] Distinguish *declined* (no instance), *failed* (deploy or verify broke), and *deployed*
+- [x] Distinguish *declined* (no instance), *failed* (deploy or verify broke), and *deployed*
       in the exit code and the message. Never collapse them.
-- [ ] **Exercise** the absent-infra path (SC-004): actually run it with no infra repo
+- [x] **Exercise** the absent-infra path (SC-004): actually run it with no infra repo
       resolvable and record the output in this spec dir or the PR body. Asserting is not
       enough.
 
