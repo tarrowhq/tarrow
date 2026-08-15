@@ -48,15 +48,15 @@ ticked and its work is committed on `task-0029-sweep-ends-live`.
 
 ## Phase 4: Documentation, the Output-gate hook, and re-grounding
 
-- [ ] `docs/deploy/automated-release.md`: the repo-local release phase the sweep's Output gate
+- [x] `docs/deploy/automated-release.md`: the repo-local release phase the sweep's Output gate
       points at (FR-002).
-- [ ] Amend `docs/deploy/RELEASING.md` in this same PR (FR-007), keeping it followable without
+- [x] Amend `docs/deploy/RELEASING.md` in this same PR (FR-007), keeping it followable without
       the infra repo checked out.
-- [ ] Re-verify and honestly re-pin any `docs/wiki/` note whose sources this PR touched
+- [x] Re-verify and honestly re-pin any `docs/wiki/` note whose sources this PR touched
       (`self-hosting`, `work-planning`) — read the diff, classify RE-PIN-ONLY vs NEEDS-REVIEW,
       amend prose before bumping.
-- [ ] `node scripts/check-wiki-freshness.mjs` exits 0.
-- [ ] `node scripts/check-no-moving-tags.mjs` exits 0.
+- [x] `node scripts/check-wiki-freshness.mjs` exits 0.
+- [x] `node scripts/check-no-moving-tags.mjs` exits 0.
 
 ## Phase 5: The infra card (orchestrator)
 
