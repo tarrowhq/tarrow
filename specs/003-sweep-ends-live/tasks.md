@@ -7,15 +7,15 @@ ticked and its work is committed on `task-0029-sweep-ends-live`.
 
 ## Phase 1: The decision record
 
-- [ ] Write `docs/decisions/task-0029-sweep-auto-release.md` amending
+- [x] Write `docs/decisions/task-0029-sweep-auto-release.md` amending
       `docs/decisions/task-0025-pull-based-cd.md` §1: a sweep cuts the release tag
       automatically, on the operator's 2026-08-11 authority and stated reasoning.
-- [ ] State explicitly that §2 (*the host pulls; GitHub does not push*) and §3 (*no moving
+- [x] State explicitly that §2 (*the host pulls; GitHub does not push*) and §3 (*no moving
       tags*) are **not** overturned and remain binding.
-- [ ] Record the argument that was rejected — "a sweep can merge several PRs, and 'approved
+- [x] Record the argument that was rejected — "a sweep can merge several PRs, and 'approved
       this diff' is not identical to 'ship this to the public instance'" — so a future reader
       sees the trade, not just the outcome.
-- [ ] Add a pointer from `task-0025-pull-based-cd.md` to the amendment, so §1 is never read
+- [x] Add a pointer from `task-0025-pull-based-cd.md` to the amendment, so §1 is never read
       standalone as still-current.
 
 ## Phase 2: The release script
