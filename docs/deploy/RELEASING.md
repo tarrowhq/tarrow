@@ -24,6 +24,22 @@ That is not hypothetical. It is what happened between 2026-08-06 and 2026-08-11.
 
 ---
 
+## Two ways to do this, and which one you want
+
+Since 2026-08-11 there are two scripts that do everything below —
+`scripts/release-tarrow.mjs` for the release and `scripts/deploy-demo.sh` for the demo — and
+**they are the preferred path.** They exist because the steps in this document are not the hard
+part; what a person skips while typing them is. Their runbook, including every exit code and
+what a caller does about each, is
+[`docs/deploy/automated-release.md`](automated-release.md).
+
+Keep reading here anyway if you want to know what those scripts *do*, if one of them refuses
+and you need to understand why, or if you are deploying by hand — which the automated path
+cannot yet do end to end (its infra-side half is not written; see *Open items* in that file).
+This document remains the fallback and the explanation, and it is still true.
+
+---
+
 ## Where the deployment actually lives
 
 | | |
@@ -44,7 +60,22 @@ repository, and it is the only thing that decides what the public sees.
 
 ## Cutting a release
 
-From this repository, on `main`, with the working tree clean:
+**The current way:**
+
+```sh
+node scripts/release-tarrow.mjs --dry-run    # prints the version it would cut; writes nothing
+node scripts/release-tarrow.mjs
+```
+
+It derives the next unused patch from the highest existing `vX.Y.Z` — reading the tag list from
+both the local checkout and the remote — refuses if that tag already exists, refuses on a dirty
+tree, refuses if `HEAD` has not merged to `origin/main`, then cuts and pushes the annotated tag
+and watches the workflow, naming the job that failed if one does. It does not switch branches
+or pull for you; it checks that you are somewhere releasable and declines if you are not.
+[`automated-release.md`](automated-release.md) has its exit codes and every refusal.
+
+**What it does, and the manual equivalent.** From this repository, on `main`, with the working
+tree clean:
 
 ```sh
 git switch main && git pull
@@ -52,7 +83,14 @@ git tag -a v0.1.1 -m "What changed, in one line"
 git push origin v0.1.1
 ```
 
-That fires `.github/workflows/release.yml`, which:
+Do this when the script refuses for a reason you have decided is wrong, or when you have no
+`node`. Understand what you are stepping around first: those refusals are the only checkpoint
+left. Under `docs/decisions/task-0029-sweep-auto-release.md` (accepted 2026-08-11) cutting a
+tag is no longer a person deciding this should be in front of readers — the PR review is that
+decision, and the tag is machinery. Which means a tag pushed from an unmerged commit publishes
+code no PR approved, and nothing downstream will catch it.
+
+Either way, the push fires `.github/workflows/release.yml`, which:
 
 1. calls `publish-images.yml` (parity check → multi-arch build → push → smoke test),
 2. publishes `0.1.1` **and** `sha-<short>` for both `tarrow-app` and `tarrow-db`,
@@ -75,6 +113,20 @@ node scripts/check-no-moving-tags.mjs        # also asserts no `latest` crept in
 
 You need the `infinitynode.media` repository for this. **If you do not have it checked out,
 skip to [Deploying without the infra repo](#deploying-without-the-infra-repo).**
+
+**The intended way is one command**, which does steps 1 through 3 below and refuses to call it
+deployed unless the live origin proves it:
+
+```sh
+./scripts/deploy-demo.sh 0.1.1
+```
+
+**It does not work yet**, and this is the one place the automated path is genuinely incomplete.
+It delegates the pin bump and the playbook to `<infra repo>/scripts/deploy-tarrow.sh`, which
+has not been written — it is carded on the `infinitynode.media` board as TASK-51. Run today it
+resolves the infra repo, does not find that script, and exits 1 naming the path it wanted. So
+the steps below are the procedure until that card lands, and they are what the infra-side
+script will do once it exists.
 
 ```sh
 cd ~/projects/infinitynode.media
@@ -135,6 +187,9 @@ curl -sS -X POST https://demo.tarrow.org/answer \
   --data-urlencode 'address=1464 Garman Rd, Akron, OH 44313' | grep -i 'result'
 ```
 
+This table is where `deploy-demo.sh` gets its checks — same three addresses, same order, same
+expected strings. If you change a row here, change it there.
+
 ---
 
 ## Deploying without the infra repo
@@ -183,10 +238,13 @@ docker manifest inspect ghcr.io/tarrowhq/tarrow-app:0.1.1 >/dev/null 2>&1 && ech
 `verify-deployed-version.mjs` reporting the endpoint missing — correctly. Any tag cut after
 2026-08-11 has it.
 
-**A `latest` tag exists from the v0.1.0 release** and is frozen there forever. Removing it is
-`docs/deploy/removing-the-latest-tag.md`, and it must be **untagged, never deleted as a
-version** — `latest`, `0.1.0` and `sha-ff1094a` are three tags on one version object, so
-deleting the version destroys the release images.
+**A `latest` tag existed from the v0.1.0 release, and has been retired.** While it was there it
+failed `check-no-moving-tags.mjs` on every publish — which is what skipped the `release` job of
+the `v0.1.1` run and left that version with published images and no GitHub Release. Verified
+2026-08-15: both packages report ten tags and none moving. If one ever reappears,
+`docs/deploy/removing-the-latest-tag.md` is the procedure, and it must be **untagged, never
+deleted as a version** — `latest`, `0.1.0` and `sha-ff1094a` were three tags on one version
+object, so deleting the version destroys the release images.
 
 **`scripts/tarrow-deploy-agent.sh` and Ansible must not both be in charge.** The agent polls
 the registry and self-updates; Ansible re-pins from its vars on every run. Running both means
@@ -205,3 +263,9 @@ happening.
 **If you change how tarrow deploys, change it in both places in the same session.** The facts
 most likely to drift are the pinned-tag path, the host name, and the playbook invocation.
 Everything else here is stable.
+
+There is now a third place: [`automated-release.md`](automated-release.md) and the two scripts
+it documents. The same rule covers it — the three-address table above and the checks in
+`scripts/deploy-demo.sh` are the same claim written twice, and the manual playbook invocation
+above is what `<infra repo>/scripts/deploy-tarrow.sh` is contracted to run. A change to either
+is a change to both.
