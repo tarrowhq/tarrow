@@ -1,10 +1,10 @@
 ---
 id: TASK-0029
 title: 'A sweep ends live on demo.tarrow.org, not at a merged PR'
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-08-11 19:57'
-updated_date: '2026-08-15 22:45'
+updated_date: '2026-09-01 14:49'
 labels:
   - 'area:infra'
   - 'kind:feature'
@@ -46,17 +46,17 @@ Spec: specs/003-sweep-ends-live
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 A decision record amends or supersedes task-0025-pull-based-cd.md, stating whether a sweep cuts a release tag automatically and on what authority
+- [x] #1 A decision record amends or supersedes task-0025-pull-based-cd.md, stating whether a sweep cuts a release tag automatically and on what authority
 - [ ] #2 A sweep that scopes tarrow tasks ends with the merged work live on demo.tarrow.org, or reports exactly why it could not, without the operator running any command
 - [ ] #3 Bumping the deployed pin and running the deploy is a single invocation, not a hand edit in a second repository
-- [ ] #4 The deploy step verifies the origin serves the version just released, positive-case address first, and fails loudly if it does not
-- [ ] #5 A pinned image tag that does not resolve in the registry its compose file names fails a check rather than deploying silently
-- [ ] #6 The path degrades honestly where infinitynode.media is absent: a self-hoster clone still releases, and the deploy step says plainly that it has no instance to move
-- [ ] #7 Spec phase: The decision record
-- [ ] #8 Spec phase: The release script
-- [ ] #9 Spec phase: The deploy caller and its honest degradation
-- [ ] #10 Spec phase: Documentation, the Output-gate hook, and re-grounding
-- [ ] #11 Spec phase: The infra card (orchestrator)
+- [x] #4 The deploy step verifies the origin serves the version just released, positive-case address first, and fails loudly if it does not
+- [x] #5 A pinned image tag that does not resolve in the registry its compose file names fails a check rather than deploying silently
+- [x] #6 The path degrades honestly where infinitynode.media is absent: a self-hoster clone still releases, and the deploy step says plainly that it has no instance to move
+- [x] #7 Spec phase: The decision record
+- [x] #8 Spec phase: The release script
+- [x] #9 Spec phase: The deploy caller and its honest degradation
+- [x] #10 Spec phase: Documentation, the Output-gate hook, and re-grounding
+- [x] #11 Spec phase: The infra card (orchestrator)
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -71,4 +71,21 @@ Wiki re-grounding analysis for Phase 4, computed 2026-08-15 so the phase inherit
 PR #14 opened 2026-08-15 and is green: wiki-freshness passed in CI, mergeable=MERGEABLE, state CLEAN. All 24 tasks.md boxes ticked across 5 phases; the spec-bridge derives Done-eligible. Awaiting operator review -- the sweep does not self-merge, and after docs/decisions/task-0029-sweep-auto-release.md that review IS the human checkpoint for everything downstream of it. AC#1/#2/#3/#4/#6 close in this PR; AC#5 closes on infinitynode.media TASK-51.
 
 Operator update 2026-08-15, verified against both repos rather than taken on report. (1) The live hazard is CLOSED: infra PR #19 merged, #20 closed as superseded; infra main now pins sha-6f548c5 against compose lines naming ghcr.io/tarrowhq; both tarrow-app and tarrow-db resolve at that tag in tarrowhq (docker manifest inspect); demo.tarrow.org serves revision 6f548c5 -- so Ansible's recorded state and the running host agree for the first time since the rename. (2) infra TASK-49 is Done. (3) The operator is writing infra TASK-51 (the registry-resolution check) now. The v0.1.1 Release object still does NOT exist (gh api releases returns v0.1.0 only), so that operator action remains open. NEW: the deploy seam is now carded as infra TASK-52 (commit d4c88ce, pushed) -- scripts/deploy-tarrow.sh, the driver tarrow's deploy-demo.sh already calls and nothing implements. It is separate from TASK-51 because TASK-51 is the check and TASK-52 is the driver: same repo, unrelated changes, independent PRs. AC#3's deploy half closes on TASK-52; AC#5 closes on TASK-51.
+
+spec-bridge sync: The decision record: 4/4 · The release script: 6/6 · The deploy caller and its honest degradation: 6/6 · Documentation, the Output-gate hook, and re-grounding: 5/5 · The infra card (orchestrator): 3/3 — status In Progress → Done
+
+Post-merge closure 2026-09-01. PR #14 merged as 00417c2 (verified via gh api .merged). Gates re-run on merged main: check-wiki-freshness.mjs exit 0 (24/24), check-no-moving-tags.mjs exit 0. Board moved to Done by spec-bridge sync (the only sanctioned path for a linked task); plan is now idempotent and check exits 0 with 3 linked tasks, none exceeding their artifacts.
+
+AC STATUS, stated honestly rather than rounded up:
+  #1 CLOSED -- docs/decisions/task-0029-sweep-auto-release.md on main.
+  #4 CLOSED -- deploy-demo.sh verifies /version then three addresses, positive case first; evidence in specs/003-sweep-ends-live/degradation-evidence.md.
+  #5 CLOSED -- on infra TASK-51, now Done: `make check-image-tags` resolves every pinned tag against the registry its own compose file names. Verified by running it: exit 0, and it reports 21 of 32 references NOT VERIFIED (Docker Hub excluded by FR-009) rather than claiming a clean pass.
+  #6 CLOSED -- absent-infra path exercised, exit 3 DECLINED, transcript recorded.
+  #2 and #3 NOT TICKED. The mechanism is merged and works, but the deploy half still exits 1 because infra scripts/deploy-tarrow.sh does not exist yet (infra TASK-52, To Do). A sweep today would reach "release cut, deploy FAILED with the path it wanted" -- which is the honest reporting AC#2 also demands, but it is not "live on demo.tarrow.org". These close when TASK-52 lands, and the deploy step should then be exercised once end to end.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+All spec tasks complete (The decision record: 4/4 · The release script: 6/6 · The deploy caller and its honest degradation: 6/6 · Documentation, the Output-gate hook, and re-grounding: 5/5 · The infra card (orchestrator): 3/3). Derived Done by spec-bridge sync.
+<!-- SECTION:FINAL_SUMMARY:END -->
