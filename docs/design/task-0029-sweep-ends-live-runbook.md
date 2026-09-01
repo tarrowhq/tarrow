@@ -6,7 +6,7 @@ merge → re-ground. Direction is decided; do not re-litigate it: TASK-0029's ca
 operator's three rulings recorded under *Operator decisions* below win. Plan-of-record is
 the board; this file carries only ordering, doctrine, and the log.
 
-**Status:** signed-off · operator sign-off on lanes: 2026-08-11
+**Status:** done · operator sign-off on lanes: 2026-08-11 · closed 2026-09-01
 
 ## Read first (in this order)
 
@@ -198,7 +198,8 @@ model from the first dispatch's transcript before launching any sibling dispatch
 | date | task | PR | merge | tokens/cost (best-effort) | notes |
 |------|------|----|-------|---------------------------|-------|
 | 2026-08-11 | TASK-0029 | — | — | — | runbook authored; operator signed off on lanes; claim commit |
-| 2026-08-15 | TASK-0029 | #14 | pending | ~520k subagent tokens across 4 dispatches | phases 1–5 done, 24/24 boxes; all dispatches served `claude-opus-5`, verified from transcripts |
+| 2026-08-15 | TASK-0029 | #14 | `00417c2` | ~520k subagent tokens across 4 dispatches | phases 1–5 done, 24/24 boxes; all dispatches served `claude-opus-5`, verified from transcripts |
+| 2026-09-01 | TASK-0029 | — | — | — | merged; gates green on main; Done via `spec-bridge:sync`; branch and worktrees removed. AC#2/#3 left open — see below |
 
 ### What the dispatches actually cost, and what held
 
@@ -216,3 +217,37 @@ reported success; running its script showed a set-but-missing `$TARROW_INFRA_REP
 then deploying from the default location — a typo would have deployed the demo from a repo
 nobody named, which is this task's own failure mode one layer down. Fixed in `ff8fcb5`, with
 the two invalidated evidence transcripts re-run rather than edited to match.
+
+## What this sweep did and did not close (2026-09-01)
+
+PR #14 merged as `00417c2`. Gates re-run on merged main rather than trusted from the PR:
+`check-wiki-freshness.mjs` exit 0 (24/24), `check-no-moving-tags.mjs` exit 0,
+`spec-bridge check` exit 0. TASK-0029 moved to Done by `spec-bridge:sync`, the only
+sanctioned path for a linked task. Worktrees pruned, branch deleted.
+
+**Closed:** AC#1 (the decision record), AC#4 (positive-case-first verification), AC#6 (the
+absent-infra path, exercised and recorded). **AC#5 closed on infra TASK-51**, which is Done —
+verified by running `make check-image-tags` in that repo rather than by reading its card: it
+exits 0 and reports 21 of 32 pinned references NOT VERIFIED (Docker Hub excluded by its own
+FR-009) instead of claiming a clean pass. A check that overstated its coverage would have been
+worse than no check, in a task that exists because two repositories were green about different
+registries.
+
+**Not closed, and deliberately not ticked: AC#2 and AC#3.** The mechanism is merged and works,
+but the deploy half exits 1 until `infinitynode.media` `scripts/deploy-tarrow.sh` exists
+(infra **TASK-52**, To Do — carded during this sweep). A sweep run today reaches *release cut,
+deploy FAILED with the path it wanted*. That is the honest reporting AC#2 also asks for, but it
+is not *live on demo.tarrow.org*, and ticking it would make the board claim something the
+system cannot do.
+
+**The one thing the next session should not skip:** when TASK-52 lands, exercise the deploy
+step end to end once, then tick AC#2 and AC#3. This sweep deliberately never fired its own
+automation at the public origin — building the mechanism and pointing it at the live instance
+in the same change is a one-way door — so the first real run is still ahead, and it should be
+watched by a person.
+
+**Still open, unrelated to TASK-52:** `v0.1.1` is tagged with images published and no GitHub
+Release object. `release-tarrow.mjs --dry-run` reports it every run with the one-line fix
+(`gh release create v0.1.1 --title v0.1.1 --generate-notes --prerelease`). Per plan D1 the
+automation reports rather than repairs it, because republishing a version from a different
+tree is the drift Principle VII's pinning rule forbids.
